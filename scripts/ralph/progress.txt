@@ -237,3 +237,28 @@
 
 **Verified:**
 - [x] typecheck passes
+
+---
+## 2024-01-12 - US-011: Areas to Improve logic
+
+**Implemented:**
+- src/lib/analysis/improvements.ts with getImprovements(biomarkers, bodyComp)
+- Returns array of improvements sorted by severity
+- Compares against optimal ranges (not just normal)
+- Recommendations from HEALTH_KNOWLEDGE.md encoded as constants
+- Dashboard renders improvements with color-coded backgrounds
+- Shows encouraging message when all biomarkers optimal
+
+**Files created:**
+- src/lib/analysis/improvements.ts
+
+**Files modified:**
+- src/app/page.tsx
+
+**Learnings:**
+- Sort improvements by severity: out_of_range > borderline > normal
+- Use getStatusBgColor for card backgrounds
+- Target values formatted as ranges or thresholds
+
+**Verified:**
+- [x] typecheck passes

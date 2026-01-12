@@ -10,7 +10,9 @@ import {
   BIOMARKER_REFERENCES,
   getBiomarkerStatus,
   getStatusColor,
+  getStatusBgColor,
 } from '@/lib/types/health';
+import { getImprovements } from '@/lib/analysis/improvements';
 
 export default function Home() {
   // Load health data on server side
@@ -63,6 +65,9 @@ export default function Home() {
       colorClass: getStatusColor(status),
     };
   });
+
+  // Get improvements
+  const improvements = getImprovements(biomarkers, bodyComp);
 
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
@@ -228,9 +233,46 @@ export default function Home() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-zinc-500 dark:text-zinc-400">
-              Load your health data to see personalized recommendations
-            </p>
+            {improvements.length > 0 ? (
+              <div className="space-y-4">
+                {improvements.map((improvement) => (
+                  <div
+                    key={improvement.biomarker}
+                    className={`p-4 rounded-lg ${getStatusBgColor(improvement.status)}`}
+                  >
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <span className="font-medium text-zinc-900 dark:text-zinc-100">
+                          {improvement.displayName}
+                        </span>
+                        <span className={`ml-2 text-sm ${getStatusColor(improvement.status)}`}>
+                          {improvement.currentValue} {improvement.unit}
+                        </span>
+                      </div>
+                      <span className="text-sm text-zinc-500 dark:text-zinc-400">
+                        Target: {improvement.targetValue}
+                      </span>
+                    </div>
+                    <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                      {improvement.recommendation}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            ) : biomarkerEntries.length > 0 ? (
+              <div className="text-center py-4">
+                <p className="text-green-600 dark:text-green-400 font-medium">
+                  All biomarkers are within optimal ranges!
+                </p>
+                <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
+                  Keep up the great work maintaining your health.
+                </p>
+              </div>
+            ) : (
+              <p className="text-zinc-500 dark:text-zinc-400">
+                Load your health data to see personalized recommendations
+              </p>
+            )}
           </CardContent>
         </Card>
 

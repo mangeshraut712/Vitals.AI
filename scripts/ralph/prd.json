@@ -184,7 +184,7 @@
         "typecheck passes"
       ],
       "priority": 11,
-      "passes": false,
+      "passes": true,
       "notes": "Compare against 'optimal' column in HEALTH_KNOWLEDGE.md reference ranges, not just 'normal'. Common improvements: vitamin D, LDL, glucose."
     },
     {
