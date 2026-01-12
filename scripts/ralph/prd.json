@@ -151,7 +151,7 @@
         "typecheck passes"
       ],
       "priority": 9,
-      "passes": false,
+      "passes": true,
       "notes": "npx shadcn@latest add card. Use Tailwind grid. Placeholder text is fine for this story."
     },
     {

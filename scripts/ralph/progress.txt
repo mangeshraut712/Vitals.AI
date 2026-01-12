@@ -189,3 +189,25 @@
 
 **Verified:**
 - [x] typecheck passes
+
+---
+## 2024-01-12 - US-009: Dashboard layout shell
+
+**Implemented:**
+- Replaced default Next.js page with HealthAI dashboard
+- Header with title, Sync Data button, and age placeholders
+- 3-column responsive grid (1 col mobile, 2 col tablet, 3 col desktop)
+- Blood Work, DEXA Scan, Activity cards using shadcn/ui
+- Areas to Improve section
+- Chat section at bottom with placeholder
+
+**Files modified:**
+- src/app/page.tsx
+- Added src/components/ui/card.tsx (via shadcn)
+
+**Learnings:**
+- Tailwind responsive: grid-cols-1 md:grid-cols-2 lg:grid-cols-3
+- shadcn Card has CardHeader, CardTitle, CardDescription, CardContent
+
+**Verified:**
+- [x] typecheck passes
