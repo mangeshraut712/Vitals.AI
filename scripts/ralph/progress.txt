@@ -125,3 +125,24 @@
 
 **Verified:**
 - [x] typecheck passes
+
+---
+## 2024-01-12 - US-006: Biomarker extraction from text
+
+**Implemented:**
+- src/lib/extractors/biomarkers.ts with extractBiomarkers(text) function
+- Extracts all 9 Levine PhenoAge inputs using regex patterns
+- Also extracts lipid panel (LDL, HDL, triglycerides) and vitamin D
+- hasAllPhenoAgeInputs() helper to validate required biomarkers
+- Handles multiple name variations per biomarker
+
+**Files created:**
+- src/lib/extractors/biomarkers.ts
+
+**Learnings:**
+- Pattern: Use array of regex patterns per biomarker, first match wins
+- Handle variations like "C-Reactive Protein" vs "CRP" vs "hs-CRP"
+- Extract patient age from text for PhenoAge calculation
+
+**Verified:**
+- [x] typecheck passes
