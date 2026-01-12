@@ -262,3 +262,25 @@
 
 **Verified:**
 - [x] typecheck passes
+
+---
+## 2024-01-12 - US-012: Claude Agent SDK setup
+
+**Implemented:**
+- Installed @anthropic-ai/claude-agent-sdk
+- Created lib/agent/health-agent.ts with queryHealthAgent() and createHealthAgent()
+- Health-focused system prompt with reference ranges, verified sources, response guidelines
+- Allowed tools: Read, Bash, WebSearch, WebFetch
+- Medical disclaimer included in system prompt
+- Handles BetaMessage content extraction properly
+
+**Files created:**
+- src/lib/agent/health-agent.ts
+
+**Learnings:**
+- SDK returns SDKAssistantMessage with msg.message.content (BetaMessage)
+- Content is array of blocks, need to filter for type='text'
+- Use permissionMode: 'default' and maxBudgetUsd for safety
+
+**Verified:**
+- [x] typecheck passes

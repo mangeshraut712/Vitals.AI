@@ -200,7 +200,7 @@
         "typecheck passes"
       ],
       "priority": 12,
-      "passes": false,
+      "passes": true,
       "notes": "npm install @anthropic-ai/claude-agent-sdk. System prompt content from docs/HEALTH_KNOWLEDGE.md. Include disclaimer about not being medical advice."
     },
     {
