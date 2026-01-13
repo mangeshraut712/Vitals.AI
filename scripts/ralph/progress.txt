@@ -540,3 +540,27 @@ All 16 user stories have been implemented:
 - [x] typecheck passes
 - [x] renders in browser
 - [x] console logs body state
+
+---
+## 2025-01-13 - DT-007: Health to body state mapper
+
+**Implemented:**
+- Created src/lib/digital-twin/mapper.ts
+- mapHealthToBodyState(healthData) function
+- calculateAverageSleepScore() - from activity data or sleep hours
+- calculateAverageHrv() - from activity data
+- calculateEnergyLevel() - weighted 60% sleep, 40% HRV
+- determinePosture() - maps energy/HRV to PostureState
+- determineSkinTone() - maps energy to VITALITY_TONES
+- calculateHighlights() - visceral fat→torso, CRP→joints
+
+**Thresholds:**
+- Visceral fat: >2.0 critical, >1.5 warning, >1.0 mild
+- CRP: >3.0 critical (all joints), >2.0 warning (knees), >1.0 mild
+- Energy: ≥75 upright, ≥55 neutral, ≥35 slouched, <35 fatigued
+
+**Files created:**
+- src/lib/digital-twin/mapper.ts
+
+**Verified:**
+- [x] typecheck passes
