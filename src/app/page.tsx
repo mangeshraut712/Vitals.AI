@@ -132,7 +132,10 @@ export default function Home() {
               <CardDescription>Visual representation of your health</CardDescription>
             </CardHeader>
             <CardContent>
-              <DigitalTwin className="w-full min-h-[400px] aspect-[4/5]" />
+              <DigitalTwin
+                className="w-full min-h-[400px] aspect-[4/5]"
+                healthData={{ biomarkers, bodyComp, activity }}
+              />
             </CardContent>
           </Card>
 

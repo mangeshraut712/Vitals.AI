@@ -3,13 +3,21 @@
 import { useMemo, useState, useCallback } from 'react';
 import { TwinCanvas } from './TwinCanvas';
 import { ProceduralHuman } from './ProceduralHuman';
-import { HealthDataStore } from '@/lib/store/health-data';
 import { mapHealthToBodyState, HealthDataInput } from '@/lib/digital-twin/mapper';
 import { BodyState, DEFAULT_BODY_STATE, HighlightArea } from '@/lib/digital-twin/types';
 import { getRegionHealthData, RegionHealthData } from '@/lib/digital-twin/regions';
+import { ExtractedBiomarkers } from '@/lib/extractors/biomarkers';
+import { BodyComposition } from '@/lib/extractors/body-comp';
+import { ActivityData } from '@/lib/store/health-data';
 
 interface DigitalTwinProps {
   className?: string;
+  /** Health data passed from server component */
+  healthData?: {
+    biomarkers: ExtractedBiomarkers;
+    bodyComp: BodyComposition;
+    activity: ActivityData[];
+  };
 }
 
 /**
@@ -120,32 +128,33 @@ function StatusOverlay({ energyLevel, highlightCount }: StatusOverlayProps): Rea
   );
 }
 
+// Default empty health data
+const defaultHealthData: HealthDataInput = {
+  biomarkers: {},
+  bodyComp: {},
+  activity: [],
+};
+
 /**
  * Main Digital Twin wrapper component
  *
- * Reads health data from HealthDataStore, maps it to BodyState,
- * and renders the ProceduralHuman with the calculated state.
+ * Receives health data as props from a server component,
+ * maps it to BodyState, and renders the ProceduralHuman.
  */
-export function DigitalTwin({ className }: DigitalTwinProps): React.JSX.Element {
+export function DigitalTwin({ className, healthData }: DigitalTwinProps): React.JSX.Element {
   // State for selected region tooltip
   const [selectedRegion, setSelectedRegion] = useState<RegionHealthData | null>(null);
 
-  // Get health data from store
-  const healthData = useMemo(() => {
-    return {
-      biomarkers: HealthDataStore.getBiomarkers(),
-      bodyComp: HealthDataStore.getBodyComp(),
-      activity: HealthDataStore.getActivity(),
-    };
-  }, []);
+  // Use provided health data or defaults
+  const data = useMemo(() => healthData ?? defaultHealthData, [healthData]);
 
   // Map to body state
   const bodyState: BodyState = useMemo(() => {
     try {
-      const state = mapHealthToBodyState(healthData);
+      const state = mapHealthToBodyState(data);
 
       // Console log for debugging (acceptance criteria requirement)
-      console.log('[DigitalTwin] Health data input:', healthData);
+      console.log('[DigitalTwin] Health data input:', data);
       console.log('[DigitalTwin] Mapped body state:', state);
 
       return state;
@@ -153,16 +162,16 @@ export function DigitalTwin({ className }: DigitalTwinProps): React.JSX.Element 
       console.error('[DigitalTwin] Error mapping health data:', error);
       return DEFAULT_BODY_STATE;
     }
-  }, [healthData]);
+  }, [data]);
 
   // Handle region click
   const handleRegionClick = useCallback(
     (area: HighlightArea) => {
-      const regionData = getRegionHealthData(area, healthData.biomarkers, healthData.bodyComp);
+      const regionData = getRegionHealthData(area, data.biomarkers, data.bodyComp);
       setSelectedRegion(regionData);
       console.log('[DigitalTwin] Region clicked:', area, regionData);
     },
-    [healthData]
+    [data]
   );
 
   // Close tooltip

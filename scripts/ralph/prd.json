@@ -1,7 +1,8 @@
 {
   "branchName": "main",
   "projectName": "healthai",
-  "sprintFocus": "Digital Twin 3D Model",
+  "sprintFocus": "Digital Twin 3D Model - Clean Mannequin",
+  "designReference": "Clean white mannequin like store displays. Smooth, minimal, elegant. No visible joints or gaps. Subtle anatomical form without detail.",
   "userStories": [
     {
       "id": "DT-001",
@@ -15,286 +16,392 @@
         "typecheck passes"
       ],
       "priority": 1,
-      "passes": true,
+      "passes": false,
       "notes": "npm install three @react-three/fiber @react-three/drei && npm install -D @types/three"
     },
     {
       "id": "DT-002",
-      "title": "Basic Three.js canvas component",
+      "title": "Three.js canvas with studio lighting",
       "acceptanceCriteria": [
         "components/digital-twin/TwinCanvas.tsx exists",
-        "Canvas component from @react-three/fiber renders",
-        "Soft gray gradient background (like reference image)",
-        "Basic lighting setup: ambient (soft) + directional (subtle shadows)",
-        "OrbitControls allows user to rotate view",
-        "Camera positioned to show full body",
-        "Component renders without errors",
+        "Canvas renders with soft gradient background (light gray #f0f0f0 to white)",
+        "Three-point lighting setup for soft shadows and depth",
+        "Main light from upper-front-right",
+        "Fill light from left (dimmer)",
+        "Rim light from behind (subtle edge definition)",
+        "OrbitControls with limited vertical rotation (don't go underground)",
+        "Camera at eye level, 3-4 units back",
         "typecheck passes"
       ],
       "priority": 2,
-      "passes": true,
-      "notes": "Start simple. Test with a Box mesh first to verify setup works."
+      "passes": false,
+      "notes": "Studio lighting makes the mannequin look professional. Use directionalLight for main, ambientLight for fill."
     },
     {
       "id": "DT-003",
-      "title": "Procedural human body - torso and head",
+      "title": "Anatomical proportions constants",
       "acceptanceCriteria": [
-        "components/digital-twin/ProceduralHuman.tsx exists",
-        "Torso rendered as elongated capsule or rounded box",
-        "Head rendered as sphere on top of torso",
-        "Neck connects head to torso",
-        "All white/light gray material (like reference mannequin)",
-        "Proportions look human-like",
-        "Centered in scene",
+        "lib/digital-twin/proportions.ts exists",
+        "BODY_PROPORTIONS constant exported",
+        "Uses 'head units' system where 1 head = 0.28 world units",
+        "Total height: 7.5 heads = 2.1 world units",
+        "Head height: 0.28, width: 0.20",
+        "Neck height: 0.08, radius: 0.06",
+        "Torso height: 0.70, shoulder width: 0.45, waist width: 0.30, hip width: 0.35",
+        "Upper arm length: 0.36, radius: 0.045 to 0.035",
+        "Forearm length: 0.30, radius: 0.035 to 0.025",
+        "Hand length: 0.18, width: 0.08",
+        "Thigh length: 0.50, radius: 0.065 to 0.045",
+        "Shin length: 0.48, radius: 0.045 to 0.03",
+        "Foot length: 0.25, width: 0.09, height: 0.06",
         "typecheck passes"
       ],
       "priority": 3,
-      "passes": true,
-      "notes": "Use CapsuleGeometry, SphereGeometry, CylinderGeometry from Three.js. Group them in a parent object."
+      "passes": false,
+      "notes": "All body parts will reference these constants. Ensures consistent proportions. These create a ~2.1 unit tall figure."
     },
     {
       "id": "DT-004",
-      "title": "Procedural human body - arms",
+      "title": "Smooth tapered limb geometry",
       "acceptanceCriteria": [
-        "Left and right arms added to ProceduralHuman",
-        "Upper arm (shoulder to elbow) as capsule",
-        "Forearm (elbow to wrist) as capsule",
-        "Hands as small spheres or boxes",
-        "Arms positioned at sides naturally",
-        "Shoulders connect to torso properly",
+        "lib/digital-twin/geometry.ts exists",
+        "createTaperedCapsule(length, radiusTop, radiusBottom, capSegments, radialSegments) exported",
+        "Creates smooth tapered cylinder with hemisphere end caps",
+        "Minimum 16 radial segments for smoothness",
+        "Geometry is centered on Y axis",
+        "Returns BufferGeometry ready to use",
         "typecheck passes"
       ],
       "priority": 4,
-      "passes": true,
-      "notes": "Use Three.js Groups for hierarchy: shoulder → upperArm → forearm → hand. This allows joint rotation later."
+      "passes": false,
+      "notes": "Combine CylinderGeometry with SphereGeometry halves. Or use LatheGeometry with custom profile for smoother result."
     },
     {
       "id": "DT-005",
-      "title": "Procedural human body - legs",
+      "title": "Mannequin material system",
       "acceptanceCriteria": [
-        "Left and right legs added to ProceduralHuman",
-        "Thigh (hip to knee) as capsule",
-        "Shin (knee to ankle) as capsule",
-        "Feet as flattened boxes or capsules",
-        "Legs positioned under torso naturally",
-        "Figure stands on ground plane",
-        "Full body now visible and proportioned",
+        "lib/digital-twin/materials.ts exists",
+        "createBaseMaterial() returns clean matte white MeshStandardMaterial",
+        "Color: #fafafa (warm white)",
+        "Roughness: 0.85 (matte, not shiny)",
+        "Metalness: 0",
+        "createHighlightMaterial(color, intensity) returns glowing variant",
+        "Materials are reusable across body parts",
         "typecheck passes"
       ],
       "priority": 5,
-      "passes": true,
-      "notes": "Hip joints connect to bottom of torso. Feet flat on Y=0 ground plane."
+      "passes": false,
+      "notes": "Base material is shared. Highlight material clones base and adds emissive."
     },
     {
       "id": "DT-006",
-      "title": "Body state types and interface",
+      "title": "Torso with anatomical shape",
       "acceptanceCriteria": [
-        "lib/digital-twin/types.ts exists",
-        "BodyState interface defined with: posture, highlights, skinTone, energyLevel",
-        "PostureState type: 'upright' | 'slouched' | 'fatigued' | 'neutral'",
-        "HighlightRegion type: { area: string, color: string, intensity: number }",
-        "EnergyLevel: number 0-100",
-        "ProceduralHuman accepts BodyState as props",
+        "components/digital-twin/body-parts/Torso.tsx exists",
+        "NOT a simple cylinder - has shape",
+        "Wider at shoulders, narrower at waist, slightly wider at hips",
+        "Use LatheGeometry with profile points defining silhouette",
+        "Profile: shoulder → ribcage → waist (narrowest) → hip",
+        "Smooth curves, no hard angles",
+        "Height and widths match BODY_PROPORTIONS",
+        "Centered at origin, bottom at Y=0 (hip level)",
+        "Accepts ref and highlight props",
         "typecheck passes"
       ],
       "priority": 6,
-      "passes": true,
-      "notes": "Clean interface separates health logic from rendering. Makes Option A swap easy later."
+      "passes": false,
+      "notes": "LatheGeometry takes array of Vector2 points and rotates around Y axis. Define half-silhouette from center to edge."
     },
     {
       "id": "DT-007",
-      "title": "Health to body state mapper",
+      "title": "Head with subtle oval shape",
       "acceptanceCriteria": [
-        "lib/digital-twin/mapper.ts exists",
-        "mapHealthToBodyState(healthData) function exported",
-        "Maps sleep score → energy level (low sleep = low energy)",
-        "Maps HRV → posture (low HRV = more fatigued posture)",
-        "Maps visceral fat → torso highlight (high = red/orange)",
-        "Maps CRP → joint highlights (high inflammation = red joints)",
-        "Maps body fat % → subtle shape hint",
-        "Returns complete BodyState object",
+        "components/digital-twin/body-parts/Head.tsx exists",
+        "Oval shape - slightly taller than wide (scale Y: 1.15)",
+        "Subtle taper toward jaw (narrower at bottom)",
+        "Use scaled SphereGeometry OR LatheGeometry for egg shape",
+        "Size matches BODY_PROPORTIONS",
+        "Positioned on top of neck seamlessly",
+        "No visible seam/gap",
         "typecheck passes"
       ],
       "priority": 7,
-      "passes": true,
-      "notes": "Use simple thresholds. Example: sleepScore < 60 → energy = 30, sleepScore > 80 → energy = 90"
+      "passes": false,
+      "notes": "SphereGeometry with scale [1, 1.15, 1] gives nice oval. Or custom LatheGeometry for more control."
     },
     {
       "id": "DT-008",
-      "title": "Posture system - joint rotations",
+      "title": "Neck connecting head and torso",
       "acceptanceCriteria": [
-        "lib/digital-twin/posture.ts exists",
-        "getPostureRotations(energyLevel, postureState) function exported",
-        "Returns rotation values for: spine, neck, shoulders",
-        "High energy: spine straight, head up, shoulders back",
-        "Low energy: spine curved forward, head drooped, shoulders hunched",
-        "Values in radians for Three.js rotation",
-        "ProceduralHuman applies rotations to body part groups",
-        "Visual difference is noticeable between states",
+        "components/digital-twin/body-parts/Neck.tsx exists",
+        "Smooth tapered cylinder (slightly wider at base)",
+        "Top overlaps into head mesh slightly",
+        "Bottom overlaps into torso mesh slightly",
+        "No visible seams",
+        "Proportions from BODY_PROPORTIONS",
         "typecheck passes"
       ],
       "priority": 8,
-      "passes": true,
-      "notes": "Spine rotation X: 0 (upright) to 0.3 (hunched). Neck: 0 to 0.2. Shoulders: rotate inward when tired."
+      "passes": false,
+      "notes": "Overlapping meshes into each other hides seams. Position neck to penetrate 10-15% into both head and torso."
     },
     {
       "id": "DT-009",
-      "title": "Region highlighting system",
+      "title": "Arm with smooth shoulder connection",
       "acceptanceCriteria": [
-        "lib/digital-twin/highlights.ts exists",
-        "Highlight regions defined: torso-core, left-shoulder, right-shoulder, left-knee, right-knee, left-hip, right-hip, head",
-        "applyHighlights(bodyRef, highlights[]) function exported",
-        "Changes material emissive color for highlighted regions",
-        "Red/orange glow for problem areas",
-        "Intensity controls glow strength",
-        "No highlights = clean white material",
+        "components/digital-twin/body-parts/Arm.tsx exists",
+        "Props: side ('left' | 'right'), highlight",
+        "Shoulder is rounded sphere that overlaps into torso edge",
+        "Upper arm tapers from shoulder to elbow",
+        "Small sphere at elbow for smooth joint",
+        "Forearm tapers from elbow to wrist",
+        "Hand is simple rounded shape (mitten style)",
+        "Natural resting angle: 5-8 degrees away from body",
+        "Hierarchy: shoulder → upperArm → forearm → hand as nested groups",
+        "Left/right properly mirrored",
         "typecheck passes"
       ],
       "priority": 9,
-      "passes": true,
-      "notes": "MeshStandardMaterial has emissive and emissiveIntensity properties. Store refs to each body part mesh."
+      "passes": false,
+      "notes": "Shoulder sphere position: at torso edge, slightly in front. Arm rests with slight outward angle, hands at thigh level."
     },
     {
       "id": "DT-010",
-      "title": "Skin tone and vitality visuals",
+      "title": "Leg with natural stance",
       "acceptanceCriteria": [
-        "lib/digital-twin/vitality.ts exists",
-        "getVitalityColor(energyLevel) function exported",
-        "High energy: warm white/cream tone",
-        "Low energy: cooler gray, slightly desaturated",
-        "Applied as base material color to all body parts",
-        "Subtle but visible difference",
+        "components/digital-twin/body-parts/Leg.tsx exists",
+        "Props: side ('left' | 'right'), highlight",
+        "Hip joint is sphere that overlaps into torso bottom",
+        "Thigh tapers from hip to knee",
+        "Small sphere at knee for smooth joint",
+        "Shin tapers from knee to ankle",
+        "Foot is wedge shape, flat bottom on ground (Y=0)",
+        "Stance: feet hip-width apart (~0.25 units between feet)",
+        "Feet angle outward 10-15 degrees",
+        "Hierarchy: hip → thigh → shin → foot as nested groups",
         "typecheck passes"
       ],
       "priority": 10,
-      "passes": true,
-      "notes": "HSL color manipulation. High energy: hsl(30, 10%, 90%). Low energy: hsl(220, 5%, 80%)."
+      "passes": false,
+      "notes": "Ground is Y=0. Foot bottom flat at Y=0. Total leg height from hip to ground matches proportions."
     },
     {
       "id": "DT-011",
-      "title": "Wire digital twin to health data",
+      "title": "Assemble complete mannequin",
       "acceptanceCriteria": [
-        "components/digital-twin/DigitalTwin.tsx exists as main wrapper",
-        "Reads health data from HealthDataStore",
-        "Calls mapHealthToBodyState with real data",
-        "Passes BodyState to ProceduralHuman",
-        "Twin reflects actual user health metrics",
-        "Console logs current BodyState for debugging",
+        "components/digital-twin/ProceduralHuman.tsx assembles all parts",
+        "Imports: Torso, Head, Neck, Arm, Leg",
+        "All parts positioned correctly",
+        "NO visible gaps between parts",
+        "NO overlapping artifacts (z-fighting)",
+        "Figure centered at X=0, Z=0",
+        "Figure stands on Y=0 ground",
+        "Total height ~2.1 units",
+        "Looks like clean store mannequin",
+        "Props: bodyState (for posture/highlights)",
         "typecheck passes"
       ],
       "priority": 11,
-      "passes": true,
-      "notes": "This connects everything. Health data → mapper → BodyState → ProceduralHuman renders it."
+      "passes": false,
+      "notes": "Assembly and fine-tuning. Adjust positions until seams are invisible. This is critical for clean look."
     },
     {
       "id": "DT-012",
-      "title": "Integrate into dashboard layout",
+      "title": "Body state types",
       "acceptanceCriteria": [
-        "Digital twin displays on main dashboard page",
-        "Layout: twin takes ~40-50% width on left, stats on right",
-        "Or: twin centered top, stats cards below",
-        "Twin container has fixed aspect ratio (prevents layout shift)",
-        "Minimum height of 400px for twin",
-        "Works on desktop (mobile can stack)",
-        "Page doesn't break or scroll weirdly",
+        "lib/digital-twin/types.ts exists",
+        "BodyState interface with: posture, highlights[], energyLevel, skinTone",
+        "PostureState: 'upright' | 'neutral' | 'slouched' | 'fatigued'",
+        "HighlightRegion: { part: string, color: string, intensity: number }",
+        "EnergyLevel: 0-100",
+        "ProceduralHuman accepts bodyState prop",
         "typecheck passes"
       ],
       "priority": 12,
-      "passes": true,
-      "notes": "Canvas needs explicit height. Use aspect-ratio CSS or fixed height container."
+      "passes": false,
+      "notes": "Interface separates health logic from 3D rendering."
     },
     {
       "id": "DT-013",
-      "title": "Smooth animation transitions",
+      "title": "Health to body state mapper",
       "acceptanceCriteria": [
-        "Posture changes animate over 0.5-1 second (not instant)",
-        "Use useFrame hook for lerp interpolation",
-        "Highlight glows fade in/out smoothly",
-        "Material color changes transition smoothly",
-        "No jarring visual jumps",
+        "lib/digital-twin/mapper.ts exists",
+        "mapHealthToBodyState(healthData) exported",
+        "Sleep < 60 → energy 30, posture 'fatigued'",
+        "Sleep 60-80 → energy 60, posture 'slouched'",
+        "Sleep > 80 → energy 85, posture 'upright'",
+        "HRV modifies energy (+/- 10)",
+        "Visceral fat > 1.5 → highlight torso (orange #ff6b35)",
+        "CRP > 2 → highlight joints (red #ff4444)",
+        "Returns complete BodyState",
         "typecheck passes"
       ],
       "priority": 13,
-      "passes": true,
-      "notes": "Store target values in state, lerp current toward target in useFrame. THREE.MathUtils.lerp(current, target, delta * speed)"
+      "passes": false,
+      "notes": "Simple thresholds. Health data → BodyState → visual representation."
     },
     {
       "id": "DT-014",
-      "title": "Idle breathing animation",
+      "title": "Posture rotations system",
       "acceptanceCriteria": [
-        "Model has subtle idle animation when standing",
-        "Slight chest/torso scale oscillation (breathing)",
-        "Very subtle Y-axis sway or weight shift",
-        "Animation is gentle, not distracting",
-        "Runs continuously via useFrame",
+        "lib/digital-twin/posture.ts exists",
+        "getPostureRotations(postureState, energyLevel) exported",
+        "Returns object with rotation values in radians",
+        "Upright: spine 0, neck 0, shoulders 0",
+        "Neutral: spine 0.05, neck 0.03, shoulders 0.02",
+        "Slouched: spine 0.12, neck 0.08, shoulders 0.06 (rolled forward)",
+        "Fatigued: spine 0.18, neck 0.12, shoulders 0.08",
+        "Body parts apply these rotations",
         "typecheck passes"
       ],
       "priority": 14,
-      "passes": true,
-      "notes": "Use Math.sin(time) for oscillation. Breathing: scale torso 1.0 to 1.02. Sway: rotate Y +/- 0.01 radians."
+      "passes": false,
+      "notes": "Spine rotates on X axis (forward bend). Shoulders rotate inward when tired. Keep subtle - not exaggerated."
     },
     {
       "id": "DT-015",
-      "title": "Subtle ground shadow",
+      "title": "Highlight glow effect",
       "acceptanceCriteria": [
-        "Soft shadow or reflection beneath the figure",
-        "ContactShadows from drei OR simple gradient plane",
-        "Grounds the figure visually",
-        "Matches reference image aesthetic",
-        "Performance is still smooth",
+        "Body parts accept highlight prop",
+        "When highlighted: material has emissive glow",
+        "Highlight color configurable (default orange #ff6b35)",
+        "Intensity 0.3-0.6 range (visible but not overwhelming)",
+        "Non-highlighted parts stay clean white",
+        "Multiple parts can be highlighted simultaneously",
         "typecheck passes"
       ],
       "priority": 15,
-      "passes": true,
-      "notes": "drei ContactShadows is easiest. Or: circular plane mesh with radial gradient texture."
+      "passes": false,
+      "notes": "Use useMemo to create highlight materials. Apply based on bodyState.highlights array."
     },
     {
       "id": "DT-016",
-      "title": "Status indicators overlay",
+      "title": "Skin tone from vitality",
       "acceptanceCriteria": [
-        "Small UI overlay on twin canvas showing key metrics",
-        "Energy level as percentage or bar",
-        "Number of highlighted areas",
-        "Overall status: 'Optimal' / 'Fair' / 'Needs Attention'",
-        "Positioned in corner, doesn't obscure model",
-        "Uses Html component from drei for DOM in canvas",
+        "lib/digital-twin/vitality.ts exists",
+        "getVitalityColor(energyLevel) exported",
+        "Energy 80+: warm white #fffaf5",
+        "Energy 50-80: neutral #fafafa",
+        "Energy <50: cool gray #f0f0f5",
+        "Smooth interpolation between values",
+        "Applied as base material color",
         "typecheck passes"
       ],
       "priority": 16,
-      "passes": true,
-      "notes": "drei Html component renders DOM elements positioned in 3D space. Or overlay as sibling div with absolute positioning."
+      "passes": false,
+      "notes": "Subtle effect. Use THREE.Color.lerp for smooth transitions."
     },
     {
       "id": "DT-017",
-      "title": "Click body region for details",
+      "title": "Connect to health data store",
       "acceptanceCriteria": [
-        "User can click on body region (torso, joints, etc)",
-        "Clicked region shows tooltip with relevant health data",
-        "Example: click torso → shows visceral fat value",
-        "Example: click joints → shows CRP level",
-        "Uses raycasting for click detection",
-        "Tooltip positioned near clicked point",
+        "components/digital-twin/DigitalTwin.tsx wrapper exists",
+        "Reads health data from HealthDataStore",
+        "Calls mapHealthToBodyState",
+        "Passes bodyState to ProceduralHuman",
+        "Twin reflects real health metrics",
+        "Updates when store data changes",
         "typecheck passes"
       ],
       "priority": 17,
-      "passes": true,
-      "notes": "useThree hook gives access to raycaster. onClick on mesh, show Html tooltip. drei has Html component."
+      "passes": false,
+      "notes": "This wires everything together."
     },
     {
       "id": "DT-018",
-      "title": "Final polish and responsive sizing",
+      "title": "Dashboard integration",
       "acceptanceCriteria": [
-        "Twin looks polished and professional",
-        "Responsive: works at different viewport sizes",
-        "No console errors or warnings",
-        "Performance is smooth (60fps)",
-        "Loading state while Three.js initializes",
-        "Matches overall app aesthetic",
+        "Digital twin on main dashboard page",
+        "Layout: twin left (45%), stats right (55%)",
+        "Twin container min-height 450px",
+        "Canvas fills container",
+        "No layout shift on load",
+        "Matches dashboard design style",
         "typecheck passes"
       ],
       "priority": 18,
-      "passes": true,
-      "notes": "Test at different sizes. Add Suspense fallback for loading. Check for memory leaks (dispose geometries)."
+      "passes": false,
+      "notes": "Canvas needs explicit height. Use aspect-ratio or fixed height."
+    },
+    {
+      "id": "DT-019",
+      "title": "Smooth posture transitions",
+      "acceptanceCriteria": [
+        "Posture changes animate over 0.6 seconds",
+        "Use useFrame with lerp",
+        "Current rotation lerps toward target",
+        "Highlight intensity fades in/out",
+        "Skin color transitions smoothly",
+        "No jarring snaps",
+        "typecheck passes"
+      ],
+      "priority": 19,
+      "passes": false,
+      "notes": "Store target values in state, interpolate current toward target each frame."
+    },
+    {
+      "id": "DT-020",
+      "title": "Idle breathing animation",
+      "acceptanceCriteria": [
+        "Torso scale oscillates subtly (1.0 to 1.012)",
+        "4-second breathing cycle",
+        "Use Math.sin(time * 0.5) for smooth wave",
+        "Optional slight weight shift",
+        "Feels alive but subtle",
+        "typecheck passes"
+      ],
+      "priority": 20,
+      "passes": false,
+      "notes": "Very subtle. Should feel natural, not robotic."
+    },
+    {
+      "id": "DT-021",
+      "title": "Ground contact shadow",
+      "acceptanceCriteria": [
+        "Soft shadow beneath figure",
+        "Use ContactShadows from drei",
+        "Opacity 0.3-0.4 (soft, not harsh)",
+        "Blur 2-3",
+        "Grounds figure visually",
+        "Matches clean aesthetic",
+        "typecheck passes"
+      ],
+      "priority": 21,
+      "passes": false,
+      "notes": "ContactShadows is simplest. Position at Y=0."
+    },
+    {
+      "id": "DT-022",
+      "title": "Click for body part details",
+      "acceptanceCriteria": [
+        "Body parts have onClick handlers",
+        "Click torso → tooltip shows visceral fat, body fat %",
+        "Click arm/leg joints → tooltip shows CRP",
+        "Click head → tooltip shows sleep, energy level",
+        "Tooltip positioned near click point",
+        "Use Html from drei for tooltips",
+        "Click away dismisses tooltip",
+        "typecheck passes"
+      ],
+      "priority": 22,
+      "passes": false,
+      "notes": "Each mesh gets onClick. Show tooltip as Html element in 3D space."
+    },
+    {
+      "id": "DT-023",
+      "title": "Final polish",
+      "acceptanceCriteria": [
+        "No console errors/warnings",
+        "60fps performance",
+        "Responsive to viewport changes",
+        "Suspense fallback for loading",
+        "Mannequin looks professional",
+        "All health features work correctly",
+        "typecheck passes"
+      ],
+      "priority": 23,
+      "passes": false,
+      "notes": "Final QA pass. Test all viewport sizes."
     }
   ]
 }
