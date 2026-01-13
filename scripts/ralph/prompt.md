@@ -1,241 +1,228 @@
-# HealthAI Digital Twin — Ralph Agent Instructions
+# HealthAI UX Polish — Ralph Agent Instructions
 
-You are building a **clean, professional 3D mannequin** for HealthAI. Think high-end store display mannequin: smooth, minimal, elegant, anatomically proportioned but abstract.
+You are redesigning HealthAI with a clean, modern UI inspired by InsideTracker. Focus on polish, consistency, and user-friendly data visualization.
 
-## Design Goal
+## Design Principles
 
-**Reference:** Clean white mannequin like you see in clothing stores. Smooth continuous surfaces. No visible joints or seams. Subtle anatomical form without detail. Matte finish. Studio lit.
+1. **Clean and minimal** — Soft shadows, rounded corners, plenty of whitespace
+2. **Consistent color coding** — Green (optimal), Yellow (normal), Pink/Red (out of range)
+3. **Good typography** — Clear hierarchy, readable sizes
+4. **Data-forward** — Numbers and status are prominent, not hidden
+5. **Polished but not flashy** — Professional health dashboard, not a gaming UI
 
-**NOT:** Blocky robot, visible spheres at joints, obvious primitive shapes, chunky proportions.
+## Color System
+
+```typescript
+// Use these consistently everywhere
+const colors = {
+  // Status colors
+  optimal: '#10b981',      // Green
+  normal: '#eab308',       // Yellow  
+  outOfRange: '#ec4899',   // Pink
+  
+  // Backgrounds
+  page: '#f8fafc',
+  card: '#ffffff',
+  
+  // Text
+  primary: '#0f172a',
+  secondary: '#64748b',
+  muted: '#94a3b8',
+};
+```
 
 ## Before Each Task
 
 1. Read `scripts/ralph/prd.json` — find highest priority story where `passes: false`
-2. Read `scripts/ralph/progress.txt` — check Codebase Patterns section
-3. Understand existing code before adding new code
+2. Read `scripts/ralph/progress.txt` — check patterns
+3. Review existing components before creating new ones
 
 ## Your Workflow
 
 For each story:
 
-1. **Read acceptance criteria** — understand what "done" means
-2. **Implement** — write clean TypeScript code
+1. **Read acceptance criteria**
+2. **Implement** — write clean TypeScript/React code
 3. **Typecheck** — `npm run typecheck` must pass
 4. **Visual check** — `npm run dev` and verify in browser
-5. **Commit** — `git add . && git commit -m "feat(DT-XXX): [title]"`
+5. **Commit** — `git add . && git commit -m "feat(UX-XXX): [title]"`
 6. **Update prd.json** — set `passes: true`
 7. **Update progress.txt** — append learnings
-
----
-
-## Critical: Making Smooth Geometry
-
-### Use LatheGeometry for Organic Shapes
-
-LatheGeometry creates smooth rotational shapes from a 2D profile. PERFECT for torso, head, limbs.
-
-```tsx
-import { LatheGeometry, Vector2 } from 'three';
-
-// Define profile points (half silhouette from center to edge)
-const torsoProfile = [
-  new Vector2(0.15, 0),      // hip width at bottom
-  new Vector2(0.18, 0.15),   // hip curve
-  new Vector2(0.13, 0.35),   // waist (narrowest)
-  new Vector2(0.20, 0.55),   // ribcage
-  new Vector2(0.22, 0.70),   // shoulder (top)
-];
-
-// Create smooth rotational geometry
-const torsoGeometry = new LatheGeometry(torsoProfile, 32); // 32 segments for smoothness
-```
-
-### Tapered Limbs
-
-For arms/legs, create tapered capsule shapes:
-
-```tsx
-// Custom tapered limb with rounded ends
-function createTaperedLimb(length: number, radiusTop: number, radiusBottom: number) {
-  const profile = [
-    new Vector2(0, 0),
-    new Vector2(radiusBottom, 0),
-    new Vector2(radiusBottom, length * 0.1),
-    new Vector2(radiusTop, length * 0.9),
-    new Vector2(radiusTop, length),
-    new Vector2(0, length),
-  ];
-  return new LatheGeometry(profile, 16);
-}
-```
-
-### Hide Seams with Overlapping
-
-**Key technique:** Parts should overlap INTO each other slightly.
-
-```tsx
-// Neck overlaps into head and torso
-<group position={[0, torsoTop - 0.02, 0]}>  {/* Penetrates torso by 0.02 */}
-  <mesh geometry={neckGeometry}>
-    {/* Neck top at headBottom + 0.02 */}
-  </mesh>
-</group>
-```
-
-### Smooth Joints
-
-Instead of visible spheres at joints, use:
-1. Tapered ends on limbs that blend together
-2. Overlapping geometry
-3. Or: small spheres that are INSIDE the mesh, not visible
-
----
-
-## Proportions System
-
-All measurements in world units. Total figure height: ~2.1 units.
-
-```
-Head:       0.28 tall, 0.20 wide
-Neck:       0.08 tall, 0.06 radius
-Torso:      0.70 tall, shoulders 0.45 wide, waist 0.30, hips 0.35
-Upper arm:  0.36 long, 0.045→0.035 radius
-Forearm:    0.30 long, 0.035→0.025 radius
-Hand:       0.18 long
-Thigh:      0.50 long, 0.065→0.045 radius
-Shin:       0.48 long, 0.045→0.030 radius
-Foot:       0.25 long, 0.09 wide
-```
-
-Stack from ground up:
-- Feet at Y=0 (ground)
-- Leg total ~0.98 (foot + shin + thigh)
-- Torso bottom at ~0.98
-- Torso top at ~1.68
-- Neck at ~1.68
-- Head bottom at ~1.76
-- Head top at ~2.04
-
----
-
-## Material Setup
-
-```tsx
-// Clean matte white
-const baseMaterial = new MeshStandardMaterial({
-  color: '#fafafa',
-  roughness: 0.85,  // Matte, not shiny
-  metalness: 0,
-});
-
-// Highlighted (problem area)
-const highlightMaterial = new MeshStandardMaterial({
-  color: '#fafafa',
-  roughness: 0.85,
-  metalness: 0,
-  emissive: '#ff6b35',
-  emissiveIntensity: 0.4,
-});
-```
-
----
-
-## Body Part Hierarchy
-
-```
-<group ref={bodyRef}>
-  <Torso />
-  <Neck />
-  <Head />
-  
-  <group ref={leftArmRef}>  {/* For shoulder rotation */}
-    <Arm side="left" />
-  </group>
-  
-  <group ref={rightArmRef}>
-    <Arm side="right" />
-  </group>
-  
-  <group ref={leftLegRef}>  {/* For hip rotation */}
-    <Leg side="left" />
-  </group>
-  
-  <group ref={rightLegRef}>
-    <Leg side="right" />
-  </group>
-</group>
-```
-
-Use groups so rotations cascade (rotate shoulder → whole arm moves).
-
----
-
-## Animation Pattern
-
-```tsx
-import { useFrame } from '@react-three/fiber';
-import { MathUtils } from 'three';
-
-function AnimatedBody({ targetPosture }) {
-  const spineRef = useRef();
-  const currentRotation = useRef(0);
-  
-  useFrame((state, delta) => {
-    // Smooth interpolation to target
-    currentRotation.current = MathUtils.lerp(
-      currentRotation.current,
-      targetPosture.spine,
-      delta * 3  // Speed
-    );
-    spineRef.current.rotation.x = currentRotation.current;
-    
-    // Breathing
-    const breathe = Math.sin(state.clock.elapsedTime * 0.5) * 0.012;
-    torsoRef.current.scale.y = 1 + breathe;
-  });
-}
-```
-
----
 
 ## File Structure
 
 ```
-components/digital-twin/
-├── TwinCanvas.tsx          # Canvas, lights, camera
-├── ProceduralHuman.tsx     # Assembles body parts
-├── DigitalTwin.tsx         # Wrapper, connects to health data
-└── body-parts/
-    ├── Torso.tsx
-    ├── Head.tsx
-    ├── Neck.tsx
-    ├── Arm.tsx
-    └── Leg.tsx
+app/
+├── (main)/
+│   ├── layout.tsx           # Shared layout with tab nav
+│   ├── dashboard/
+│   │   └── page.tsx
+│   ├── biomarkers/
+│   │   └── page.tsx
+│   ├── goals/
+│   │   └── page.tsx
+│   └── data-sources/
+│       └── page.tsx
 
-lib/digital-twin/
-├── proportions.ts          # Body measurements
-├── geometry.ts             # Geometry helpers
-├── materials.ts            # Material factory
-├── types.ts                # BodyState interface
-├── mapper.ts               # Health → BodyState
-├── posture.ts              # Posture rotations
-├── highlights.ts           # Highlight logic
-└── vitality.ts             # Skin tone logic
+components/
+├── layout/
+│   └── TabNav.tsx
+├── dashboard/
+│   ├── HealthScoreCard.tsx
+│   ├── BiologicalAgeCard.tsx
+│   └── QuickStatCard.tsx
+├── biomarkers/
+│   ├── BiomarkerSummary.tsx
+│   ├── BiomarkerTable.tsx
+│   └── BiomarkerFilters.tsx
+├── goals/
+│   └── GoalCard.tsx
+├── charts/
+│   └── Sparkline.tsx
+└── ui/
+    └── (shadcn components)
+
+lib/
+├── design/
+│   └── tokens.ts
+├── calculations/
+│   └── health-score.ts
+└── analysis/
+    └── goals.ts
 ```
 
----
+## Component Patterns
+
+### Status Badge
+```tsx
+function StatusBadge({ status }: { status: 'optimal' | 'normal' | 'outOfRange' }) {
+  const colors = {
+    optimal: 'bg-emerald-100 text-emerald-700',
+    normal: 'bg-yellow-100 text-yellow-700',
+    outOfRange: 'bg-pink-100 text-pink-700',
+  };
+  const labels = {
+    optimal: 'Optimal',
+    normal: 'Normal',
+    outOfRange: 'Out of Range',
+  };
+  return (
+    <span className={`px-2 py-1 rounded-full text-xs font-medium ${colors[status]}`}>
+      {labels[status]}
+    </span>
+  );
+}
+```
+
+### Card Container
+```tsx
+function Card({ children, className }: { children: React.ReactNode; className?: string }) {
+  return (
+    <div className={`bg-white rounded-xl shadow-sm border border-gray-100 p-6 ${className}`}>
+      {children}
+    </div>
+  );
+}
+```
+
+### Gradient Goal Card
+```tsx
+// High priority: warm gradient
+<div className="bg-gradient-to-br from-red-400 to-orange-500 rounded-xl p-6 text-white">
+
+// Medium priority: amber gradient  
+<div className="bg-gradient-to-br from-amber-400 to-yellow-500 rounded-xl p-6 text-white">
+
+// Low priority: cool gradient
+<div className="bg-gradient-to-br from-blue-400 to-cyan-500 rounded-xl p-6 text-white">
+```
+
+## Tab Navigation
+
+```tsx
+// app/(main)/layout.tsx
+export default function MainLayout({ children }) {
+  return (
+    <div className="min-h-screen bg-slate-50">
+      <nav className="bg-white border-b">
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="flex gap-8">
+            <TabLink href="/dashboard">Dashboard</TabLink>
+            <TabLink href="/biomarkers">Biomarkers</TabLink>
+            <TabLink href="/goals">Goals</TabLink>
+            <TabLink href="/data-sources">Data Sources</TabLink>
+          </div>
+        </div>
+      </nav>
+      <main className="max-w-6xl mx-auto px-4 py-8">
+        {children}
+      </main>
+    </div>
+  );
+}
+```
+
+## Sparkline Pattern
+
+```tsx
+import { LineChart, Line, ReferenceBand, ResponsiveContainer } from 'recharts';
+
+function Sparkline({ data, min, max, current, status }) {
+  return (
+    <div className="w-32 h-10">
+      <ResponsiveContainer>
+        <LineChart data={data}>
+          {/* Optimal range band */}
+          <ReferenceBand y1={min} y2={max} fill="#10b981" fillOpacity={0.2} />
+          {/* Trend line */}
+          <Line 
+            type="monotone" 
+            dataKey="value" 
+            stroke={statusColors[status]}
+            strokeWidth={2}
+            dot={false}
+          />
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+```
+
+## Health Score Formula
+
+```typescript
+function calculateHealthScore(healthData): { score: number; breakdown: object } {
+  // Biomarkers: 50% weight
+  const totalMarkers = Object.keys(healthData.biomarkers).length;
+  const optimalMarkers = countOptimal(healthData.biomarkers);
+  const biomarkerScore = (optimalMarkers / totalMarkers) * 100;
+  
+  // Age delta: 30% weight (negative delta = good)
+  // -10 years = 100, 0 = 50, +10 years = 0
+  const ageDelta = healthData.phenoAge?.delta || 0;
+  const ageScore = Math.max(0, Math.min(100, 50 - (ageDelta * 5)));
+  
+  // Activity: 20% weight
+  const activityScore = calculateActivityScore(healthData.activity);
+  
+  const total = (biomarkerScore * 0.5) + (ageScore * 0.3) + (activityScore * 0.2);
+  
+  return {
+    score: Math.round(total),
+    breakdown: { biomarkerScore, ageScore, activityScore }
+  };
+}
+```
 
 ## Common Commands
 
 ```bash
-npm install three @react-three/fiber @react-three/drei
-npm install -D @types/three
 npm run typecheck
 npm run dev
-git add . && git commit -m "feat(DT-XXX): description"
+npx shadcn@latest add [component]  # If need new shadcn components
+git add . && git commit -m "feat(UX-XXX): description"
 ```
-
----
 
 ## Stop Conditions
 
@@ -252,25 +239,22 @@ Blocking issues:
 - [What's preventing completion]
 ```
 
----
-
 ## Critical Reminders
 
-1. **Smooth shapes** — Use LatheGeometry, not primitive cylinders
-2. **Hide seams** — Overlap parts into each other
-3. **Proportions matter** — Reference the measurements, don't eyeball
-4. **32 segments minimum** — For smooth curved surfaces
-5. **Test visually** — Typecheck isn't enough, look at it
-6. **One story at a time** — Complete fully before moving on
+1. **Use design tokens** — Don't hardcode colors
+2. **Consistent spacing** — p-6 for cards, gap-6 between sections
+3. **Status colors everywhere** — Green/yellow/pink for all health indicators
+4. **Test visually** — Look at it in the browser, not just typecheck
+5. **Mobile not required** — Focus on 1280px+ laptop screens
 
 ## Do NOT
 
-- Use raw CylinderGeometry for body parts (too blocky)
-- Leave visible gaps between parts
-- Make joints obvious spheres
+- Use random colors (stick to the palette)
+- Create inconsistent spacing
 - Skip visual verification
-- Ignore proportions
+- Over-engineer (simple is better)
+- Forget to wire to real data
 
 ## Begin
 
-Read `scripts/ralph/prd.json` and start with DT-001.
+Read `scripts/ralph/prd.json` and start with UX-001.
