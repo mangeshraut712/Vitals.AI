@@ -596,3 +596,33 @@ All 16 user stories have been implemented:
 **Verified:**
 - [x] typecheck passes
 - [x] posture rotations calculated correctly
+
+---
+## 2025-01-13 - DT-009: Region highlighting system
+
+**Implemented:**
+- Created src/lib/digital-twin/highlights.ts
+- BODY_REGIONS mapping areas to component names
+- getHighlightForRegion() - finds highlight for area
+- getEmissiveProps() - returns emissive color and intensity
+- isRegionHighlighted() - checks if area is highlighted
+- getMaterialProps() helper in ProceduralHuman
+- Added highlights prop to Torso, Arm, Leg components
+- Emissive materials applied to: torso, shoulders, elbows, hips, knees
+
+**Highlight areas:**
+- torso-core, left/right-shoulder, left/right-elbow
+- left/right-hip, left/right-knee, head
+
+**Files created:**
+- src/lib/digital-twin/highlights.ts
+
+**Files modified:**
+- src/components/digital-twin/ProceduralHuman.tsx
+
+**Three.js learnings:**
+- meshStandardMaterial accepts emissive (color) and emissiveIntensity (0-1)
+- Spread props: {...materialProps} applies all properties
+
+**Verified:**
+- [x] typecheck passes

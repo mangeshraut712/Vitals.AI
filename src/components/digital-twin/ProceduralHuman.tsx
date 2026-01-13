@@ -2,11 +2,26 @@
 
 import { useRef } from 'react';
 import { Group } from 'three';
-import { BodyState, DEFAULT_BODY_STATE } from '@/lib/digital-twin/types';
+import { BodyState, DEFAULT_BODY_STATE, HighlightRegion, HighlightArea } from '@/lib/digital-twin/types';
 import { getPostureRotations, getArmRotations } from '@/lib/digital-twin/posture';
+import { getHighlightForRegion, getEmissiveProps } from '@/lib/digital-twin/highlights';
 
 // Default material color for mannequin-like appearance
 const BODY_COLOR = '#f0f0f0';
+
+// Helper to get material props with optional highlight
+function getMaterialProps(
+  highlights: HighlightRegion[],
+  area: HighlightArea,
+  baseColor: string = BODY_COLOR
+): { color: string; emissive: string; emissiveIntensity: number } {
+  const highlight = getHighlightForRegion(highlights, area);
+  const emissiveProps = getEmissiveProps(highlight);
+  return {
+    color: baseColor,
+    ...emissiveProps,
+  };
+}
 
 interface ProceduralHumanProps {
   position?: [number, number, number];
@@ -45,19 +60,25 @@ function Neck({ rotationX = 0 }: NeckProps): React.JSX.Element {
   );
 }
 
-function Torso(): React.JSX.Element {
+interface TorsoProps {
+  highlights?: HighlightRegion[];
+}
+
+function Torso({ highlights = [] }: TorsoProps): React.JSX.Element {
+  const torsoMaterial = getMaterialProps(highlights, 'torso-core');
+
   return (
     <group position={[0, -0.15, 0]}>
       {/* Upper torso (chest) - wider capsule */}
       <mesh position={[0, 0.15, 0]} castShadow>
         <capsuleGeometry args={[0.14, 0.25, 8, 16]} />
-        <meshStandardMaterial color={BODY_COLOR} />
+        <meshStandardMaterial {...torsoMaterial} />
       </mesh>
 
       {/* Lower torso (abdomen) - slightly narrower */}
       <mesh position={[0, -0.15, 0]} castShadow>
         <capsuleGeometry args={[0.12, 0.15, 8, 16]} />
-        <meshStandardMaterial color={BODY_COLOR} />
+        <meshStandardMaterial {...torsoMaterial} />
       </mesh>
     </group>
   );
@@ -66,22 +87,30 @@ function Torso(): React.JSX.Element {
 interface ArmProps {
   side: 'left' | 'right';
   shoulderRotationZ?: number;
+  highlights?: HighlightRegion[];
 }
 
 interface LegProps {
   side: 'left' | 'right';
+  highlights?: HighlightRegion[];
 }
 
-function Leg({ side }: LegProps): React.JSX.Element {
+function Leg({ side, highlights = [] }: LegProps): React.JSX.Element {
   const xSign = side === 'left' ? -1 : 1;
   const hipX = xSign * 0.08;
+
+  const hipArea: HighlightArea = side === 'left' ? 'left-hip' : 'right-hip';
+  const kneeArea: HighlightArea = side === 'left' ? 'left-knee' : 'right-knee';
+
+  const hipMaterial = getMaterialProps(highlights, hipArea);
+  const kneeMaterial = getMaterialProps(highlights, kneeArea);
 
   return (
     <group position={[hipX, -0.4, 0]}>
       {/* Hip joint */}
       <mesh castShadow>
         <sphereGeometry args={[0.055, 16, 16]} />
-        <meshStandardMaterial color={BODY_COLOR} />
+        <meshStandardMaterial {...hipMaterial} />
       </mesh>
 
       {/* Thigh */}
@@ -95,7 +124,7 @@ function Leg({ side }: LegProps): React.JSX.Element {
         <group position={[0, -0.42, 0]}>
           <mesh castShadow>
             <sphereGeometry args={[0.045, 16, 16]} />
-            <meshStandardMaterial color={BODY_COLOR} />
+            <meshStandardMaterial {...kneeMaterial} />
           </mesh>
 
           {/* Shin */}
@@ -117,17 +146,23 @@ function Leg({ side }: LegProps): React.JSX.Element {
   );
 }
 
-function Arm({ side, shoulderRotationZ = 0 }: ArmProps): React.JSX.Element {
+function Arm({ side, shoulderRotationZ = 0, highlights = [] }: ArmProps): React.JSX.Element {
   const xSign = side === 'left' ? -1 : 1;
   const shoulderX = xSign * 0.2;
   const baseRotation = xSign * 0.1;
+
+  const shoulderArea: HighlightArea = side === 'left' ? 'left-shoulder' : 'right-shoulder';
+  const elbowArea: HighlightArea = side === 'left' ? 'left-elbow' : 'right-elbow';
+
+  const shoulderMaterial = getMaterialProps(highlights, shoulderArea);
+  const elbowMaterial = getMaterialProps(highlights, elbowArea);
 
   return (
     <group position={[shoulderX, 0.25, 0]}>
       {/* Shoulder joint (small sphere) */}
       <mesh castShadow>
         <sphereGeometry args={[0.045, 16, 16]} />
-        <meshStandardMaterial color={BODY_COLOR} />
+        <meshStandardMaterial {...shoulderMaterial} />
       </mesh>
 
       {/* Upper arm - rotated to hang at side, plus posture adjustment */}
@@ -141,7 +176,7 @@ function Arm({ side, shoulderRotationZ = 0 }: ArmProps): React.JSX.Element {
         <group position={[0, -0.3, 0]}>
           <mesh castShadow>
             <sphereGeometry args={[0.035, 16, 16]} />
-            <meshStandardMaterial color={BODY_COLOR} />
+            <meshStandardMaterial {...elbowMaterial} />
           </mesh>
 
           {/* Forearm */}
@@ -170,7 +205,7 @@ export function ProceduralHuman({
   const groupRef = useRef<Group>(null);
 
   // Use body state for rendering
-  const { posture, energyLevel } = bodyState;
+  const { posture, energyLevel, highlights } = bodyState;
 
   // Calculate posture rotations
   const postureRotations = getPostureRotations(energyLevel, posture);
@@ -183,7 +218,7 @@ export function ProceduralHuman({
 
   // Log body state for debugging (as per acceptance criteria)
   console.log('[DigitalTwin] Body state:', bodyState);
-  console.log('[DigitalTwin] Posture rotations:', postureRotations);
+  console.log('[DigitalTwin] Highlights:', highlights);
 
   return (
     <group ref={groupRef} position={position}>
@@ -197,17 +232,17 @@ export function ProceduralHuman({
             <Neck rotationX={postureRotations.neckX} />
           </group>
 
-          {/* Torso */}
-          <Torso />
+          {/* Torso with highlights */}
+          <Torso highlights={highlights} />
 
-          {/* Arms with shoulder rotation */}
-          <Arm side="left" shoulderRotationZ={armRotations.leftShoulderZ} />
-          <Arm side="right" shoulderRotationZ={armRotations.rightShoulderZ} />
+          {/* Arms with shoulder rotation and highlights */}
+          <Arm side="left" shoulderRotationZ={armRotations.leftShoulderZ} highlights={highlights} />
+          <Arm side="right" shoulderRotationZ={armRotations.rightShoulderZ} highlights={highlights} />
         </group>
 
-        {/* Legs stay upright */}
-        <Leg side="left" />
-        <Leg side="right" />
+        {/* Legs with highlights */}
+        <Leg side="left" highlights={highlights} />
+        <Leg side="right" highlights={highlights} />
       </group>
     </group>
   );

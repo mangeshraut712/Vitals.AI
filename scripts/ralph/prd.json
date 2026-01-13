@@ -151,7 +151,7 @@
         "typecheck passes"
       ],
       "priority": 9,
-      "passes": false,
+      "passes": true,
       "notes": "MeshStandardMaterial has emissive and emissiveIntensity properties. Store refs to each body part mesh."
     },
     {
