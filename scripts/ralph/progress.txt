@@ -685,3 +685,31 @@ HealthDataStore → HealthDataInput → mapHealthToBodyState → BodyState → P
 
 **Verified:**
 - [x] typecheck passes
+
+---
+## 2025-01-13 - DT-012: Integrate into dashboard layout
+
+**Implemented:**
+- Added DigitalTwin import to main page.tsx
+- Created 2-column grid layout (lg breakpoint)
+- Twin on left (lg:row-span-2), stats cards on right
+- Twin container: min-h-[400px] aspect-[4/5]
+- Stats cards in responsive sub-grid
+- Mobile stacks vertically
+
+**Layout structure:**
+- Main grid: lg:grid-cols-2
+- Digital Twin card spans 2 rows on lg
+- Stats cards (Blood Work, DEXA, Activity) stacked on right
+- Areas to Improve and Chat sections below
+
+**Files modified:**
+- src/app/page.tsx
+
+**CSS learnings:**
+- lg:row-span-2 makes twin tall enough for stats cards
+- aspect-[4/5] maintains proportions without content shift
+- min-h-[400px] ensures minimum visibility
+
+**Verified:**
+- [x] typecheck passes

@@ -15,6 +15,7 @@ import {
 import { getImprovements } from '@/lib/analysis/improvements';
 import { Chat } from '@/components/Chat';
 import { SyncButton } from '@/components/SyncButton';
+import { DigitalTwin } from '@/components/digital-twin/DigitalTwin';
 
 export default function Home() {
   // Load health data on server side
@@ -122,8 +123,21 @@ export default function Home() {
           </div>
         </header>
 
-        {/* 3-Column Grid for Health Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        {/* Main Content: Digital Twin + Stats Cards */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          {/* Digital Twin - Left Side */}
+          <Card className="lg:row-span-2">
+            <CardHeader>
+              <CardTitle>Digital Twin</CardTitle>
+              <CardDescription>Visual representation of your health</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <DigitalTwin className="w-full min-h-[400px] aspect-[4/5]" />
+            </CardContent>
+          </Card>
+
+          {/* Stats Cards - Right Side */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-6">
           {/* Blood Work Card */}
           <Card>
             <CardHeader>
@@ -222,6 +236,7 @@ export default function Home() {
               )}
             </CardContent>
           </Card>
+          </div>
         </div>
 
         {/* Areas to Improve Section */}
