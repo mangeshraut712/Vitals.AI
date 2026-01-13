@@ -293,7 +293,7 @@
         "typecheck passes"
       ],
       "priority": 18,
-      "passes": false,
+      "passes": true,
       "notes": "Test at different sizes. Add Suspense fallback for loading. Check for memory leaks (dispose geometries)."
     }
   ]

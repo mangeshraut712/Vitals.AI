@@ -1,5 +1,6 @@
 'use client';
 
+import { Suspense } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, ContactShadows } from '@react-three/drei';
 import type { ReactNode } from 'react';
@@ -42,6 +43,15 @@ function TestBox(): React.JSX.Element {
   );
 }
 
+function LoadingFallback(): React.JSX.Element {
+  return (
+    <mesh position={[0, 1, 0]}>
+      <sphereGeometry args={[0.2, 16, 16]} />
+      <meshStandardMaterial color="#e0e0e0" transparent opacity={0.5} />
+    </mesh>
+  );
+}
+
 export function TwinCanvas({ children }: TwinCanvasProps): React.JSX.Element {
   return (
     <div className="relative w-full h-full min-h-[400px]">
@@ -55,6 +65,7 @@ export function TwinCanvas({ children }: TwinCanvasProps): React.JSX.Element {
 
       <Canvas
         shadows
+        dpr={[1, 2]} // Pixel ratio for performance
         camera={{
           position: [0, 1.5, 4],
           fov: 45,
@@ -62,32 +73,38 @@ export function TwinCanvas({ children }: TwinCanvasProps): React.JSX.Element {
           far: 100,
         }}
         style={{ position: 'relative' }}
+        gl={{
+          antialias: true,
+          powerPreference: 'high-performance',
+        }}
       >
-        <Lighting />
+        <Suspense fallback={<LoadingFallback />}>
+          <Lighting />
 
-        {/* Subtle contact shadow beneath the figure */}
-        <ContactShadows
-          position={[0, 0, 0]}
-          opacity={0.4}
-          scale={3}
-          blur={2}
-          far={2}
-          color="#1a1a1a"
-        />
+          {/* Subtle contact shadow beneath the figure */}
+          <ContactShadows
+            position={[0, 0, 0]}
+            opacity={0.4}
+            scale={3}
+            blur={2}
+            far={2}
+            color="#1a1a1a"
+          />
 
-        {/* Model content */}
-        {children ?? <TestBox />}
+          {/* Model content */}
+          {children ?? <TestBox />}
 
-        {/* OrbitControls for user interaction */}
-        <OrbitControls
-          enablePan={false}
-          enableZoom={true}
-          minDistance={2}
-          maxDistance={10}
-          minPolarAngle={Math.PI / 6}
-          maxPolarAngle={Math.PI / 2}
-          target={[0, 1, 0]}
-        />
+          {/* OrbitControls for user interaction */}
+          <OrbitControls
+            enablePan={false}
+            enableZoom={true}
+            minDistance={2}
+            maxDistance={10}
+            minPolarAngle={Math.PI / 6}
+            maxPolarAngle={Math.PI / 2}
+            target={[0, 1, 0]}
+          />
+        </Suspense>
       </Canvas>
     </div>
   );
