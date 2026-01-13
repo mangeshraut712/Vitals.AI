@@ -286,7 +286,7 @@
         "typecheck passes"
       ],
       "priority": 17,
-      "passes": false,
+      "passes": true,
       "notes": "Polish pass. Review all pages for consistency."
     },
     {
@@ -301,7 +301,7 @@
         "typecheck passes"
       ],
       "priority": 18,
-      "passes": false,
+      "passes": true,
       "notes": "Polish for edge cases."
     },
     {
@@ -317,7 +317,7 @@
         "typecheck passes"
       ],
       "priority": 19,
-      "passes": false,
+      "passes": true,
       "notes": "Final review. Test all pages and flows."
     }
   ]
