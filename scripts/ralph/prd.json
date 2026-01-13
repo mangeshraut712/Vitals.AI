@@ -1,256 +1,300 @@
 {
   "branchName": "main",
   "projectName": "healthai",
+  "sprintFocus": "Digital Twin 3D Model",
   "userStories": [
     {
-      "id": "US-016",
-      "title": "Sample data files",
+      "id": "DT-001",
+      "title": "Install Three.js dependencies",
       "acceptanceCriteria": [
-        "data/sample-bloodwork.txt exists with realistic mock lab values",
-        "data/sample-dexa.txt exists with body composition data",
-        "data/sample-whoop.csv exists with 7 days of HRV, RHR, sleep data",
-        "Bloodwork includes ALL 9 Levine PhenoAge biomarkers",
-        "Data values are realistic for a healthy 35-year-old"
-      ],
-      "priority": 0,
-      "passes": true,
-      "notes": "Create as .txt files (not PDF) for V1 simplicity. Bloodwork must include: albumin (4.5 g/dL), creatinine (0.9 mg/dL), glucose (85 mg/dL), CRP (0.5 mg/L), lymphocyte % (30%), MCV (88 fL), RDW (12.5%), alkaline phosphatase (50 U/L), WBC (5.5). Also include: LDL (95), HDL (62), triglycerides (80), vitamin D (45). DEXA: body fat % (18%), lean mass (145 lbs), bone density (T-score 0.5), visceral fat (0.8 lbs). Whoop CSV columns: date,hrv_ms,rhr_bpm,sleep_hours,sleep_score,strain"
-    },
-    {
-      "id": "US-001",
-      "title": "Project scaffolding",
-      "acceptanceCriteria": [
-        "Next.js 15 app created with App Router",
-        "Tailwind CSS configured",
-        "shadcn/ui initialized",
-        "TypeScript strict mode enabled",
-        "npm run dev starts without errors",
-        "localhost:3000 shows default page"
+        "three package installed",
+        "@react-three/fiber package installed",
+        "@react-three/drei package installed",
+        "@types/three installed for TypeScript",
+        "npm run dev still works without errors",
+        "typecheck passes"
       ],
       "priority": 1,
       "passes": true,
-      "notes": "Use: npx create-next-app@latest --typescript --tailwind --app. Then: npx shadcn@latest init"
+      "notes": "npm install three @react-three/fiber @react-three/drei && npm install -D @types/three"
     },
     {
-      "id": "US-002",
-      "title": "Data folder structure and file detection",
+      "id": "DT-002",
+      "title": "Basic Three.js canvas component",
       "acceptanceCriteria": [
-        "/data folder exists in project root",
-        "lib/files.ts exports getDataFiles() function",
-        "getDataFiles() returns array of {name, type, path} for files in /data",
-        "Detects .txt, .csv, .xlsx file types",
-        "Console logs detected files on app startup",
+        "components/digital-twin/TwinCanvas.tsx exists",
+        "Canvas component from @react-three/fiber renders",
+        "Soft gray gradient background (like reference image)",
+        "Basic lighting setup: ambient (soft) + directional (subtle shadows)",
+        "OrbitControls allows user to rotate view",
+        "Camera positioned to show full body",
+        "Component renders without errors",
         "typecheck passes"
       ],
       "priority": 2,
-      "passes": true,
-      "notes": "Use fs module. File extension determines type. Type can be 'bloodwork', 'dexa', 'activity' based on filename pattern or extension."
+      "passes": false,
+      "notes": "Start simple. Test with a Box mesh first to verify setup works."
     },
     {
-      "id": "US-003",
-      "title": "Text file parsing",
+      "id": "DT-003",
+      "title": "Procedural human body - torso and head",
       "acceptanceCriteria": [
-        "lib/parsers/text.ts exports parseTextFile(path) function",
-        "Returns string of file contents",
-        "Works with sample-bloodwork.txt in /data",
-        "Handles errors gracefully (returns empty string + logs error)",
+        "components/digital-twin/ProceduralHuman.tsx exists",
+        "Torso rendered as elongated capsule or rounded box",
+        "Head rendered as sphere on top of torso",
+        "Neck connects head to torso",
+        "All white/light gray material (like reference mannequin)",
+        "Proportions look human-like",
+        "Centered in scene",
         "typecheck passes"
       ],
       "priority": 3,
-      "passes": true,
-      "notes": "Simple fs.readFileSync for .txt files. Foundation for biomarker extraction."
+      "passes": false,
+      "notes": "Use CapsuleGeometry, SphereGeometry, CylinderGeometry from Three.js. Group them in a parent object."
     },
     {
-      "id": "US-004",
-      "title": "CSV parsing",
+      "id": "DT-004",
+      "title": "Procedural human body - arms",
       "acceptanceCriteria": [
-        "papaparse package installed",
-        "lib/parsers/csv.ts exports parseCsv(path) function",
-        "Returns array of objects (header row becomes keys)",
-        "Works with sample-whoop.csv in /data",
-        "Handles errors gracefully",
+        "Left and right arms added to ProceduralHuman",
+        "Upper arm (shoulder to elbow) as capsule",
+        "Forearm (elbow to wrist) as capsule", 
+        "Hands as small spheres or boxes",
+        "Arms positioned at sides naturally",
+        "Shoulders connect to torso properly",
         "typecheck passes"
       ],
       "priority": 4,
-      "passes": true,
-      "notes": "npm install papaparse @types/papaparse"
+      "passes": false,
+      "notes": "Use Three.js Groups for hierarchy: shoulder → upperArm → forearm → hand. This allows joint rotation later."
     },
     {
-      "id": "US-005",
-      "title": "XLSX parsing",
+      "id": "DT-005",
+      "title": "Procedural human body - legs",
       "acceptanceCriteria": [
-        "xlsx package installed",
-        "lib/parsers/xlsx.ts exports parseXlsx(path) function",
-        "Returns array of objects per sheet",
-        "Handles errors gracefully",
+        "Left and right legs added to ProceduralHuman",
+        "Thigh (hip to knee) as capsule",
+        "Shin (knee to ankle) as capsule",
+        "Feet as flattened boxes or capsules",
+        "Legs positioned under torso naturally",
+        "Figure stands on ground plane",
+        "Full body now visible and proportioned",
         "typecheck passes"
       ],
       "priority": 5,
-      "passes": true,
-      "notes": "npm install xlsx. This is for future use; sample data uses .txt and .csv"
+      "passes": false,
+      "notes": "Hip joints connect to bottom of torso. Feet flat on Y=0 ground plane."
     },
     {
-      "id": "US-006",
-      "title": "Biomarker extraction from text",
+      "id": "DT-006",
+      "title": "Body state types and interface",
       "acceptanceCriteria": [
-        "lib/extractors/biomarkers.ts exports extractBiomarkers(text) function",
-        "Returns object with found biomarkers: {glucose?: number, albumin?: number, ...}",
-        "Extracts all 9 Levine PhenoAge inputs: glucose, creatinine, albumin, crp, lymphocytePercent, mcv, rdw, alkalinePhosphatase, wbc",
-        "Also extracts: ldl, hdl, triglycerides, vitaminD",
-        "Works with sample-bloodwork.txt format",
+        "lib/digital-twin/types.ts exists",
+        "BodyState interface defined with: posture, highlights, skinTone, energyLevel",
+        "PostureState type: 'upright' | 'slouched' | 'fatigued' | 'neutral'",
+        "HighlightRegion type: { area: string, color: string, intensity: number }",
+        "EnergyLevel: number 0-100",
+        "ProceduralHuman accepts BodyState as props",
         "typecheck passes"
       ],
       "priority": 6,
-      "passes": true,
-      "notes": "Use regex patterns to find biomarker names followed by values. Handle variations like 'Albumin: 4.5' or 'Albumin 4.5 g/dL'. See HEALTH_KNOWLEDGE.md for biomarker list."
+      "passes": false,
+      "notes": "Clean interface separates health logic from rendering. Makes Option A swap easy later."
     },
     {
-      "id": "US-007",
-      "title": "Levine PhenoAge calculation",
+      "id": "DT-007",
+      "title": "Health to body state mapper",
       "acceptanceCriteria": [
-        "lib/calculations/phenoage.ts exports calculatePhenoAge(biomarkers, chronologicalAge) function",
-        "Implements Levine PhenoAge formula exactly as specified in HEALTH_KNOWLEDGE.md",
-        "Returns {phenoAge: number, delta: number} or null if missing required biomarkers",
-        "delta = phenoAge - chronologicalAge (negative means biologically younger)",
-        "Handles edge case: CRP <= 0 uses 0.01",
-        "Works with sample data producing reasonable result (phenoAge ~31-33 for age 35 healthy inputs)",
+        "lib/digital-twin/mapper.ts exists",
+        "mapHealthToBodyState(healthData) function exported",
+        "Maps sleep score → energy level (low sleep = low energy)",
+        "Maps HRV → posture (low HRV = more fatigued posture)",
+        "Maps visceral fat → torso highlight (high = red/orange)",
+        "Maps CRP → joint highlights (high inflammation = red joints)",
+        "Maps body fat % → subtle shape hint",
+        "Returns complete BodyState object",
         "typecheck passes"
       ],
       "priority": 7,
-      "passes": true,
-      "notes": "Formula in docs/HEALTH_KNOWLEDGE.md. Three steps: calculate xb, calculate m, calculate PhenoAge. Use Math.log for natural log. Round to 1 decimal."
+      "passes": false,
+      "notes": "Use simple thresholds. Example: sleepScore < 60 → energy = 30, sleepScore > 80 → energy = 90"
     },
     {
-      "id": "US-008",
-      "title": "Health data store",
+      "id": "DT-008",
+      "title": "Posture system - joint rotations",
       "acceptanceCriteria": [
-        "lib/store/health-data.ts exports HealthDataStore class or singleton object",
-        "Methods: loadAllData(), getBiomarkers(), getBodyComp(), getActivity(), getPhenoAge(), getHealthSummary()",
-        "loadAllData() scans /data folder, parses files by type, extracts biomarkers, calculates phenoage",
-        "getHealthSummary() returns text summary for agent context",
-        "Data stored in memory (no database)",
-        "Singleton pattern for app-wide access",
+        "lib/digital-twin/posture.ts exists",
+        "getPostureRotations(energyLevel, postureState) function exported",
+        "Returns rotation values for: spine, neck, shoulders",
+        "High energy: spine straight, head up, shoulders back",
+        "Low energy: spine curved forward, head drooped, shoulders hunched",
+        "Values in radians for Three.js rotation",
+        "ProceduralHuman applies rotations to body part groups",
+        "Visual difference is noticeable between states",
         "typecheck passes"
       ],
       "priority": 8,
-      "passes": true,
-      "notes": "Coordinate parsers and extractors. Body comp from sample-dexa.txt, activity from sample-whoop.csv, biomarkers from sample-bloodwork.txt"
+      "passes": false,
+      "notes": "Spine rotation X: 0 (upright) to 0.3 (hunched). Neck: 0 to 0.2. Shoulders: rotate inward when tired."
     },
     {
-      "id": "US-009",
-      "title": "Dashboard layout shell",
+      "id": "DT-009",
+      "title": "Region highlighting system",
       "acceptanceCriteria": [
-        "app/page.tsx renders dashboard layout",
-        "Header section with placeholder for age values",
-        "3-column grid for Blood Work, DEXA, Activity cards",
-        "Areas to Improve section below cards",
-        "Chat section at bottom",
-        "Responsive design (stacks on mobile)",
-        "Uses shadcn/ui Card components",
-        "localhost:3000 shows layout structure",
+        "lib/digital-twin/highlights.ts exists",
+        "Highlight regions defined: torso-core, left-shoulder, right-shoulder, left-knee, right-knee, left-hip, right-hip, head",
+        "applyHighlights(bodyRef, highlights[]) function exported",
+        "Changes material emissive color for highlighted regions",
+        "Red/orange glow for problem areas",
+        "Intensity controls glow strength",
+        "No highlights = clean white material",
         "typecheck passes"
       ],
       "priority": 9,
-      "passes": true,
-      "notes": "npx shadcn@latest add card. Use Tailwind grid. Placeholder text is fine for this story."
+      "passes": false,
+      "notes": "MeshStandardMaterial has emissive and emissiveIntensity properties. Store refs to each body part mesh."
     },
     {
-      "id": "US-010",
-      "title": "Dashboard data integration",
+      "id": "DT-010",
+      "title": "Skin tone and vitality visuals",
       "acceptanceCriteria": [
-        "Dashboard loads real data from HealthDataStore on page load",
-        "Header shows chronological age, biological age (PhenoAge), and delta",
-        "Blood Work card shows extracted biomarkers with values and units",
-        "Biomarkers color-coded: green (optimal), yellow (borderline), red (out of range)",
-        "DEXA card shows body fat %, lean mass, bone density, visceral fat",
-        "Activity card shows HRV, RHR, sleep hours (latest or average from CSV)",
-        "Shows 'No data' gracefully if a section has no data",
+        "lib/digital-twin/vitality.ts exists",
+        "getVitalityColor(energyLevel) function exported",
+        "High energy: warm white/cream tone",
+        "Low energy: cooler gray, slightly desaturated",
+        "Applied as base material color to all body parts",
+        "Subtle but visible difference",
         "typecheck passes"
       ],
       "priority": 10,
-      "passes": true,
-      "notes": "Reference ranges in docs/HEALTH_KNOWLEDGE.md. Server component can call HealthDataStore directly."
+      "passes": false,
+      "notes": "HSL color manipulation. High energy: hsl(30, 10%, 90%). Low energy: hsl(220, 5%, 80%)."
     },
     {
-      "id": "US-011",
-      "title": "Areas to Improve logic",
+      "id": "DT-011",
+      "title": "Wire digital twin to health data",
       "acceptanceCriteria": [
-        "lib/analysis/improvements.ts exports getImprovements(healthData) function",
-        "Returns array of {biomarker, currentValue, unit, targetValue, status, recommendation}",
-        "Identifies biomarkers outside optimal range (not just normal range)",
-        "Provides basic recommendations from HEALTH_KNOWLEDGE.md",
-        "Dashboard renders improvements in Areas to Improve section",
-        "Shows encouraging message if all biomarkers optimal",
+        "components/digital-twin/DigitalTwin.tsx exists as main wrapper",
+        "Reads health data from HealthDataStore",
+        "Calls mapHealthToBodyState with real data",
+        "Passes BodyState to ProceduralHuman",
+        "Twin reflects actual user health metrics",
+        "Console logs current BodyState for debugging",
         "typecheck passes"
       ],
       "priority": 11,
-      "passes": true,
-      "notes": "Compare against 'optimal' column in HEALTH_KNOWLEDGE.md reference ranges, not just 'normal'. Common improvements: vitamin D, LDL, glucose."
+      "passes": false,
+      "notes": "This connects everything. Health data → mapper → BodyState → ProceduralHuman renders it."
     },
     {
-      "id": "US-012",
-      "title": "Claude Agent SDK setup",
+      "id": "DT-012",
+      "title": "Integrate into dashboard layout",
       "acceptanceCriteria": [
-        "@anthropic-ai/claude-agent-sdk package installed",
-        "lib/agent/health-agent.ts exports createHealthAgent() and queryHealthAgent(message, healthContext) functions",
-        "Agent configured with health-focused system prompt",
-        "System prompt includes: role, reference ranges, verified sources list, response guidelines",
-        "Allowed tools: Read, Bash, WebSearch, WebFetch",
-        "queryHealthAgent accepts message string and health data context, returns agent response",
+        "Digital twin displays on main dashboard page",
+        "Layout: twin takes ~40-50% width on left, stats on right",
+        "Or: twin centered top, stats cards below",
+        "Twin container has fixed aspect ratio (prevents layout shift)",
+        "Minimum height of 400px for twin",
+        "Works on desktop (mobile can stack)",
+        "Page doesn't break or scroll weirdly",
         "typecheck passes"
       ],
       "priority": 12,
-      "passes": true,
-      "notes": "npm install @anthropic-ai/claude-agent-sdk. System prompt content from docs/HEALTH_KNOWLEDGE.md. Include disclaimer about not being medical advice."
+      "passes": false,
+      "notes": "Canvas needs explicit height. Use aspect-ratio CSS or fixed height container."
     },
     {
-      "id": "US-013",
-      "title": "Chat API route",
+      "id": "DT-013",
+      "title": "Smooth animation transitions",
       "acceptanceCriteria": [
-        "app/api/chat/route.ts handles POST requests",
-        "Accepts JSON body: { message: string }",
-        "Loads health data from HealthDataStore",
-        "Calls queryHealthAgent with message and health summary context",
-        "Returns JSON: { response: string }",
-        "Handles errors with proper status codes (400 for bad input, 500 for agent errors)",
+        "Posture changes animate over 0.5-1 second (not instant)",
+        "Use useFrame hook for lerp interpolation",
+        "Highlight glows fade in/out smoothly",
+        "Material color changes transition smoothly",
+        "No jarring visual jumps",
         "typecheck passes"
       ],
       "priority": 13,
-      "passes": true,
-      "notes": "Health context = getHealthSummary() prepended to give agent awareness of user's data"
+      "passes": false,
+      "notes": "Store target values in state, lerp current toward target in useFrame. THREE.MathUtils.lerp(current, target, delta * speed)"
     },
     {
-      "id": "US-014",
-      "title": "Chat UI component",
+      "id": "DT-014",
+      "title": "Idle breathing animation",
       "acceptanceCriteria": [
-        "components/Chat.tsx renders chat interface",
-        "Text input field with send button",
-        "Displays message history (alternating user and agent messages)",
-        "Shows loading indicator while agent is responding",
-        "Auto-scrolls to latest message",
-        "Integrated into dashboard layout (bottom section)",
-        "Can send a message and receive agent response",
-        "Handles errors gracefully (shows error message in chat)",
+        "Model has subtle idle animation when standing",
+        "Slight chest/torso scale oscillation (breathing)",
+        "Very subtle Y-axis sway or weight shift",
+        "Animation is gentle, not distracting",
+        "Runs continuously via useFrame",
         "typecheck passes"
       ],
       "priority": 14,
-      "passes": true,
-      "notes": "Use React state for messages array. Fetch to /api/chat. Consider npx shadcn@latest add input button for styled components."
+      "passes": false,
+      "notes": "Use Math.sin(time) for oscillation. Breathing: scale torso 1.0 to 1.02. Sway: rotate Y +/- 0.01 radians."
     },
     {
-      "id": "US-015",
-      "title": "Data sync on startup and manual resync",
+      "id": "DT-015",
+      "title": "Subtle ground shadow",
       "acceptanceCriteria": [
-        "App automatically calls loadAllData() on startup/page load",
-        "Sync Data button visible in dashboard header",
-        "Clicking button re-scans /data folder and refreshes all dashboard data",
-        "Shows loading indicator during sync",
-        "Shows success toast or notification when sync completes",
+        "Soft shadow or reflection beneath the figure",
+        "ContactShadows from drei OR simple gradient plane",
+        "Grounds the figure visually",
+        "Matches reference image aesthetic",
+        "Performance is still smooth",
         "typecheck passes"
       ],
       "priority": 15,
-      "passes": true,
-      "notes": "npx shadcn@latest add button sonner (for toast). May need API route for resync or server action."
+      "passes": false,
+      "notes": "drei ContactShadows is easiest. Or: circular plane mesh with radial gradient texture."
+    },
+    {
+      "id": "DT-016",
+      "title": "Status indicators overlay",
+      "acceptanceCriteria": [
+        "Small UI overlay on twin canvas showing key metrics",
+        "Energy level as percentage or bar",
+        "Number of highlighted areas",
+        "Overall status: 'Optimal' / 'Fair' / 'Needs Attention'",
+        "Positioned in corner, doesn't obscure model",
+        "Uses Html component from drei for DOM in canvas",
+        "typecheck passes"
+      ],
+      "priority": 16,
+      "passes": false,
+      "notes": "drei Html component renders DOM elements positioned in 3D space. Or overlay as sibling div with absolute positioning."
+    },
+    {
+      "id": "DT-017",
+      "title": "Click body region for details",
+      "acceptanceCriteria": [
+        "User can click on body region (torso, joints, etc)",
+        "Clicked region shows tooltip with relevant health data",
+        "Example: click torso → shows visceral fat value",
+        "Example: click joints → shows CRP level",
+        "Uses raycasting for click detection",
+        "Tooltip positioned near clicked point",
+        "typecheck passes"
+      ],
+      "priority": 17,
+      "passes": false,
+      "notes": "useThree hook gives access to raycaster. onClick on mesh, show Html tooltip. drei has Html component."
+    },
+    {
+      "id": "DT-018",
+      "title": "Final polish and responsive sizing",
+      "acceptanceCriteria": [
+        "Twin looks polished and professional",
+        "Responsive: works at different viewport sizes",
+        "No console errors or warnings",
+        "Performance is smooth (60fps)",
+        "Loading state while Three.js initializes",
+        "Matches overall app aesthetic",
+        "typecheck passes"
+      ],
+      "priority": 18,
+      "passes": false,
+      "notes": "Test at different sizes. Add Suspense fallback for loading. Check for memory leaks (dispose geometries)."
     }
   ]
 }

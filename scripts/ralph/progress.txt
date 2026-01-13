@@ -384,3 +384,25 @@ All 16 user stories have been implemented:
 - US-013: Chat API route (priority 13)
 - US-014: Chat UI component (priority 14)
 - US-015: Data sync on startup and manual resync (priority 15)
+
+---
+## 2025-01-13 - DT-001: Install Three.js dependencies
+
+**Implemented:**
+- Installed three@0.182.0 for 3D rendering
+- Installed @react-three/fiber@9.5.0 for React integration
+- Installed @react-three/drei@10.7.7 for helpers (OrbitControls, etc.)
+- Installed @types/three@0.182.0 for TypeScript support
+
+**Files modified:**
+- package.json (dependencies added)
+- package-lock.json
+
+**Three.js learnings:**
+- three is the core library
+- @react-three/fiber provides React component wrapper for Three.js
+- @react-three/drei provides useful helpers like OrbitControls, ContactShadows
+
+**Verified:**
+- [x] typecheck passes
+- [x] dev server runs without errors
