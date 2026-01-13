@@ -512,3 +512,31 @@ All 16 user stories have been implemented:
 - [x] renders in browser
 - [x] full mannequin body visible with proper proportions
 - [x] feet touch ground plane
+
+---
+## 2025-01-13 - DT-006: Body state types and interface
+
+**Implemented:**
+- Created src/lib/digital-twin/types.ts
+- BodyState interface: posture, energyLevel, skinTone, highlights
+- PostureState type: 'upright' | 'slouched' | 'fatigued' | 'neutral'
+- HighlightRegion: { area, color, intensity }
+- HighlightArea union type for body regions
+- DEFAULT_BODY_STATE constant
+- HIGHLIGHT_COLORS and VITALITY_TONES constants
+- Updated ProceduralHuman to accept bodyState prop
+
+**Files created:**
+- src/lib/digital-twin/types.ts
+
+**Files modified:**
+- src/components/digital-twin/ProceduralHuman.tsx
+
+**Three.js learnings:**
+- Separating state types from components enables clean data flow
+- Console logging body state helps debug health→visual mapping
+
+**Verified:**
+- [x] typecheck passes
+- [x] renders in browser
+- [x] console logs body state

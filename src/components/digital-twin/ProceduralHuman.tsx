@@ -2,12 +2,14 @@
 
 import { useRef } from 'react';
 import { Group } from 'three';
+import { BodyState, DEFAULT_BODY_STATE } from '@/lib/digital-twin/types';
 
-// Material color for mannequin-like appearance
+// Default material color for mannequin-like appearance
 const BODY_COLOR = '#f0f0f0';
 
 interface ProceduralHumanProps {
   position?: [number, number, number];
+  bodyState?: BodyState;
 }
 
 function Head(): React.JSX.Element {
@@ -150,13 +152,22 @@ function Arm({ side }: ArmProps): React.JSX.Element {
   );
 }
 
-export function ProceduralHuman({ position = [0, 0, 0] }: ProceduralHumanProps): React.JSX.Element {
+export function ProceduralHuman({
+  position = [0, 0, 0],
+  bodyState = DEFAULT_BODY_STATE,
+}: ProceduralHumanProps): React.JSX.Element {
   const groupRef = useRef<Group>(null);
+
+  // Use body state for rendering (will be expanded in later stories)
+  const { skinTone } = bodyState;
 
   // Position the body so feet are at Y=0
   // Total height: ~1.8 units (human-like proportions)
   // Head top: ~1.8, feet: 0
   const bodyOffset = 0.9; // Center of body
+
+  // Log body state for debugging (as per acceptance criteria)
+  console.log('[DigitalTwin] Body state:', bodyState);
 
   return (
     <group ref={groupRef} position={position}>
