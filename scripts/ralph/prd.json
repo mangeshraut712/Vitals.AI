@@ -230,7 +230,7 @@
         "typecheck passes"
       ],
       "priority": 14,
-      "passes": false,
+      "passes": true,
       "notes": "Use Math.sin(time) for oscillation. Breathing: scale torso 1.0 to 1.02. Sway: rotate Y +/- 0.01 radians."
     },
     {

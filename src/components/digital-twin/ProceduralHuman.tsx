@@ -221,6 +221,11 @@ export function ProceduralHuman({
   const neckRef = useRef<Group>(null);
   const leftArmRef = useRef<Group>(null);
   const rightArmRef = useRef<Group>(null);
+  const torsoRef = useRef<Group>(null);
+  const bodyRef = useRef<Group>(null);
+
+  // Time accumulator for idle animations
+  const timeRef = useRef<number>(0);
 
   // Animated state refs (persisted across frames)
   const animatedPosture = useRef<AnimatedPosture>(createDefaultAnimatedPosture());
@@ -250,6 +255,9 @@ export function ProceduralHuman({
 
   // Animate posture and colors each frame
   useFrame((_, delta) => {
+    // Accumulate time for idle animations
+    timeRef.current += delta;
+
     // Lerp posture toward target
     const newPosture = lerpPosture(animatedPosture.current, targetPosture, delta);
     animatedPosture.current = newPosture;
@@ -275,6 +283,23 @@ export function ProceduralHuman({
       rightArmRef.current.rotation.z = 0.1 + newPosture.rightShoulderZ;
     }
 
+    // === Idle breathing animation ===
+    // Breathing cycle: ~4 seconds (0.25 Hz)
+    const breathCycle = Math.sin(timeRef.current * 1.5);
+    // Torso scale: 1.0 to 1.02 for subtle breathing
+    if (torsoRef.current) {
+      const breathScale = 1.0 + breathCycle * 0.015;
+      torsoRef.current.scale.set(breathScale, 1.0, breathScale);
+    }
+
+    // === Subtle weight shift / sway ===
+    // Very slow Y-axis rotation: ~8 second cycle
+    const swayCycle = Math.sin(timeRef.current * 0.4);
+    if (bodyRef.current) {
+      // Very gentle sway: +/- 0.01 radians (~0.6 degrees)
+      bodyRef.current.rotation.y = swayCycle * 0.01;
+    }
+
     // Update state periodically for material colors (less frequent)
     // Only update when there's significant change to avoid excessive re-renders
     const colorDiff = Math.abs(
@@ -296,8 +321,8 @@ export function ProceduralHuman({
 
   return (
     <group ref={groupRef} position={position}>
-      {/* Main body group - offset to position feet at ground */}
-      <group position={[0, bodyOffset, 0]}>
+      {/* Main body group - offset to position feet at ground, with sway animation */}
+      <group ref={bodyRef} position={[0, bodyOffset, 0]}>
         {/* Spine rotation applied to upper body - animated via ref */}
         <group ref={spineRef}>
           {/* Head & Neck */}
@@ -316,8 +341,10 @@ export function ProceduralHuman({
             </group>
           </group>
 
-          {/* Torso with highlights and vitality */}
-          <Torso highlights={highlights} vitalityColor={currentVitalityColor} />
+          {/* Torso with highlights and vitality - wrapped for breathing animation */}
+          <group ref={torsoRef}>
+            <Torso highlights={highlights} vitalityColor={currentVitalityColor} />
+          </group>
 
           {/* Arms with animated shoulder rotation */}
           <group position={[-0.2, 0.25, 0]}>

@@ -752,3 +752,38 @@ This gives exponential easing toward target.
 
 **Verified:**
 - [x] typecheck passes
+
+---
+## 2025-01-13 - DT-014: Idle breathing animation
+
+**Implemented:**
+- Added timeRef to accumulate time across frames
+- Added torsoRef and bodyRef for animation targets
+- Breathing: torso scale oscillates 1.0 to 1.015 (Math.sin * 0.015)
+- Sway: body Y-rotation oscillates +/- 0.01 radians (~0.6 degrees)
+- Breathing cycle: ~4 seconds (1.5 Hz sin wave)
+- Sway cycle: ~8 seconds (0.4 Hz sin wave)
+
+**Animation formulas:**
+```javascript
+breathCycle = Math.sin(time * 1.5);
+breathScale = 1.0 + breathCycle * 0.015;
+torso.scale.set(breathScale, 1.0, breathScale);
+
+swayCycle = Math.sin(time * 0.4);
+body.rotation.y = swayCycle * 0.01;
+```
+
+**Ref structure:**
+- bodyRef: wraps entire model for sway
+- torsoRef: wraps Torso component for breathing scale
+
+**Files modified:**
+- src/components/digital-twin/ProceduralHuman.tsx
+
+**Three.js learnings:**
+- Scale via .scale.set(x, y, z) - XZ for chest expansion
+- Use timeRef.current to accumulate delta for smooth cycles
+
+**Verified:**
+- [x] typecheck passes
