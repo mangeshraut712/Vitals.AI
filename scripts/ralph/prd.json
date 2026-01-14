@@ -371,7 +371,7 @@
         "typecheck passes"
       ],
       "priority": 22,
-      "passes": false,
+      "passes": true,
       "notes": "Body Comp page focuses on DEXA scan data visualization."
     },
     {
