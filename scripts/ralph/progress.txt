@@ -967,6 +967,99 @@ body.rotation.y = swayCycle * 0.01;
 - [x] All 23 stories marked as passes: true
 
 ---
+## 2026-01-14 - UX-020: InsightCard component
+
+**Implemented:**
+- Created src/components/insights/InsightCard.tsx
+- Gradient backgrounds: optimal (green), warning (amber), critical (red)
+- Shows title, value, unit, status badge
+- Expandable action items on click with smooth animation
+- Chevron icon toggles on expand/collapse
+- Uses design tokens for radius, shadows
+
+**Files created:**
+- src/components/insights/InsightCard.tsx
+
+**Learnings:**
+- Use max-h-0/max-h-96 with overflow-hidden for smooth expand animation
+- Accessible: aria-expanded, aria-controls attributes
+
+**Verified:**
+- [x] typecheck passes
+
+---
+## 2026-01-14 - UX-021: Lifestyle page with insight cards and charts
+
+**Implemented:**
+- Created src/app/(main)/lifestyle/page.tsx and LifestyleClient.tsx
+- 4 InsightCards: HRV, Sleep Score, Resting HR, Strain (with 7-day averages)
+- HRV trend line chart with optimal reference line
+- Sleep bar chart (hours) with score line overlay
+- RHR trend line chart
+- Each card has relevant health tips as action items
+- Empty state when no activity data
+
+**Files created:**
+- src/app/(main)/lifestyle/page.tsx
+- src/app/(main)/lifestyle/LifestyleClient.tsx
+
+**recharts learnings:**
+- Use dual Y-axes for combining bar and line charts
+- Tooltip formatter must handle undefined values
+- Use ReferenceLine for optimal thresholds
+
+**Verified:**
+- [x] typecheck passes
+- [x] Charts render with sample data
+
+---
+## 2026-01-14 - UX-022: Body Comp page with insight cards and charts
+
+**Implemented:**
+- Created src/app/(main)/body-comp/page.tsx and BodyCompClient.tsx
+- 4 InsightCards: Body Fat %, Lean Mass, Visceral Fat, ALMI
+- Horizontal bar chart for composition breakdown (Lean, Fat, Bone)
+- Donut chart for fat vs lean distribution with percentage labels
+- Each card has relevant health tips
+- Empty state when no DEXA data
+
+**Files created:**
+- src/app/(main)/body-comp/page.tsx
+- src/app/(main)/body-comp/BodyCompClient.tsx
+
+**recharts learnings:**
+- PieChart with innerRadius creates donut chart
+- Use Cell component for individual segment colors
+- Label prop accepts function for custom label formatting
+
+**Verified:**
+- [x] typecheck passes
+
+---
+## 2026-01-14 - UX-023: Navigation tabs updated
+
+**Implemented:**
+- Added Lifestyle tab between Biomarkers and Goals
+- Added Body Comp tab between Lifestyle and Goals
+- All 6 tabs: Dashboard, Biomarkers, Lifestyle, Body Comp, Goals, Data Sources
+
+**Files modified:**
+- src/components/layout/TabNav.tsx
+
+**Verified:**
+- [x] typecheck passes
+- [x] Navigation works
+
+---
+## UX POLISH SPRINT 2 COMPLETE
+
+All 4 new stories have been implemented:
+- UX-020: InsightCard component (priority 20)
+- UX-021: Lifestyle page with insight cards and charts (priority 21)
+- UX-022: Body Comp page with insight cards and charts (priority 22)
+- UX-023: Navigation tabs updated (priority 23)
+
+---
 ## DIGITAL TWIN BUILD COMPLETE
 
 All 18 user stories have been implemented:
