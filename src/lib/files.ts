@@ -31,7 +31,7 @@ function getFileType(filename: string): FileType {
 }
 
 export function getDataFiles(): DataFile[] {
-  const supportedExtensions = ['.txt', '.csv', '.xlsx'];
+  const supportedExtensions = ['.txt', '.csv', '.xlsx', '.pdf'];
 
   if (!fs.existsSync(DATA_DIR)) {
     console.log('[HealthAI] Data directory not found:', DATA_DIR);
