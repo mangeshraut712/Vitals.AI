@@ -11,16 +11,7 @@ function getGoals(): Goal[] {
 }
 
 export default function GoalsPage(): React.JSX.Element {
-  const goals = getGoals();
+  const autoGoals = getGoals();
 
-  return (
-    <div className="space-y-6">
-      <header>
-        <h1 className="text-2xl font-semibold text-slate-900">Goals</h1>
-        <p className="text-slate-500 mt-1">Your personalized health improvement goals</p>
-      </header>
-
-      <GoalsClient goals={goals} />
-    </div>
-  );
+  return <GoalsClient autoGoals={autoGoals} />;
 }

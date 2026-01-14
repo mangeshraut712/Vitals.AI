@@ -319,6 +319,75 @@
       "priority": 19,
       "passes": true,
       "notes": "Final review. Test all pages and flows."
+    },
+    {
+      "id": "UX-020",
+      "title": "InsightCard component with gradient and expandable action items",
+      "acceptanceCriteria": [
+        "components/insights/InsightCard.tsx exists",
+        "Gradient background based on status (green=optimal, amber=warning, red=critical)",
+        "Shows title, value, and status indicator",
+        "Expandable dropdown with action items on click",
+        "Chevron icon indicates expandable state",
+        "Smooth expand/collapse animation",
+        "Matches design system tokens exactly",
+        "typecheck passes"
+      ],
+      "priority": 20,
+      "passes": true,
+      "notes": "Reusable card component for insight-driven data display. Used on Lifestyle and Body Comp pages."
+    },
+    {
+      "id": "UX-021",
+      "title": "Lifestyle page with insight cards and activity charts",
+      "acceptanceCriteria": [
+        "app/(main)/lifestyle/page.tsx exists",
+        "4 gradient InsightCards at top: HRV, Sleep Score, Resting HR, Strain",
+        "Each card has relevant action items when expanded",
+        "Below cards: recharts line chart showing HRV trend over 7 days",
+        "Second chart: Sleep hours bar chart with score overlay",
+        "Third chart: RHR trend line",
+        "All charts use design tokens for colors",
+        "Data wired to HealthDataStore activity data",
+        "Clean minimal chart styling",
+        "typecheck passes"
+      ],
+      "priority": 21,
+      "passes": false,
+      "notes": "Lifestyle page focuses on daily activity metrics from Whoop data."
+    },
+    {
+      "id": "UX-022",
+      "title": "Body Comp page with insight cards and composition charts",
+      "acceptanceCriteria": [
+        "app/(main)/body-comp/page.tsx exists",
+        "4 gradient InsightCards at top: Body Fat %, Lean Mass, Visceral Fat, ALMI",
+        "Each card has relevant action items when expanded",
+        "Below cards: horizontal bar chart showing body composition breakdown",
+        "Second chart: pie/donut chart for fat vs lean distribution",
+        "Data wired to HealthDataStore bodyComp data",
+        "All charts use design tokens for colors",
+        "Clean minimal chart styling matching existing pages",
+        "typecheck passes"
+      ],
+      "priority": 22,
+      "passes": false,
+      "notes": "Body Comp page focuses on DEXA scan data visualization."
+    },
+    {
+      "id": "UX-023",
+      "title": "Navigation tabs updated for Lifestyle and Body Comp",
+      "acceptanceCriteria": [
+        "TabNav includes Lifestyle tab between Biomarkers and Goals",
+        "TabNav includes Body Comp tab between Lifestyle and Goals",
+        "All 6 tabs display correctly: Dashboard, Biomarkers, Lifestyle, Body Comp, Goals, Data Sources",
+        "Active states work correctly for new tabs",
+        "Navigation works without full page reload",
+        "typecheck passes"
+      ],
+      "priority": 23,
+      "passes": false,
+      "notes": "Update navigation to include new pages."
     }
   ]
 }
