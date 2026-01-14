@@ -353,7 +353,7 @@
         "typecheck passes"
       ],
       "priority": 21,
-      "passes": false,
+      "passes": true,
       "notes": "Lifestyle page focuses on daily activity metrics from Whoop data."
     },
     {
