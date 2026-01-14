@@ -1,5 +1,6 @@
 import { getDataFiles } from '@/lib/files';
 import { parseTextFile } from '@/lib/parsers/text';
+import { parsePdf } from '@/lib/parsers/pdf';
 import { parseCsv, CsvRow } from '@/lib/parsers/csv';
 import { extractBiomarkers, ExtractedBiomarkers } from '@/lib/extractors/biomarkers';
 import { extractBodyComposition, BodyComposition } from '@/lib/extractors/body-comp';
@@ -33,7 +34,7 @@ class HealthDataStoreClass {
 
   private loaded = false;
 
-  loadAllData(): void {
+  async loadAllData(): Promise<void> {
     const files = getDataFiles();
 
     let biomarkerText = '';
@@ -41,8 +42,12 @@ class HealthDataStoreClass {
     const activityRows: CsvRow[] = [];
 
     for (const file of files) {
-      if (file.type === 'bloodwork' && file.extension === '.txt') {
-        biomarkerText = parseTextFile(file.path);
+      if (file.type === 'bloodwork') {
+        if (file.extension === '.txt') {
+          biomarkerText = parseTextFile(file.path);
+        } else if (file.extension === '.pdf') {
+          biomarkerText = await parsePdf(file.path);
+        }
       } else if (file.type === 'dexa' && file.extension === '.txt') {
         bodyCompText = parseTextFile(file.path);
       } else if (file.type === 'activity' && file.extension === '.csv') {
@@ -82,33 +87,33 @@ class HealthDataStoreClass {
     console.log('[HealthAI] Health data loaded successfully');
   }
 
-  getBiomarkers(): ExtractedBiomarkers {
-    this.ensureLoaded();
+  async getBiomarkers(): Promise<ExtractedBiomarkers> {
+    await this.ensureLoaded();
     return this.data.biomarkers;
   }
 
-  getBodyComp(): BodyComposition {
-    this.ensureLoaded();
+  async getBodyComp(): Promise<BodyComposition> {
+    await this.ensureLoaded();
     return this.data.bodyComp;
   }
 
-  getActivity(): ActivityData[] {
-    this.ensureLoaded();
+  async getActivity(): Promise<ActivityData[]> {
+    await this.ensureLoaded();
     return this.data.activity;
   }
 
-  getPhenoAge(): PhenoAgeResult | null {
-    this.ensureLoaded();
+  async getPhenoAge(): Promise<PhenoAgeResult | null> {
+    await this.ensureLoaded();
     return this.data.phenoAge;
   }
 
-  getChronologicalAge(): number | null {
-    this.ensureLoaded();
+  async getChronologicalAge(): Promise<number | null> {
+    await this.ensureLoaded();
     return this.data.chronologicalAge;
   }
 
-  getHealthSummary(): string {
-    this.ensureLoaded();
+  async getHealthSummary(): Promise<string> {
+    await this.ensureLoaded();
 
     const lines: string[] = ['=== HEALTH DATA SUMMARY ==='];
 
@@ -163,9 +168,9 @@ class HealthDataStoreClass {
     return lines.join('\n');
   }
 
-  private ensureLoaded(): void {
+  private async ensureLoaded(): Promise<void> {
     if (!this.loaded) {
-      this.loadAllData();
+      await this.loadAllData();
     }
   }
 }
