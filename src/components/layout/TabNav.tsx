@@ -12,6 +12,8 @@ interface TabItem {
 const tabs: TabItem[] = [
   { href: '/dashboard', label: 'Dashboard' },
   { href: '/biomarkers', label: 'Biomarkers' },
+  { href: '/lifestyle', label: 'Lifestyle' },
+  { href: '/body-comp', label: 'Body Comp' },
   { href: '/goals', label: 'Goals' },
   { href: '/data-sources', label: 'Data Sources' },
 ];

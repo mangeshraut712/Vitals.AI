@@ -386,7 +386,7 @@
         "typecheck passes"
       ],
       "priority": 23,
-      "passes": false,
+      "passes": true,
       "notes": "Update navigation to include new pages."
     }
   ]
