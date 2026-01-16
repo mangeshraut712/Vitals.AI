@@ -338,7 +338,17 @@ export function readCache(): BiomarkerCache | null {
       return null;
     }
     const data = fs.readFileSync(CACHE_FILE, 'utf-8');
-    return JSON.parse(data) as BiomarkerCache;
+    const cache = JSON.parse(data) as BiomarkerCache;
+
+    // Validate cache has meaningful data (at least 10 biomarkers)
+    if (!cache.biomarkers || cache.biomarkers.length < 10) {
+      console.log(
+        `[Cache] Biomarker cache has only ${cache.biomarkers?.length ?? 0} items, ignoring`
+      );
+      return null;
+    }
+
+    return cache;
   } catch (error) {
     console.error('[Cache] Error reading cache:', error);
     return null;
