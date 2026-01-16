@@ -5,6 +5,7 @@ import { STATUS_CLASSES, CARD_CLASSES, getStatusType, type StatusType } from '@/
 import { getBiomarkerStatus, BIOMARKER_REFERENCES, type BiomarkerStatus } from '@/lib/types/health';
 import { Sparkline } from '@/components/charts/Sparkline';
 import { StatusFilter, CategoryFilter, BIOMARKER_CATEGORIES } from './BiomarkerFilters';
+import { BiomarkerInfoModal } from './BiomarkerInfoModal';
 
 export interface BiomarkerRow {
   key: string;
@@ -60,6 +61,7 @@ export function BiomarkerTable({
 }: BiomarkerTableProps): React.JSX.Element {
   const [sortField, setSortField] = useState<SortField>('status');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
+  const [selectedBiomarker, setSelectedBiomarker] = useState<BiomarkerRow | null>(null);
 
   const filteredAndSorted = useMemo(() => {
     let result = [...biomarkers];
@@ -152,18 +154,42 @@ export function BiomarkerTable({
 
       {/* Biomarker rows */}
       {filteredAndSorted.map((biomarker) => (
-        <BiomarkerRow key={biomarker.key} biomarker={biomarker} />
+        <BiomarkerRowItem
+          key={biomarker.key}
+          biomarker={biomarker}
+          onClick={() => setSelectedBiomarker(biomarker)}
+        />
       ))}
+
+      {/* Info Modal */}
+      {selectedBiomarker && (
+        <BiomarkerInfoModal
+          biomarkerId={selectedBiomarker.key}
+          name={selectedBiomarker.name}
+          value={selectedBiomarker.value}
+          unit={selectedBiomarker.unit}
+          status={selectedBiomarker.status}
+          category={selectedBiomarker.category}
+          onClose={() => setSelectedBiomarker(null)}
+        />
+      )}
     </div>
   );
 }
 
-function BiomarkerRow({ biomarker }: { biomarker: BiomarkerRow }): React.JSX.Element {
+interface BiomarkerRowItemProps {
+  biomarker: BiomarkerRow;
+  onClick: () => void;
+}
+
+function BiomarkerRowItem({ biomarker, onClick }: BiomarkerRowItemProps): React.JSX.Element {
   const statusType = mapStatusToType(biomarker.status);
   const statusClasses = STATUS_CLASSES[statusType];
 
   return (
-    <div className={`${CARD_CLASSES.base} ${CARD_CLASSES.hover} grid grid-cols-12 gap-4 items-center px-4 py-4`}>
+    <button
+      onClick={onClick}
+      className={`${CARD_CLASSES.base} ${CARD_CLASSES.hover} grid grid-cols-12 gap-4 items-center px-4 py-4 w-full text-left cursor-pointer transition-all hover:shadow-md hover:scale-[1.01]`}>
       {/* Name */}
       <div className="col-span-4">
         <span className="font-medium text-slate-900">{biomarker.name}</span>
@@ -192,7 +218,7 @@ function BiomarkerRow({ biomarker }: { biomarker: BiomarkerRow }): React.JSX.Ele
           currentValue={biomarker.value}
         />
       </div>
-    </div>
+    </button>
   );
 }
 
