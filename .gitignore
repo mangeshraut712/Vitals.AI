@@ -81,3 +81,13 @@ next-env.d.ts
 
 # Local rules
 /rules/
+
+# Internal development docs (not for public)
+CLAUDE.md
+AGENTS.md
+/docs/plans/
+/.claude/
+/.playwright-mcp/
+Ralph_Agent_Use.md
+prompt.md
+/scripts/ralph/
