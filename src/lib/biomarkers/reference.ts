@@ -1184,8 +1184,8 @@ export const BIOMARKER_REFERENCES: Record<string, BiomarkerReference> = {
     name: 'Free Testosterone',
     category: 'male-hormones',
     unit: 'pg/mL',
-    standardRange: { min: 35, max: 155 },
-    optimalRange: { min: 100, max: 155 },
+    standardRange: { min: 46 },  // No upper limit - higher is better
+    optimalRange: { min: 100 },
     direction: 'higher',
   },
   shbg: {
