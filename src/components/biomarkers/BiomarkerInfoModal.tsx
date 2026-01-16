@@ -233,16 +233,6 @@ export function BiomarkerInfoModal({
               </div>
             </div>
 
-            {/* Status Summary */}
-            <div className={`rounded-2xl p-5 ${config.bg} ring-1 ${config.border}`}>
-              <div className="flex gap-4">
-                <div className={`flex-shrink-0 w-10 h-10 rounded-xl ${config.badge} flex items-center justify-center text-lg font-bold`}>
-                  {config.icon}
-                </div>
-                <p className="text-slate-700 leading-relaxed">{getStatusDescription(status)}</p>
-              </div>
-            </div>
-
             {/* Information Sections */}
             <div className="space-y-4">
               <InfoSection
