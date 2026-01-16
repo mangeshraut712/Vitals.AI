@@ -12,6 +12,7 @@ import { extractBiomarkersWithAI } from '@/lib/extractors/ai-extractor';
 import { extractBodyComposition, BodyComposition } from '@/lib/extractors/body-comp';
 import { extractBodyCompWithAI } from '@/lib/extractors/ai-body-comp-extractor';
 import { calculatePhenoAge, PhenoAgeResult } from '@/lib/calculations/phenoage';
+import { calculateDerivedBiomarkers } from '@/lib/biomarkers/calculations';
 import {
   calculateFileHash,
   readManifest,
@@ -323,12 +324,13 @@ class HealthDataStoreClass {
   }
 
   /**
-   * Convert extracted biomarkers to cached format
+   * Convert extracted biomarkers to cached format, including calculated biomarkers
    */
   private convertExtractedToCached(extracted: ExtractedBiomarkers): CachedBiomarker[] {
     if (!extracted.all) return [];
 
-    return extracted.all.map((b) => ({
+    // Convert measured biomarkers
+    const measured: CachedBiomarker[] = extracted.all.map((b) => ({
       id: normalizeBiomarkerName(b.name),
       name: b.name,
       value: b.value,
@@ -338,6 +340,32 @@ class HealthDataStoreClass {
       category: b.category,
       source: 'measured' as const,
     }));
+
+    // Build raw values map for calculations
+    const rawValues: Record<string, number> = {};
+    for (const m of measured) {
+      rawValues[m.id] = m.value;
+    }
+
+    // Calculate derived biomarkers
+    const calculated = calculateDerivedBiomarkers(rawValues);
+    const calculatedCached: CachedBiomarker[] = calculated.map((c) => ({
+      id: c.id,
+      name: c.name,
+      value: c.value,
+      unit: c.unit,
+      referenceRange: undefined,
+      labStatus: undefined,
+      category: 'Calculated',
+      source: 'calculated' as const,
+    }));
+
+    // Combine measured + calculated, avoiding duplicates
+    // (some calculated like nonHdlC might already be in measured from lab)
+    const measuredIds = new Set(measured.map((m) => m.id));
+    const uniqueCalculated = calculatedCached.filter((c) => !measuredIds.has(c.id));
+
+    return [...measured, ...uniqueCalculated];
   }
 
   async getBiomarkers(): Promise<ExtractedBiomarkers> {
