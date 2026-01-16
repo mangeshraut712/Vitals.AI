@@ -283,6 +283,16 @@ export const BIOMARKER_REFERENCES: Record<string, BiomarkerReference> = {
     isCalculated: true,
     formula: 'LDL / TC',
   },
+  nonHdlTcRatio: {
+    id: 'nonHdlTcRatio',
+    name: 'Non-HDL/TC Ratio',
+    category: 'lipid-ratios',
+    unit: 'ratio',
+    optimalRange: { max: 0.75 },
+    direction: 'lower',
+    isCalculated: true,
+    formula: '(TC - HDL) / TC',
+  },
 
   // ============================================
   // 3. METABOLIC PANEL (5 markers)
@@ -1475,6 +1485,17 @@ export const BIOMARKER_REFERENCES: Record<string, BiomarkerReference> = {
     standardRange: { min: 8.5, max: 10.5 },
     optimalRange: { min: 9.0, max: 10.0 },
     direction: 'mid-range',
+  },
+  correctedCalcium: {
+    id: 'correctedCalcium',
+    name: 'Corrected Calcium',
+    category: 'metabolic',
+    unit: 'mg/dL',
+    standardRange: { min: 8.5, max: 10.5 },
+    optimalRange: { min: 9.0, max: 10.0 },
+    direction: 'mid-range',
+    isCalculated: true,
+    formula: 'Ca + 0.8 × (4.0 − Albumin)',
   },
   totalProtein: {
     id: 'totalProtein',

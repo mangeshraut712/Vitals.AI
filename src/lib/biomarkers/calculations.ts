@@ -163,6 +163,19 @@ export function calculateDerivedBiomarkers(raw: RawBiomarkers): CalculatedBiomar
     });
   }
 
+  // Non-HDL/TC Ratio
+  if (raw.totalCholesterol && raw.hdl && raw.totalCholesterol > 0) {
+    const nonHdl = raw.totalCholesterol - raw.hdl;
+    calculated.push({
+      id: 'nonHdlTcRatio',
+      name: 'Non-HDL/TC Ratio',
+      value: round(nonHdl / raw.totalCholesterol, 2),
+      unit: 'ratio',
+      formula: '(TC − HDL) ÷ TC',
+      inputs: ['totalCholesterol', 'hdl'],
+    });
+  }
+
   // ============================================
   // INSULIN SENSITIVITY CALCULATIONS
   // ============================================
@@ -492,6 +505,20 @@ export function calculateDerivedBiomarkers(raw: RawBiomarkers): CalculatedBiomar
       unit: 'ratio',
       formula: 'Uric Acid ÷ HDL',
       inputs: ['uricAcid', 'hdl'],
+    });
+  }
+
+  // Corrected Calcium (adjusts for albumin levels)
+  // Formula: Ca + 0.8 × (4.0 − Albumin)
+  if (raw.calcium && raw.albumin) {
+    const correctedCa = raw.calcium + 0.8 * (4.0 - raw.albumin);
+    calculated.push({
+      id: 'correctedCalcium',
+      name: 'Corrected Calcium',
+      value: round(correctedCa, 1),
+      unit: 'mg/dL',
+      formula: 'Ca + 0.8 × (4.0 − Albumin)',
+      inputs: ['calcium', 'albumin'],
     });
   }
 
