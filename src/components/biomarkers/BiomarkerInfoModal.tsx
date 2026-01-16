@@ -201,16 +201,16 @@ export function BiomarkerInfoModal({
               </div>
 
               {/* Optimal Range Card */}
-              <div className="rounded-2xl p-5 bg-slate-50">
-                <span className="text-sm text-slate-500">Optimal Range</span>
+              <div className="rounded-2xl p-5 bg-emerald-50">
+                <span className="text-sm text-emerald-600">Optimal Range</span>
                 <div className="flex items-baseline gap-1 mt-2">
-                  <span className="text-3xl font-semibold text-slate-900">
+                  <span className="text-3xl font-semibold text-emerald-700">
                     {formatRange(reference?.optimalRange)}
                   </span>
-                  <span className="text-sm text-slate-500">{unit}</span>
+                  <span className="text-sm text-emerald-600">{unit}</span>
                 </div>
                 {reference?.standardRange && (
-                  <p className="text-xs text-slate-400 mt-2">
+                  <p className="text-xs text-emerald-500 mt-2">
                     Standard: {formatRange(reference.standardRange)} {unit}
                   </p>
                 )}
