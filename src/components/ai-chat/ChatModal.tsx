@@ -264,12 +264,106 @@ export function ChatModal({
   );
 }
 
+// Format timestamp for display
+function formatTimestamp(date: Date): string {
+  const now = new Date();
+  const diff = now.getTime() - date.getTime();
+  const minutes = Math.floor(diff / 60000);
+
+  if (minutes < 1) return 'Just now';
+  if (minutes < 60) return `${minutes}m ago`;
+
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+
+  return date.toLocaleDateString();
+}
+
+// Simple markdown renderer for AI messages
+function renderMarkdown(content: string): React.JSX.Element {
+  // Split by lines and process
+  const lines = content.split('\n');
+  const elements: React.JSX.Element[] = [];
+  let listItems: string[] = [];
+  let inList = false;
+
+  const flushList = (): void => {
+    if (listItems.length > 0) {
+      elements.push(
+        <ul key={`list-${elements.length}`} className="list-disc pl-5 my-2 space-y-1">
+          {listItems.map((item, i) => (
+            <li key={i}>{processInline(item)}</li>
+          ))}
+        </ul>
+      );
+      listItems = [];
+    }
+    inList = false;
+  };
+
+  // Process inline formatting (bold, italic)
+  const processInline = (text: string): React.ReactNode => {
+    // Bold: **text** or __text__
+    const parts = text.split(/(\*\*[^*]+\*\*|__[^_]+__)/g);
+    return parts.map((part, i) => {
+      if (part.startsWith('**') && part.endsWith('**')) {
+        return <strong key={i}>{part.slice(2, -2)}</strong>;
+      }
+      if (part.startsWith('__') && part.endsWith('__')) {
+        return <strong key={i}>{part.slice(2, -2)}</strong>;
+      }
+      return part;
+    });
+  };
+
+  lines.forEach((line, index) => {
+    const trimmed = line.trim();
+
+    // Bullet list item
+    if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
+      inList = true;
+      listItems.push(trimmed.slice(2));
+      return;
+    }
+
+    // Numbered list item
+    if (/^\d+\.\s/.test(trimmed)) {
+      inList = true;
+      listItems.push(trimmed.replace(/^\d+\.\s/, ''));
+      return;
+    }
+
+    // Flush any pending list
+    if (inList) {
+      flushList();
+    }
+
+    // Empty line
+    if (trimmed === '') {
+      elements.push(<div key={index} className="h-2" />);
+      return;
+    }
+
+    // Regular paragraph
+    elements.push(
+      <p key={index} className="leading-relaxed">
+        {processInline(trimmed)}
+      </p>
+    );
+  });
+
+  // Flush any remaining list
+  flushList();
+
+  return <>{elements}</>;
+}
+
 // Message bubble component
 function MessageBubble({ message }: { message: Message }): React.JSX.Element {
   const isUser = message.role === 'user';
 
   return (
-    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
+    <div className={`flex flex-col ${isUser ? 'items-end' : 'items-start'}`}>
       <div
         className="max-w-[80%] px-4 py-2.5 text-sm"
         style={{
@@ -282,8 +376,15 @@ function MessageBubble({ message }: { message: Message }): React.JSX.Element {
             : `${RADIUS.lg} ${RADIUS.lg} ${RADIUS.lg} ${RADIUS.sm}`,
         }}
       >
-        {message.content}
+        {isUser ? message.content : renderMarkdown(message.content)}
       </div>
+      {/* Timestamp */}
+      <span
+        className="text-[10px] mt-1 px-1"
+        style={{ color: TEXT_COLORS.muted }}
+      >
+        {formatTimestamp(message.timestamp)}
+      </span>
     </div>
   );
 }
