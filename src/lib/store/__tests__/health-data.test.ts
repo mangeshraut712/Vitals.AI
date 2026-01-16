@@ -21,6 +21,10 @@ vi.mock('@/lib/extractors/biomarkers', () => ({
   extractBiomarkers: vi.fn(),
 }));
 
+vi.mock('@/lib/extractors/ai-extractor', () => ({
+  extractBiomarkersWithAI: vi.fn(),
+}));
+
 vi.mock('@/lib/extractors/body-comp', () => ({
   extractBodyComposition: vi.fn(),
 }));
@@ -33,6 +37,7 @@ import { getDataFiles } from '@/lib/files';
 import { parseTextFile } from '@/lib/parsers/text';
 import { parsePdf } from '@/lib/parsers/pdf';
 import { extractBiomarkers } from '@/lib/extractors/biomarkers';
+import { extractBiomarkersWithAI } from '@/lib/extractors/ai-extractor';
 import { extractBodyComposition } from '@/lib/extractors/body-comp';
 import { calculatePhenoAge } from '@/lib/calculations/phenoage';
 
@@ -42,6 +47,7 @@ describe('HealthDataStore', () => {
     vi.resetModules();
     // Default mock returns
     vi.mocked(extractBiomarkers).mockReturnValue({});
+    vi.mocked(extractBiomarkersWithAI).mockResolvedValue({});
     vi.mocked(extractBodyComposition).mockReturnValue({});
     vi.mocked(calculatePhenoAge).mockReturnValue({ phenoAge: 40, delta: -5 });
   });
@@ -50,7 +56,7 @@ describe('HealthDataStore', () => {
     vi.clearAllMocks();
   });
 
-  it('should parse PDF bloodwork files', async () => {
+  it('should parse PDF bloodwork files with AI extraction', async () => {
     vi.mocked(getDataFiles).mockReturnValue([
       {
         name: 'labs.pdf',
@@ -60,7 +66,7 @@ describe('HealthDataStore', () => {
       },
     ]);
     vi.mocked(parsePdf).mockResolvedValue('Glucose: 95 mg/dL');
-    vi.mocked(extractBiomarkers).mockReturnValue({ glucose: 95 });
+    vi.mocked(extractBiomarkersWithAI).mockResolvedValue({ glucose: 95 });
 
     // Re-import to get fresh instance
     const { HealthDataStore } = await import('../health-data');
@@ -69,7 +75,8 @@ describe('HealthDataStore', () => {
     await HealthDataStore.loadAllData();
 
     expect(parsePdf).toHaveBeenCalledWith('/data/labs.pdf');
-    expect(extractBiomarkers).toHaveBeenCalledWith('Glucose: 95 mg/dL');
+    // PDFs use AI extraction, not regex
+    expect(extractBiomarkersWithAI).toHaveBeenCalledWith('Glucose: 95 mg/dL');
   });
 
   it('should still parse TXT bloodwork files', async () => {
@@ -108,7 +115,7 @@ describe('HealthDataStore', () => {
     ]);
     vi.mocked(parsePdf).mockResolvedValue('Glucose: 100');
     vi.mocked(parseTextFile).mockReturnValue('Body Fat: 15%');
-    vi.mocked(extractBiomarkers).mockReturnValue({ glucose: 100 });
+    vi.mocked(extractBiomarkersWithAI).mockResolvedValue({ glucose: 100 });
     vi.mocked(extractBodyComposition).mockReturnValue({ bodyFatPercent: 15 });
 
     const { HealthDataStore } = await import('../health-data');
@@ -116,5 +123,7 @@ describe('HealthDataStore', () => {
 
     expect(parsePdf).toHaveBeenCalledWith('/data/labs.pdf');
     expect(parseTextFile).toHaveBeenCalledWith('/data/dexa.txt');
+    // PDFs use AI extraction
+    expect(extractBiomarkersWithAI).toHaveBeenCalledWith('Glucose: 100');
   });
 });

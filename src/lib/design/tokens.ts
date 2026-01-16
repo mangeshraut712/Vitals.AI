@@ -102,6 +102,15 @@ export const GRADIENTS = {
   medium: 'linear-gradient(135deg, #f59e0b 0%, #eab308 100%)', // Amber to yellow
   low: 'linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%)', // Blue to cyan
   success: 'linear-gradient(135deg, #10b981 0%, #34d399 100%)', // Green gradient
+  ai: 'linear-gradient(135deg, #0d9488 0%, #14b8a6 100%)', // Teal gradient for AI elements
+} as const;
+
+// AI-specific colors (health-appropriate teal)
+export const AI_COLORS = {
+  primary: '#0d9488', // Teal-600
+  light: '#14b8a6', // Teal-500
+  bg: '#f0fdfa', // Teal-50
+  text: '#134e4a', // Teal-900
 } as const;
 
 // ============================================================================

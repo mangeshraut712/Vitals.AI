@@ -39,37 +39,65 @@ export function calculateWeeklySummary(
     ? strainValues.reduce((sum, v) => sum + v, 0) / strainValues.length
     : null;
 
-  // Calculate Recovery average (using sleep score as proxy)
+  // Calculate Recovery average (prefer actual recovery field, fallback to sleep score)
   const recoveryValues = recentData
-    .map((d) => d.sleepScore)
+    .map((d) => d.recovery ?? d.sleepScore) // Use recovery if available, else sleepScore
     .filter((v): v is number => v !== undefined && v > 0);
   const recovery = recoveryValues.length > 0
     ? Math.round(recoveryValues.reduce((sum, v) => sum + v, 0) / recoveryValues.length)
     : null;
 
-  // Calculate Sleep Consistency
-  // Consistency = % of nights where sleep hours are within 30min (0.5 hrs) of average
-  const sleepHours = recentData
+  // Calculate Steps average
+  const stepsValues = recentData
+    .map((d) => d.steps)
+    .filter((v): v is number => v !== undefined && v > 0);
+  const steps = stepsValues.length > 0
+    ? Math.round(stepsValues.reduce((sum, v) => sum + v, 0) / stepsValues.length)
+    : null;
+
+  // Calculate Sleep Hours average
+  const sleepHoursValues = recentData
     .map((d) => d.sleepHours)
     .filter((v) => v > 0);
 
+  let avgSleepHours: number | null = null;
+
+  if (sleepHoursValues.length > 0) {
+    avgSleepHours = Math.round((sleepHoursValues.reduce((sum, v) => sum + v, 0) / sleepHoursValues.length) * 10) / 10;
+  }
+
+  // Calculate Sleep Consistency
+  // Prefer actual Whoop sleep consistency data if available
+  const sleepConsistencyValues = recentData
+    .map((d) => d.sleepConsistency)
+    .filter((v): v is number => v !== undefined && v > 0);
+
   let sleepConsistency: number | null = null;
-  if (sleepHours.length > 1) {
-    const avgSleep = sleepHours.reduce((sum, v) => sum + v, 0) / sleepHours.length;
+
+  if (sleepConsistencyValues.length > 0) {
+    // Use Whoop's actual sleep consistency metric (average of recent days)
+    sleepConsistency = Math.round(
+      sleepConsistencyValues.reduce((sum, v) => sum + v, 0) / sleepConsistencyValues.length
+    );
+  } else if (sleepHoursValues.length > 1) {
+    // Fallback: calculate consistency from sleep duration variance
+    const avgSleep = sleepHoursValues.reduce((sum, v) => sum + v, 0) / sleepHoursValues.length;
     const tolerance = 0.5; // 30 minutes in hours
 
-    const consistentNights = sleepHours.filter(
+    const consistentNights = sleepHoursValues.filter(
       (hours) => Math.abs(hours - avgSleep) <= tolerance
     ).length;
 
-    sleepConsistency = Math.round((consistentNights / sleepHours.length) * 100);
+    sleepConsistency = Math.round((consistentNights / sleepHoursValues.length) * 100);
   }
 
   return {
     sleepConsistency,
+    sleepHours: avgSleepHours,
     hrv,
     strain,
     recovery,
+    steps,
   };
 }
 

@@ -75,3 +75,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Personal health data (NEVER commit)
+/data/
+
+# Local rules
+/rules/

@@ -1,6 +1,6 @@
 'use client';
 
-import { BACKGROUNDS, BORDERS, SHADOWS, TEXT_COLORS, RADIUS } from '@/lib/design/tokens';
+import { BACKGROUNDS, BORDERS, SHADOWS, TEXT_COLORS, RADIUS, GRADIENTS } from '@/lib/design/tokens';
 
 interface ContextualPill {
   id: string;
@@ -69,7 +69,7 @@ export function ChatBar({
             width: '36px',
             height: '36px',
             borderRadius: RADIUS.md,
-            background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
+            background: GRADIENTS.ai,
           }}
         >
           <SparkleIcon />

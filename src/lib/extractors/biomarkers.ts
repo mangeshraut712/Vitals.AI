@@ -1,5 +1,15 @@
+// Dynamic biomarker from any lab test
+export interface DynamicBiomarker {
+  name: string; // Display name (e.g., "Albumin")
+  value: number; // The numeric value
+  unit: string; // e.g., "g/dL", "mg/dL"
+  referenceRange?: string; // e.g., "3.5-5.0"
+  status?: 'normal' | 'high' | 'low'; // H/L flag from lab
+  category?: string; // e.g., "Metabolic Panel", "CBC"
+}
+
 export interface ExtractedBiomarkers {
-  // Levine PhenoAge biomarkers
+  // Levine PhenoAge biomarkers (kept for calculations)
   albumin?: number;
   creatinine?: number;
   glucose?: number;
@@ -30,10 +40,19 @@ export interface ExtractedBiomarkers {
 
   // Metadata
   patientAge?: number;
+
+  // All biomarkers (dynamic - extracted from any lab)
+  all?: DynamicBiomarker[];
+
+  // Allow any additional biomarker keys from comprehensive reference
+  [key: string]: number | DynamicBiomarker[] | undefined;
 }
 
+// Numeric biomarker keys (excluding 'all' for regex extraction)
+type NumericBiomarkerKey = Exclude<keyof ExtractedBiomarkers, 'all'>;
+
 interface BiomarkerPattern {
-  key: keyof ExtractedBiomarkers;
+  key: NumericBiomarkerKey;
   patterns: RegExp[];
 }
 
@@ -58,6 +77,7 @@ const BIOMARKER_PATTERNS: BiomarkerPattern[] = [
   {
     key: 'crp',
     patterns: [
+      /hs\s+crp[:\s]+(\d+\.?\d*)/i, // Quest PDF: HS CRP 1.6
       /c-reactive protein[^:]*[:\s]+(\d+\.?\d*)/i,
       /crp[:\s]+(\d+\.?\d*)/i,
       /hs-crp[:\s]+(\d+\.?\d*)/i,
@@ -66,6 +86,7 @@ const BIOMARKER_PATTERNS: BiomarkerPattern[] = [
   {
     key: 'lymphocytePercent',
     patterns: [
+      /lymphocytes\s+(\d+\.?\d*)\s*%/i, // Quest PDF: LYMPHOCYTES 26.1 % (percentage line)
       /lymphocyte percent[:\s]+(\d+\.?\d*)/i,
       /lymphocyte[s]?[:\s]+(\d+\.?\d*)%/i,
       /lymphocyte[s]?[:\s]+(\d+\.?\d*)\s*%/i,
@@ -105,6 +126,7 @@ const BIOMARKER_PATTERNS: BiomarkerPattern[] = [
   {
     key: 'ldl',
     patterns: [
+      /ldl-?cholesterol[:\s]+(\d+\.?\d*)/i, // Quest PDF: LDL-CHOLESTEROL 156
       /ldl cholesterol[:\s]+(\d+\.?\d*)/i,
       /ldl[:\s]+(\d+\.?\d*)/i,
     ],
@@ -123,6 +145,7 @@ const BIOMARKER_PATTERNS: BiomarkerPattern[] = [
   {
     key: 'totalCholesterol',
     patterns: [
+      /cholesterol,?\s*total[:\s]+(\d+\.?\d*)/i, // Quest PDF: CHOLESTEROL, TOTAL 225
       /total cholesterol[:\s]+(\d+\.?\d*)/i,
       /^cholesterol[:\s]+(\d+\.?\d*)/im,
     ],
@@ -132,6 +155,7 @@ const BIOMARKER_PATTERNS: BiomarkerPattern[] = [
   {
     key: 'vitaminD',
     patterns: [
+      /vitamin\s*d,25-oh[,\w]*\s+(\d+\.?\d*)/i, // Quest PDF: VITAMIN D,25-OH,TOTAL,IA 15
       /vitamin d[,\s]*25-oh[:\s]+(\d+\.?\d*)/i,
       /25-oh[,\s]*vitamin d[:\s]+(\d+\.?\d*)/i,
       /vitamin d[:\s]+(\d+\.?\d*)/i,
@@ -139,7 +163,11 @@ const BIOMARKER_PATTERNS: BiomarkerPattern[] = [
   },
   {
     key: 'hba1c',
-    patterns: [/hba1c[:\s]+(\d+\.?\d*)/i, /hemoglobin a1c[:\s]+(\d+\.?\d*)/i],
+    patterns: [
+      /hemoglobin\s*a1c[:\s]+(\d+\.?\d*)/i, // Quest PDF: HEMOGLOBIN A1c 5.7
+      /hba1c[:\s]+(\d+\.?\d*)/i,
+      /hemoglobin a1c[:\s]+(\d+\.?\d*)/i,
+    ],
   },
   {
     key: 'fastingInsulin',

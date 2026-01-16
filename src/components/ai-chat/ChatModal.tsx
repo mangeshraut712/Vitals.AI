@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useLayoutEffect } from 'react';
 import {
   BACKGROUNDS,
   BORDERS,
@@ -9,6 +9,8 @@ import {
   RADIUS,
   Z_INDEX,
   ANIMATION,
+  GRADIENTS,
+  AI_COLORS,
 } from '@/lib/design/tokens';
 
 interface Message {
@@ -47,6 +49,12 @@ export function ChatModal({
   const inputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Stable callback ref to prevent effect re-subscriptions (Rule 8.2)
+  const onCloseRef = useRef(onClose);
+  useLayoutEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
   // Auto-scroll to bottom when messages change
   useEffect(() => {
     if (messagesEndRef.current) {
@@ -65,17 +73,17 @@ export function ChatModal({
     }
   }, [isOpen]);
 
-  // Handle ESC key to close modal
+  // Handle ESC key to close modal - uses ref for stable subscription (Rule 5.3)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent): void => {
       if (e.key === 'Escape' && isOpen) {
-        onClose();
+        onCloseRef.current();
       }
     };
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
+  }, [isOpen]); // Only re-subscribe when isOpen changes, not on every onClose change
 
   // Handle click outside to close
   const handleBackdropClick = useCallback(
@@ -141,7 +149,7 @@ export function ChatModal({
                 width: '32px',
                 height: '32px',
                 borderRadius: RADIUS.md,
-                background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
+                background: GRADIENTS.ai,
               }}
             >
               <SparkleIcon />
@@ -225,7 +233,7 @@ export function ChatModal({
               style={{
                 background:
                   inputValue.trim() && !isLoading
-                    ? 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)'
+                    ? GRADIENTS.ai
                     : BACKGROUNDS.accent,
                 opacity: inputValue.trim() && !isLoading ? 1 : 0.5,
                 cursor:
@@ -368,7 +376,7 @@ function MessageBubble({ message }: { message: Message }): React.JSX.Element {
         className="max-w-[80%] px-4 py-2.5 text-sm"
         style={{
           background: isUser
-            ? 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)'
+            ? GRADIENTS.ai
             : BACKGROUNDS.accent,
           color: isUser ? TEXT_COLORS.inverse : TEXT_COLORS.primary,
           borderRadius: isUser
@@ -389,6 +397,18 @@ function MessageBubble({ message }: { message: Message }): React.JSX.Element {
   );
 }
 
+// Hoisted static JSX for loading dots (Rule 6.3) - avoids recreation on every render
+const loadingDots = [0, 1, 2].map((i) => (
+  <div
+    key={i}
+    className="w-2 h-2 rounded-full animate-bounce"
+    style={{
+      backgroundColor: TEXT_COLORS.muted,
+      animationDelay: `${i * 150}ms`,
+    }}
+  />
+));
+
 // Loading indicator
 function LoadingIndicator(): React.JSX.Element {
   return (
@@ -400,16 +420,7 @@ function LoadingIndicator(): React.JSX.Element {
           borderRadius: `${RADIUS.lg} ${RADIUS.lg} ${RADIUS.lg} ${RADIUS.sm}`,
         }}
       >
-        {[0, 1, 2].map((i) => (
-          <div
-            key={i}
-            className="w-2 h-2 rounded-full animate-bounce"
-            style={{
-              backgroundColor: TEXT_COLORS.muted,
-              animationDelay: `${i * 150}ms`,
-            }}
-          />
-        ))}
+        {loadingDots}
       </div>
     </div>
   );

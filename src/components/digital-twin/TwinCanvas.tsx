@@ -54,7 +54,7 @@ function LoadingFallback(): React.JSX.Element {
 
 export function TwinCanvas({ children }: TwinCanvasProps): React.JSX.Element {
   return (
-    <div className="relative w-full h-full min-h-[400px]">
+    <div className="relative w-full h-full">
       {/* Soft gray gradient background */}
       <div
         className="absolute inset-0 rounded-lg"
@@ -67,12 +67,12 @@ export function TwinCanvas({ children }: TwinCanvasProps): React.JSX.Element {
         shadows
         dpr={[1, 2]} // Pixel ratio for performance
         camera={{
-          position: [0, 1.5, 4],
-          fov: 45,
+          position: [0, 1.2, 3.5],
+          fov: 50,
           near: 0.1,
           far: 100,
         }}
-        style={{ position: 'relative' }}
+        style={{ position: 'absolute', inset: 0 }}
         gl={{
           antialias: true,
           powerPreference: 'high-performance',

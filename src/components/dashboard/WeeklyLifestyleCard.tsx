@@ -10,9 +10,11 @@ import {
 
 export interface WeeklySummary {
   sleepConsistency: number | null; // percentage
+  sleepHours: number | null; // average hours per night
   hrv: number | null; // ms
   strain: number | null; // 0-21 scale
   recovery: number | null; // percentage
+  steps: number | null; // daily average
 }
 
 interface WeeklyLifestyleCardProps {

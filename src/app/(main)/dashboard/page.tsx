@@ -1,48 +1,81 @@
 import Link from 'next/link';
 import { HealthDataStore } from '@/lib/store/health-data';
-import { calculateHealthScore } from '@/lib/calculations/health-score';
 import { generateGoals } from '@/lib/analysis/goals';
 import { generateContextualPills } from '@/lib/ai-chat/generateContextualPills';
 import { selectTopMarkers } from '@/lib/biomarkers/selectTopMarkers';
 import { calculateWeeklySummary } from '@/lib/lifestyle/calculateWeeklySummary';
-import { HeroMetrics } from '@/components/dashboard/HeroMetrics';
+import { UnifiedHealthCard } from '@/components/dashboard/UnifiedHealthCard';
 import { StatsGrid } from '@/components/dashboard/StatsGrid';
-import { GoalsSection } from '@/components/dashboard/GoalsSection';
-import { DigitalTwin } from '@/components/digital-twin/DigitalTwin';
 import { SyncButton } from '@/components/SyncButton';
+// Dynamic import wrapper for heavy 3D component - reduces initial bundle by ~300KB (Rule 2.4)
+import { DigitalTwinLoader } from '@/components/digital-twin/DigitalTwinLoader';
 import { DataFreshnessBar } from '@/components/dashboard/DataFreshnessBar';
-import { TopMarkersCard } from '@/components/dashboard/TopMarkersCard';
-import { WeeklyLifestyleCard } from '@/components/dashboard/WeeklyLifestyleCard';
 import { ChatProvider } from '@/lib/ai-chat/ChatContext';
 import { AIChatWidget } from '@/components/ai-chat/AIChatWidget';
 import { type StatusType, SPACING } from '@/lib/design/tokens';
+import { readCache } from '@/lib/cache/biomarker-cache';
+import { getBiomarkerStatus, BIOMARKER_REFERENCES } from '@/lib/biomarkers';
 
-function getActivityStatus(value: number, type: 'hrv' | 'rhr' | 'sleep' | 'bodyFat'): StatusType {
+function getStatStatus(value: number | null, type: 'hrv' | 'sleepConsistency' | 'recovery' | 'steps'): StatusType {
+  if (value === null) return 'normal';
+
   switch (type) {
     case 'hrv':
       return value >= 50 ? 'optimal' : value >= 30 ? 'normal' : 'outOfRange';
-    case 'rhr':
-      return value < 60 ? 'optimal' : value < 80 ? 'normal' : 'outOfRange';
-    case 'sleep':
-      return value >= 7 && value <= 9 ? 'optimal' : value >= 6 ? 'normal' : 'outOfRange';
-    case 'bodyFat':
-      return value < 18 ? 'optimal' : value < 25 ? 'normal' : 'outOfRange';
+    case 'sleepConsistency':
+      return value >= 80 ? 'optimal' : value >= 60 ? 'normal' : 'outOfRange';
+    case 'recovery':
+      return value >= 80 ? 'optimal' : value >= 60 ? 'normal' : 'outOfRange';
+    case 'steps':
+      return value >= 10000 ? 'optimal' : value >= 7000 ? 'normal' : 'outOfRange';
     default:
       return 'normal';
   }
 }
 
-export default async function DashboardPage(): Promise<React.JSX.Element> {
-  // Load health data on server side
-  const biomarkers = await HealthDataStore.getBiomarkers();
-  const bodyComp = await HealthDataStore.getBodyComp();
-  const activity = await HealthDataStore.getActivity();
-  const phenoAge = await HealthDataStore.getPhenoAge();
-  const chronoAge = await HealthDataStore.getChronologicalAge();
-  const timestamps = await HealthDataStore.getTimestamps();
+// Get biomarker counts from cache (consistent with biomarkers page)
+function getBiomarkerCountsFromCache(): { optimal: number; normal: number; outOfRange: number } {
+  const cache = readCache();
+  if (!cache || cache.biomarkers.length === 0) {
+    return { optimal: 0, normal: 0, outOfRange: 0 };
+  }
 
-  // Calculate health score
-  const healthScore = calculateHealthScore(biomarkers, phenoAge, activity);
+  let optimal = 0;
+  let normal = 0;
+  let outOfRange = 0;
+
+  for (const marker of cache.biomarkers) {
+    const ref = BIOMARKER_REFERENCES[marker.id];
+
+    let statusType: StatusType;
+    if (ref) {
+      const calcStatus = getBiomarkerStatus(marker.id, marker.value);
+      statusType = calcStatus === 'optimal' ? 'optimal' : calcStatus === 'out_of_range' ? 'outOfRange' : 'normal';
+    } else if (marker.labStatus) {
+      statusType = marker.labStatus === 'normal' ? 'normal' : 'outOfRange';
+    } else {
+      statusType = 'normal';
+    }
+
+    if (statusType === 'optimal') optimal++;
+    else if (statusType === 'outOfRange') outOfRange++;
+    else normal++;
+  }
+
+  return { optimal, normal, outOfRange };
+}
+
+export default async function DashboardPage(): Promise<React.JSX.Element> {
+  // Load health data on server side - parallel fetching for performance (Rule 1.4)
+  const [biomarkers, bodyComp, activity, phenoAge, chronoAge, timestamps] =
+    await Promise.all([
+      HealthDataStore.getBiomarkers(),
+      HealthDataStore.getBodyComp(),
+      HealthDataStore.getActivity(),
+      HealthDataStore.getPhenoAge(),
+      HealthDataStore.getChronologicalAge(),
+      HealthDataStore.getTimestamps(),
+    ]);
 
   // Generate goals
   const goals = generateGoals(biomarkers, phenoAge, bodyComp);
@@ -56,44 +89,37 @@ export default async function DashboardPage(): Promise<React.JSX.Element> {
   // Calculate weekly lifestyle summary
   const weeklySummary = calculateWeeklySummary(activity);
 
-  // Calculate activity averages
-  const activityAvg =
-    activity.length > 0
-      ? {
-          hrv: activity.reduce((sum, d) => sum + d.hrv, 0) / activity.length,
-          rhr: activity.reduce((sum, d) => sum + d.rhr, 0) / activity.length,
-          sleep: activity.reduce((sum, d) => sum + d.sleepHours, 0) / activity.length,
-        }
-      : null;
-
-  // Body fat from body comp
-  const bodyFat = bodyComp.bodyFatPercent;
-
-  // Build stats array
+  // Build stats array: HRV, Sleep Consistency, Recovery %, Steps
   const stats = [
     {
       label: 'HRV',
-      value: activityAvg ? activityAvg.hrv.toFixed(0) : '--',
+      value: weeklySummary?.hrv ?? '--',
       unit: 'ms',
-      status: activityAvg ? getActivityStatus(activityAvg.hrv, 'hrv') : ('normal' as StatusType),
-    },
-    {
-      label: 'Resting HR',
-      value: activityAvg ? activityAvg.rhr.toFixed(0) : '--',
-      unit: 'bpm',
-      status: activityAvg ? getActivityStatus(activityAvg.rhr, 'rhr') : ('normal' as StatusType),
+      status: getStatStatus(weeklySummary?.hrv ?? null, 'hrv'),
     },
     {
       label: 'Sleep',
-      value: activityAvg ? activityAvg.sleep.toFixed(1) : '--',
-      unit: 'hrs',
-      status: activityAvg ? getActivityStatus(activityAvg.sleep, 'sleep') : ('normal' as StatusType),
+      value: weeklySummary !== null && weeklySummary.sleepConsistency !== null
+        ? `${weeklySummary.sleepConsistency}`
+        : '--',
+      unit: '% consistent',
+      status: getStatStatus(weeklySummary?.sleepConsistency ?? null, 'sleepConsistency'),
     },
     {
-      label: 'Body Fat',
-      value: bodyFat ? bodyFat.toFixed(1) : '--',
+      label: 'Recovery',
+      value: weeklySummary !== null && weeklySummary.recovery !== null
+        ? `${weeklySummary.recovery}`
+        : '--',
       unit: '%',
-      status: bodyFat ? getActivityStatus(bodyFat, 'bodyFat') : ('normal' as StatusType),
+      status: getStatStatus(weeklySummary?.recovery ?? null, 'recovery'),
+    },
+    {
+      label: 'Steps',
+      value: weeklySummary !== null && weeklySummary.steps !== null
+        ? weeklySummary.steps.toLocaleString()
+        : '--',
+      unit: '/day',
+      status: getStatStatus(weeklySummary?.steps ?? null, 'steps'),
     },
   ];
 
@@ -119,50 +145,48 @@ export default async function DashboardPage(): Promise<React.JSX.Element> {
           <DataFreshnessBar timestamps={timestamps} />
         </div>
 
-        {/* Hero Metrics - Health Score + Bio Age */}
+        {/* Unified Health Card - Bio Age + Health Score + Action Items */}
         <div className="mb-8">
-          <HeroMetrics
-            healthScore={healthScore}
+          <UnifiedHealthCard
             chronologicalAge={chronoAge}
             phenoAge={phenoAge}
+            lifestyleMetrics={{
+              hrv: weeklySummary?.hrv ?? null,
+              steps: weeklySummary?.steps ?? null,
+              sleepHours: weeklySummary?.sleepHours ?? null,
+              recovery: weeklySummary?.recovery ?? null,
+            }}
+            bodyCompMetrics={{
+              bodyFatPercent: bodyComp?.bodyFatPercent ?? null,
+              muscleMass: bodyComp?.leanMass ?? null,
+            }}
+            goals={goals}
           />
         </div>
 
-        {/* Main Grid Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-8">
-          {/* Digital Twin - Takes 4 columns */}
-          <div className="lg:col-span-4 bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+        {/* Main Grid Layout - Digital Twin + Stats */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          {/* Digital Twin */}
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
             <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-4">
               Digital Twin
             </h3>
-            <DigitalTwin
-              className="w-full min-h-[300px] aspect-square"
-              healthData={{ biomarkers, bodyComp, activity }}
-            />
+            <div className="h-[400px]">
+              <DigitalTwinLoader
+                className="w-full h-full"
+                healthData={{ biomarkers, bodyComp, activity }}
+              />
+            </div>
           </div>
 
-          {/* Middle Column: Stats Grid - Takes 5 columns */}
-          <div className="lg:col-span-5">
+          {/* Stats Grid with integrated markers */}
+          <div>
             <StatsGrid
               stats={stats}
-              biomarkerCounts={{
-                optimal: healthScore.breakdown.optimalCount,
-                normal: healthScore.breakdown.normalCount,
-                outOfRange: healthScore.breakdown.outOfRangeCount,
-              }}
+              biomarkerCounts={getBiomarkerCountsFromCache()}
+              topMarkers={topMarkers}
             />
           </div>
-
-          {/* Right Column: Top Markers + Weekly Lifestyle - Takes 3 columns */}
-          <div className="lg:col-span-3 space-y-6">
-            <TopMarkersCard markers={topMarkers} />
-            <WeeklyLifestyleCard summary={weeklySummary} />
-          </div>
-        </div>
-
-        {/* Goals Section */}
-        <div className="mb-8">
-          <GoalsSection goals={goals} />
         </div>
 
         {/* Footer links */}

@@ -197,8 +197,9 @@ export function generateGoals(
 
   // Check each biomarker against templates
   for (const template of GOAL_TEMPLATES) {
-    const value = biomarkers[template.biomarkerKey as keyof ExtractedBiomarkers];
-    if (value === undefined) continue;
+    const rawValue = biomarkers[template.biomarkerKey as keyof ExtractedBiomarkers];
+    if (rawValue === undefined || typeof rawValue !== 'number') continue;
+    const value = rawValue;
 
     const status = getBiomarkerStatus(template.biomarkerKey, value);
     const category = categorizeStatus(status);

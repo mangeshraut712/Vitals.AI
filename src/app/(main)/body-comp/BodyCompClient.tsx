@@ -1,7 +1,7 @@
 'use client';
 
 import { InsightCard, type InsightStatus } from '@/components/insights/InsightCard';
-import { CARD_CLASSES, STATUS_COLORS } from '@/lib/design/tokens';
+import { STATUS_COLORS } from '@/lib/design/tokens';
 import type { BodyComposition } from '@/lib/extractors/body-comp';
 import {
   BarChart,
@@ -93,9 +93,26 @@ export function BodyCompClient({ bodyComp }: BodyCompClientProps): React.JSX.Ele
     leanMass = 0,
     fatMass = 0,
     visceralFat = 0,
+    vatMass = 0,
     almi = 0,
     boneMineralContent = 0,
+    // Regional data
+    armsFatPercent,
+    legsFatPercent,
+    trunkFatPercent,
+    androidFatPercent,
+    gynoidFatPercent,
+    agRatio,
+    // Metabolic
+    restingMetabolicRate,
+    // Bone
+    boneDensityTScore,
+    boneDensityZScore,
+    totalBmd,
   } = bodyComp;
+
+  // Use vatMass if visceralFat is 0
+  const actualVisceralFat = visceralFat || vatMass;
 
   const hasData = bodyFatPercent > 0 || leanMass > 0;
   const totalMass = leanMass + fatMass + boneMineralContent;
@@ -114,11 +131,11 @@ export function BodyCompClient({ bodyComp }: BodyCompClientProps): React.JSX.Ele
   ].filter((d) => d.value > 0);
 
   return (
-    <div className="space-y-8">
+    <div className="max-w-6xl mx-auto px-6 py-8 space-y-8">
       {/* Header */}
       <header>
-        <h1 className="text-2xl font-semibold text-slate-900">Body Composition</h1>
-        <p className="text-slate-500 mt-1">Your DEXA scan analysis and body metrics</p>
+        <h1 className="text-2xl font-bold text-gray-900">Body Composition</h1>
+        <p className="text-gray-500 mt-1">Your DEXA scan analysis and body metrics</p>
       </header>
 
       {/* Insight Cards Grid */}
@@ -141,9 +158,9 @@ export function BodyCompClient({ bodyComp }: BodyCompClientProps): React.JSX.Ele
         />
         <InsightCard
           title="Visceral Fat"
-          value={visceralFat.toFixed(1)}
+          value={actualVisceralFat.toFixed(2)}
           unit="lbs"
-          status={getVisceralFatStatus(visceralFat)}
+          status={getVisceralFatStatus(actualVisceralFat)}
           subtitle="Internal organ fat"
           actionItems={VISCERAL_FAT_TIPS}
         />
@@ -159,10 +176,11 @@ export function BodyCompClient({ bodyComp }: BodyCompClientProps): React.JSX.Ele
 
       {/* Charts Section */}
       {hasData ? (
+      <>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Body Composition Breakdown */}
-          <div className={`${CARD_CLASSES.base} ${CARD_CLASSES.padding}`}>
-            <h3 className="text-lg font-medium text-slate-900 mb-4">Composition Breakdown</h3>
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Composition Breakdown</h3>
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
@@ -172,7 +190,7 @@ export function BodyCompClient({ bodyComp }: BodyCompClientProps): React.JSX.Ele
                 >
                   <XAxis
                     type="number"
-                    tick={{ fontSize: 12, fill: '#64748b' }}
+                    tick={{ fontSize: 12, fill: '#6b7280' }}
                     tickLine={false}
                     axisLine={false}
                     domain={[0, 'auto']}
@@ -181,7 +199,7 @@ export function BodyCompClient({ bodyComp }: BodyCompClientProps): React.JSX.Ele
                   <YAxis
                     type="category"
                     dataKey="name"
-                    tick={{ fontSize: 12, fill: '#64748b' }}
+                    tick={{ fontSize: 12, fill: '#6b7280' }}
                     tickLine={false}
                     axisLine={false}
                     width={70}
@@ -189,7 +207,7 @@ export function BodyCompClient({ bodyComp }: BodyCompClientProps): React.JSX.Ele
                   <Tooltip
                     contentStyle={{
                       backgroundColor: '#fff',
-                      border: '1px solid #e2e8f0',
+                      border: '1px solid #e5e7eb',
                       borderRadius: '8px',
                       fontSize: '12px',
                     }}
@@ -204,15 +222,15 @@ export function BodyCompClient({ bodyComp }: BodyCompClientProps): React.JSX.Ele
               </ResponsiveContainer>
             </div>
             {totalMass > 0 && (
-              <p className="text-sm text-slate-500 mt-2 text-center">
+              <p className="text-sm text-gray-500 mt-2 text-center">
                 Total: {totalMass.toFixed(1)} lbs
               </p>
             )}
           </div>
 
           {/* Fat vs Lean Distribution */}
-          <div className={`${CARD_CLASSES.base} ${CARD_CLASSES.padding}`}>
-            <h3 className="text-lg font-medium text-slate-900 mb-4">Fat vs Lean Distribution</h3>
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Fat vs Lean Distribution</h3>
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
@@ -234,7 +252,7 @@ export function BodyCompClient({ bodyComp }: BodyCompClientProps): React.JSX.Ele
                   <Tooltip
                     contentStyle={{
                       backgroundColor: '#fff',
-                      border: '1px solid #e2e8f0',
+                      border: '1px solid #e5e7eb',
                       borderRadius: '8px',
                       fontSize: '12px',
                     }}
@@ -249,23 +267,136 @@ export function BodyCompClient({ bodyComp }: BodyCompClientProps): React.JSX.Ele
                   className="w-3 h-3 rounded-full"
                   style={{ backgroundColor: CHART_COLORS.lean }}
                 />
-                <span className="text-sm text-slate-600">Lean Mass</span>
+                <span className="text-sm text-gray-600">Lean Mass</span>
               </div>
               <div className="flex items-center gap-2">
                 <div
                   className="w-3 h-3 rounded-full"
                   style={{ backgroundColor: CHART_COLORS.fat }}
                 />
-                <span className="text-sm text-slate-600">Fat Mass</span>
+                <span className="text-sm text-gray-600">Fat Mass</span>
               </div>
             </div>
           </div>
         </div>
+
+        {/* Regional Fat Distribution & Additional Metrics */}
+        {(androidFatPercent !== undefined || restingMetabolicRate !== undefined) && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+            {/* Regional Fat Distribution */}
+            {androidFatPercent !== undefined && (
+              <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Regional Fat Distribution</h3>
+                <div className="space-y-4">
+                  {[
+                    { name: 'Arms', value: armsFatPercent, color: '#60a5fa' },
+                    { name: 'Legs', value: legsFatPercent, color: '#34d399' },
+                    { name: 'Trunk', value: trunkFatPercent, color: '#fbbf24' },
+                    { name: 'Android (Belly)', value: androidFatPercent, color: '#f87171' },
+                    { name: 'Gynoid (Hips)', value: gynoidFatPercent, color: '#a78bfa' },
+                  ]
+                    .filter((r) => r.value !== undefined)
+                    .map((region) => (
+                      <div key={region.name} className="flex items-center gap-3">
+                        <span className="text-sm text-gray-600 w-28">{region.name}</span>
+                        <div className="flex-1 h-3 bg-gray-100 rounded-full overflow-hidden">
+                          <div
+                            className="h-full rounded-full transition-all duration-500"
+                            style={{
+                              width: `${Math.min((region.value ?? 0) / 50 * 100, 100)}%`,
+                              backgroundColor: region.color,
+                            }}
+                          />
+                        </div>
+                        <span className="text-sm font-medium text-gray-900 w-14 text-right">
+                          {region.value?.toFixed(1)}%
+                        </span>
+                      </div>
+                    ))}
+                </div>
+                {agRatio !== undefined && (
+                  <div className="mt-4 pt-4 border-t border-gray-100">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">A/G Ratio</span>
+                      <span className={`text-sm font-semibold ${agRatio > 1 ? 'text-rose-600' : 'text-emerald-600'}`}>
+                        {agRatio.toFixed(2)} {agRatio > 1 ? '(High)' : '(Good)'}
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Target: &lt; 1.0 — Lower ratios indicate healthier fat distribution
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Additional Metrics */}
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Additional Metrics</h3>
+              <div className="space-y-4">
+                {restingMetabolicRate !== undefined && (
+                  <div className="flex items-center justify-between py-2 border-b border-gray-100">
+                    <div>
+                      <span className="text-sm font-medium text-gray-900">Resting Metabolic Rate</span>
+                      <p className="text-xs text-gray-500">Minimum daily calories at rest</p>
+                    </div>
+                    <span className="text-lg font-semibold text-gray-900">
+                      {restingMetabolicRate.toLocaleString()} <span className="text-sm text-gray-500">cal/day</span>
+                    </span>
+                  </div>
+                )}
+                {(boneDensityTScore !== undefined || boneDensityZScore !== undefined) && (
+                  <div className="flex items-center justify-between py-2 border-b border-gray-100">
+                    <div>
+                      <span className="text-sm font-medium text-gray-900">Bone Density</span>
+                      <p className="text-xs text-gray-500">Age-matched comparison</p>
+                    </div>
+                    <div className="text-right">
+                      {boneDensityTScore !== undefined && (
+                        <span className="text-lg font-semibold text-gray-900">
+                          T: {boneDensityTScore > 0 ? '+' : ''}{boneDensityTScore.toFixed(1)}
+                        </span>
+                      )}
+                      {boneDensityZScore !== undefined && (
+                        <span className="text-sm text-gray-500 ml-2">
+                          Z: {boneDensityZScore > 0 ? '+' : ''}{boneDensityZScore.toFixed(1)}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
+                {totalBmd !== undefined && (
+                  <div className="flex items-center justify-between py-2 border-b border-gray-100">
+                    <div>
+                      <span className="text-sm font-medium text-gray-900">Total BMD</span>
+                      <p className="text-xs text-gray-500">Bone mineral density</p>
+                    </div>
+                    <span className="text-lg font-semibold text-gray-900">
+                      {totalBmd.toFixed(3)} <span className="text-sm text-gray-500">g/cm²</span>
+                    </span>
+                  </div>
+                )}
+                {boneMineralContent > 0 && (
+                  <div className="flex items-center justify-between py-2">
+                    <div>
+                      <span className="text-sm font-medium text-gray-900">Bone Mineral Content</span>
+                      <p className="text-xs text-gray-500">Total bone mass</p>
+                    </div>
+                    <span className="text-lg font-semibold text-gray-900">
+                      {boneMineralContent.toFixed(1)} <span className="text-sm text-gray-500">lbs</span>
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </>
       ) : (
-        <div className={`${CARD_CLASSES.base} ${CARD_CLASSES.padding} text-center py-12`}>
-          <div className="w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center bg-slate-100">
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 text-center py-12">
+          <div className="w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center bg-gray-100">
             <svg
-              className="w-8 h-8 text-slate-400"
+              className="w-8 h-8 text-gray-400"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -278,8 +409,8 @@ export function BodyCompClient({ bodyComp }: BodyCompClientProps): React.JSX.Ele
               />
             </svg>
           </div>
-          <h3 className="text-lg font-semibold text-slate-900 mb-2">No body composition data</h3>
-          <p className="text-slate-500 max-w-md mx-auto">
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">No body composition data</h3>
+          <p className="text-gray-500 max-w-md mx-auto">
             Add a DEXA scan file to your /data folder to see your body composition analysis.
           </p>
         </div>

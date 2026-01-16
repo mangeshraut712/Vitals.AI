@@ -37,6 +37,9 @@ function categorizeStatus(status: BiomarkerStatus): 'optimal' | 'normal' | 'outO
 /**
  * Calculate biomarker score (0-100)
  * Optimal = 100 points, Normal = 60 points, Out of range = 0 points
+ *
+ * Uses biomarkers.all array if available (from AI extraction),
+ * falling back to individual keys for regex-extracted biomarkers.
  */
 function calculateBiomarkerScore(biomarkers: ExtractedBiomarkers): {
   score: number;
@@ -50,17 +53,35 @@ function calculateBiomarkerScore(biomarkers: ExtractedBiomarkers): {
   let outOfRangeCount = 0;
   let total = 0;
 
-  for (const [key, value] of Object.entries(biomarkers)) {
-    if (key === 'patientAge' || value === undefined) continue;
-    if (!BIOMARKER_REFERENCES[key]) continue;
+  // If we have the 'all' array from AI extraction, use it for counting
+  // This gives us the actual lab flags (H/L/normal) for ALL biomarkers
+  if (biomarkers.all && biomarkers.all.length > 0) {
+    for (const marker of biomarkers.all) {
+      total++;
+      // Use the lab's own status flag
+      if (marker.status === 'high' || marker.status === 'low') {
+        outOfRangeCount++;
+      } else {
+        // 'normal' or undefined status counts as optimal/normal
+        // We'll be generous and count unflagged as optimal
+        optimalCount++;
+      }
+    }
+  } else {
+    // Fallback: count individual keys (regex extraction path)
+    for (const [key, value] of Object.entries(biomarkers)) {
+      if (key === 'patientAge' || key === 'all' || value === undefined) continue;
+      if (typeof value !== 'number') continue;
+      if (!BIOMARKER_REFERENCES[key]) continue;
 
-    total++;
-    const status = getBiomarkerStatus(key, value);
-    const category = categorizeStatus(status);
+      total++;
+      const status = getBiomarkerStatus(key, value);
+      const category = categorizeStatus(status);
 
-    if (category === 'optimal') optimalCount++;
-    else if (category === 'normal') normalCount++;
-    else outOfRangeCount++;
+      if (category === 'optimal') optimalCount++;
+      else if (category === 'normal') normalCount++;
+      else outOfRangeCount++;
+    }
   }
 
   if (total === 0) {

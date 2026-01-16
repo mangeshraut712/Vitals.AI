@@ -1,4 +1,4 @@
-import { TabNav } from '@/components/layout/TabNav';
+import { TopNav } from '@/components/layout/TopNav';
 
 export default function MainLayout({
   children,
@@ -6,9 +6,10 @@ export default function MainLayout({
   children: React.ReactNode;
 }): React.JSX.Element {
   return (
-    <div className="min-h-screen bg-slate-50">
-      <TabNav />
-      <main className="max-w-6xl mx-auto px-6 py-8">{children}</main>
+    <div className="min-h-screen bg-gray-50/50">
+      <TopNav />
+      {/* Main content with top padding for floating nav */}
+      <main className="pt-20">{children}</main>
     </div>
   );
 }

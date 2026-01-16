@@ -125,31 +125,31 @@ export function BiomarkerTable({
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2 overflow-x-auto">
       {/* Header row */}
-      <div className="grid grid-cols-12 gap-4 px-4 py-2 text-sm font-medium text-slate-500">
+      <div className="grid grid-cols-12 gap-4 px-4 py-2 text-sm font-medium text-slate-500 min-w-[600px]">
         <button
           onClick={() => handleSort('name')}
-          className="col-span-4 flex items-center gap-1 hover:text-slate-700 text-left"
+          className="col-span-4 flex items-center gap-1 hover:text-slate-700 text-left min-w-0"
         >
           Name
           <SortIndicator field="name" current={sortField} direction={sortDirection} />
         </button>
         <button
           onClick={() => handleSort('status')}
-          className="col-span-2 flex items-center gap-1 hover:text-slate-700 text-left"
+          className="col-span-3 flex items-center gap-1 hover:text-slate-700 text-left min-w-0"
         >
           Status
           <SortIndicator field="status" current={sortField} direction={sortDirection} />
         </button>
         <button
           onClick={() => handleSort('value')}
-          className="col-span-2 flex items-center gap-1 hover:text-slate-700 text-left"
+          className="col-span-2 flex items-center gap-1 hover:text-slate-700 text-left min-w-0"
         >
           Value
           <SortIndicator field="value" current={sortField} direction={sortDirection} />
         </button>
-        <div className="col-span-4 text-left">History</div>
+        <div className="col-span-3 text-left min-w-0">History</div>
       </div>
 
       {/* Biomarker rows */}
@@ -189,33 +189,34 @@ function BiomarkerRowItem({ biomarker, onClick }: BiomarkerRowItemProps): React.
   return (
     <button
       onClick={onClick}
-      className={`${CARD_CLASSES.base} ${CARD_CLASSES.hover} grid grid-cols-12 gap-4 items-center px-4 py-4 w-full text-left cursor-pointer transition-all hover:shadow-md hover:scale-[1.01]`}>
+      className={`${CARD_CLASSES.base} ${CARD_CLASSES.hover} grid grid-cols-12 gap-4 items-center px-4 py-4 w-full text-left cursor-pointer transition-all hover:shadow-md hover:scale-[1.01] min-w-[600px]`}>
       {/* Name */}
-      <div className="col-span-4">
+      <div className="col-span-4 min-w-0 truncate">
         <span className="font-medium text-slate-900">{biomarker.name}</span>
       </div>
 
       {/* Status badge */}
-      <div className="col-span-2">
-        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${statusClasses.badge}`}>
-          <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${statusClasses.dot}`} />
+      <div className="col-span-3 min-w-0">
+        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium whitespace-nowrap ${statusClasses.badge}`}>
+          <span className={`w-1.5 h-1.5 rounded-full mr-1.5 flex-shrink-0 ${statusClasses.dot}`} />
           {getStatusLabel(biomarker.status)}
         </span>
       </div>
 
       {/* Value */}
-      <div className="col-span-2">
+      <div className="col-span-2 min-w-0">
         <span className="font-medium text-slate-900">{biomarker.value}</span>
         <span className="text-slate-500 ml-1 text-sm">{biomarker.unit}</span>
       </div>
 
       {/* Sparkline */}
-      <div className="col-span-4">
+      <div className="col-span-3 min-w-0">
         <Sparkline
           data={biomarker.history || [biomarker.value]}
           status={statusType}
           optimalRange={biomarker.optimalRange}
           currentValue={biomarker.value}
+          width={100}
         />
       </div>
     </button>

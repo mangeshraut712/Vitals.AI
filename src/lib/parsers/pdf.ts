@@ -1,5 +1,5 @@
 import fs from 'fs';
-import { PDFParse } from 'pdf-parse';
+import pdfParse from 'pdf-parse';
 
 export async function parsePdf(filePath: string): Promise<string> {
   try {
@@ -9,12 +9,9 @@ export async function parsePdf(filePath: string): Promise<string> {
     }
 
     const dataBuffer = fs.readFileSync(filePath);
-    const parser = new PDFParse({ data: dataBuffer });
-    const result = await parser.getText();
+    const result = await pdfParse(dataBuffer);
 
     console.log('[HealthAI] Parsed PDF:', filePath, `(${result.text.length} chars)`);
-
-    await parser.destroy();
 
     return result.text;
   } catch (error) {

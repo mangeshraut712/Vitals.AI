@@ -70,9 +70,10 @@ export function getImprovements(
 ): Improvement[] {
   const improvements: Improvement[] = [];
 
-  // Check biomarkers (excluding patientAge)
+  // Check biomarkers (excluding patientAge and 'all' array)
   for (const [key, value] of Object.entries(biomarkers)) {
-    if (key === 'patientAge' || value === undefined) continue;
+    if (key === 'patientAge' || key === 'all' || value === undefined) continue;
+    if (typeof value !== 'number') continue;
 
     const status = getBiomarkerStatus(key, value);
 

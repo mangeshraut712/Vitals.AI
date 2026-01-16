@@ -1,6 +1,7 @@
 'use client';
 
-import { CARD_CLASSES, STATUS_COLORS, BORDERS } from '@/lib/design/tokens';
+import { useState } from 'react';
+import { CARD_CLASSES, STATUS_COLORS } from '@/lib/design/tokens';
 import type { DataSourceInfo } from './page';
 import type { FileType } from '@/lib/files';
 
@@ -93,6 +94,40 @@ function getStatusBadge(status: DataSourceInfo['status']): React.JSX.Element {
 }
 
 export function DataSourcesClient({ dataSources }: DataSourcesClientProps): React.JSX.Element {
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState<{ success: boolean; message: string } | null>(null);
+
+  const handleSync = async (): Promise<void> => {
+    setIsSyncing(true);
+    setSyncResult(null);
+
+    try {
+      const response = await fetch('/api/sync', { method: 'POST' });
+      const data = await response.json() as { success: boolean; message?: string; error?: string; biomarkersExtracted?: number };
+
+      if (data.success) {
+        setSyncResult({
+          success: true,
+          message: `Synced ${data.biomarkersExtracted ?? 0} biomarkers`,
+        });
+        // Reload after short delay to show success message
+        setTimeout(() => window.location.reload(), 1500);
+      } else {
+        setSyncResult({
+          success: false,
+          message: data.error ?? 'Sync failed',
+        });
+      }
+    } catch (error) {
+      setSyncResult({
+        success: false,
+        message: error instanceof Error ? error.message : 'Network error',
+      });
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Instructions card */}
@@ -160,17 +195,43 @@ export function DataSourcesClient({ dataSources }: DataSourcesClientProps): Reac
         </div>
       )}
 
-      {/* Sync button */}
-      <div className="flex justify-end">
+      {/* Sync button and status */}
+      <div className="flex items-center justify-between">
+        {syncResult && (
+          <div
+            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm"
+            style={{
+              backgroundColor: syncResult.success ? '#f0fdf4' : '#fef2f2',
+              color: syncResult.success ? '#166534' : '#dc2626',
+            }}
+          >
+            {syncResult.success ? (
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            ) : (
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            )}
+            {syncResult.message}
+          </div>
+        )}
         <button
-          onClick={() => window.location.reload()}
-          className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors"
+          onClick={handleSync}
+          disabled={isSyncing}
+          className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors disabled:opacity-50"
           style={{ backgroundColor: STATUS_COLORS.optimal.base }}
         >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg
+            className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
           </svg>
-          Sync Now
+          {isSyncing ? 'Syncing...' : 'Sync Data'}
         </button>
       </div>
     </div>

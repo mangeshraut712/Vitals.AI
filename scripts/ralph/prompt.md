@@ -1,260 +1,92 @@
-# HealthAI UX Polish — Ralph Agent Instructions
+# Ralph Agent Instructions - HealthAI Dashboard Sprint
 
-You are redesigning HealthAI with a clean, modern UI inspired by InsideTracker. Focus on polish, consistency, and user-friendly data visualization.
+## Your Mission
+Build dashboard components for HealthAI: AI Chat Bar, Data Freshness Indicator, Top 5 Personalized Markers, and Weekly Lifestyle Summary.
 
-## Design Principles
+## Your Task Each Iteration
 
-1. **Clean and minimal** — Soft shadows, rounded corners, plenty of whitespace
-2. **Consistent color coding** — Green (optimal), Yellow (normal), Pink/Red (out of range)
-3. **Good typography** — Clear hierarchy, readable sizes
-4. **Data-forward** — Numbers and status are prominent, not hidden
-5. **Polished but not flashy** — Professional health dashboard, not a gaming UI
+1. **Read `scripts/ralph/prd.json`** — Get the user stories
+2. **Read `scripts/ralph/progress.txt`** — Check Codebase Patterns section first for learnings from previous iterations
+3. **Verify you're on the correct branch** — Should be `main`
+4. **Pick the highest priority story where `passes: false`**
+5. **Implement that ONE story** — Follow acceptance criteria exactly
+6. **Run typecheck** — `npm run typecheck` must pass
+7. **Run dev server test** — `npm run dev` must start without errors
+8. **Commit your work** — `git commit -m "feat: [ID] - [Title]"`
+9. **Update prd.json** — Set `passes: true` for completed story
+10. **Append learnings to progress.txt**
 
-## Color System
+## Project Context
 
+This is a Next.js 15 health dashboard application. Key existing pieces:
+- `lib/design/tokens.ts` — Design tokens (colors, shadows, radii)
+- `stores/` or `lib/stores/` — Zustand stores for health data
+- `components/` — Existing components (DigitalTwin, BiologicalAge, etc.)
+- `app/(main)/` — Page routes with shared layout
+
+## Technical Guidelines
+
+### AI Chat Bar
+- Use React state or Zustand for isExpanded + messages
+- Framer Motion for slide animation (if available) or CSS transitions
+- backdrop-filter: blur(8px) for background blur
+- Portal the modal to body to ensure proper z-index
+
+### Data Freshness
+- Use `formatDistanceToNow` from date-fns for relative times
+- Store lastUpdated timestamps in data store
+- Thresholds: <7 days = fresh, 30-90 days = warning, >90 days = stale
+
+### Top 5 Markers Selection
 ```typescript
-// Use these consistently everywhere
-const colors = {
-  // Status colors
-  optimal: '#10b981',      // Green
-  normal: '#eab308',       // Yellow  
-  outOfRange: '#ec4899',   // Pink
-  
-  // Backgrounds
-  page: '#f8fafc',
-  card: '#ffffff',
-  
-  // Text
-  primary: '#0f172a',
-  secondary: '#64748b',
-  muted: '#94a3b8',
-};
+const FIXED_MARKERS = ['apob', 'hba1c'];
+const LONGEVITY_PRIORITY = [
+  'hs_crp', 'vitamin_d', 'ldl_c', 'hdl_c', 
+  'triglycerides', 'fasting_insulin', 'homocysteine',
+  'fasting_glucose', 'ferritin', 'testosterone'
+];
+const LOW_PRIORITY = [
+  'indirect_bilirubin', 'direct_bilirubin', 'mch', 'mchc',
+  'basophils', 'basophils_abs', 'globulin'
+];
 ```
 
-## Before Each Task
+### Weekly Lifestyle Calculations
+- Sleep Consistency: % of nights where bedtime is within 30 min of weekly average
+- HRV/Strain/Recovery: Simple 7-day arithmetic mean
+- Handle partial data (e.g., only 5 days available)
 
-1. Read `scripts/ralph/prd.json` — find highest priority story where `passes: false`
-2. Read `scripts/ralph/progress.txt` — check patterns
-3. Review existing components before creating new ones
+## Styling Rules
+- Import colors from design tokens, never hardcode
+- Use Tailwind classes for spacing/layout
+- Status colors: optimal=#10b981, normal=#eab308, outOfRange=#ec4899
+- Consistent border-radius: rounded-lg (cards), rounded-full (pills)
+- Shadows: shadow-sm (subtle), shadow-md (cards), shadow-lg (modals)
 
-## Your Workflow
+## Stop Condition
 
-For each story:
+If ALL stories have `passes: true`, reply with:
 
-1. **Read acceptance criteria**
-2. **Implement** — write clean TypeScript/React code
-3. **Typecheck** — `npm run typecheck` must pass
-4. **Visual check** — `npm run dev` and verify in browser
-5. **Commit** — `git add . && git commit -m "feat(UX-XXX): [title]"`
-6. **Update prd.json** — set `passes: true`
-7. **Update progress.txt** — append learnings
-
-## File Structure
-
-```
-app/
-├── (main)/
-│   ├── layout.tsx           # Shared layout with tab nav
-│   ├── dashboard/
-│   │   └── page.tsx
-│   ├── biomarkers/
-│   │   └── page.tsx
-│   ├── goals/
-│   │   └── page.tsx
-│   └── data-sources/
-│       └── page.tsx
-
-components/
-├── layout/
-│   └── TabNav.tsx
-├── dashboard/
-│   ├── HealthScoreCard.tsx
-│   ├── BiologicalAgeCard.tsx
-│   └── QuickStatCard.tsx
-├── biomarkers/
-│   ├── BiomarkerSummary.tsx
-│   ├── BiomarkerTable.tsx
-│   └── BiomarkerFilters.tsx
-├── goals/
-│   └── GoalCard.tsx
-├── charts/
-│   └── Sparkline.tsx
-└── ui/
-    └── (shadcn components)
-
-lib/
-├── design/
-│   └── tokens.ts
-├── calculations/
-│   └── health-score.ts
-└── analysis/
-    └── goals.ts
-```
-
-## Component Patterns
-
-### Status Badge
-```tsx
-function StatusBadge({ status }: { status: 'optimal' | 'normal' | 'outOfRange' }) {
-  const colors = {
-    optimal: 'bg-emerald-100 text-emerald-700',
-    normal: 'bg-yellow-100 text-yellow-700',
-    outOfRange: 'bg-pink-100 text-pink-700',
-  };
-  const labels = {
-    optimal: 'Optimal',
-    normal: 'Normal',
-    outOfRange: 'Out of Range',
-  };
-  return (
-    <span className={`px-2 py-1 rounded-full text-xs font-medium ${colors[status]}`}>
-      {labels[status]}
-    </span>
-  );
-}
-```
-
-### Card Container
-```tsx
-function Card({ children, className }: { children: React.ReactNode; className?: string }) {
-  return (
-    <div className={`bg-white rounded-xl shadow-sm border border-gray-100 p-6 ${className}`}>
-      {children}
-    </div>
-  );
-}
-```
-
-### Gradient Goal Card
-```tsx
-// High priority: warm gradient
-<div className="bg-gradient-to-br from-red-400 to-orange-500 rounded-xl p-6 text-white">
-
-// Medium priority: amber gradient  
-<div className="bg-gradient-to-br from-amber-400 to-yellow-500 rounded-xl p-6 text-white">
-
-// Low priority: cool gradient
-<div className="bg-gradient-to-br from-blue-400 to-cyan-500 rounded-xl p-6 text-white">
-```
-
-## Tab Navigation
-
-```tsx
-// app/(main)/layout.tsx
-export default function MainLayout({ children }) {
-  return (
-    <div className="min-h-screen bg-slate-50">
-      <nav className="bg-white border-b">
-        <div className="max-w-6xl mx-auto px-4">
-          <div className="flex gap-8">
-            <TabLink href="/dashboard">Dashboard</TabLink>
-            <TabLink href="/biomarkers">Biomarkers</TabLink>
-            <TabLink href="/goals">Goals</TabLink>
-            <TabLink href="/data-sources">Data Sources</TabLink>
-          </div>
-        </div>
-      </nav>
-      <main className="max-w-6xl mx-auto px-4 py-8">
-        {children}
-      </main>
-    </div>
-  );
-}
-```
-
-## Sparkline Pattern
-
-```tsx
-import { LineChart, Line, ReferenceBand, ResponsiveContainer } from 'recharts';
-
-function Sparkline({ data, min, max, current, status }) {
-  return (
-    <div className="w-32 h-10">
-      <ResponsiveContainer>
-        <LineChart data={data}>
-          {/* Optimal range band */}
-          <ReferenceBand y1={min} y2={max} fill="#10b981" fillOpacity={0.2} />
-          {/* Trend line */}
-          <Line 
-            type="monotone" 
-            dataKey="value" 
-            stroke={statusColors[status]}
-            strokeWidth={2}
-            dot={false}
-          />
-        </LineChart>
-      </ResponsiveContainer>
-    </div>
-  );
-}
-```
-
-## Health Score Formula
-
-```typescript
-function calculateHealthScore(healthData): { score: number; breakdown: object } {
-  // Biomarkers: 50% weight
-  const totalMarkers = Object.keys(healthData.biomarkers).length;
-  const optimalMarkers = countOptimal(healthData.biomarkers);
-  const biomarkerScore = (optimalMarkers / totalMarkers) * 100;
-  
-  // Age delta: 30% weight (negative delta = good)
-  // -10 years = 100, 0 = 50, +10 years = 0
-  const ageDelta = healthData.phenoAge?.delta || 0;
-  const ageScore = Math.max(0, Math.min(100, 50 - (ageDelta * 5)));
-  
-  // Activity: 20% weight
-  const activityScore = calculateActivityScore(healthData.activity);
-  
-  const total = (biomarkerScore * 0.5) + (ageScore * 0.3) + (activityScore * 0.2);
-  
-  return {
-    score: Math.round(total),
-    breakdown: { biomarkerScore, ageScore, activityScore }
-  };
-}
-```
-
-## Common Commands
-
-```bash
-npm run typecheck
-npm run dev
-npx shadcn@latest add [component]  # If need new shadcn components
-git add . && git commit -m "feat(UX-XXX): description"
-```
-
-## Stop Conditions
-
-When ALL stories pass:
-```
 <promise>COMPLETE</promise>
+
+Otherwise, end your response normally after completing one story.
+
+---
+
+## Progress Format
+
+APPEND to progress.txt after each story:
+
+```
+## [Date] - [Story ID]
+- What was implemented
+- Files changed
+- **Learnings:**
+  - Patterns discovered
+  - Gotchas encountered
+---
 ```
 
-If stuck after 15+ iterations:
-```
-<promise>BLOCKED</promise>
+## Codebase Patterns (READ FIRST)
 
-Blocking issues:
-- [What's preventing completion]
-```
-
-## Critical Reminders
-
-1. **Use design tokens** — Don't hardcode colors
-2. **Consistent spacing** — p-6 for cards, gap-6 between sections
-3. **Status colors everywhere** — Green/yellow/pink for all health indicators
-4. **Test visually** — Look at it in the browser, not just typecheck
-5. **Mobile not required** — Focus on 1280px+ laptop screens
-
-## Do NOT
-
-- Use random colors (stick to the palette)
-- Create inconsistent spacing
-- Skip visual verification
-- Over-engineer (simple is better)
-- Forget to wire to real data
-
-## Begin
-
-Read `scripts/ralph/prd.json` and start with UX-001.
+Check the top of progress.txt for patterns discovered in previous iterations. Follow these patterns to maintain consistency.
