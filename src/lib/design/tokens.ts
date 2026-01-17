@@ -1,5 +1,5 @@
 /**
- * Design Tokens - Single source of truth for HealthAI visual design
+ * Design Tokens - Single source of truth for Vitals.AI visual design
  *
  * Inspired by clinical health dashboards like InsideTracker.
  * Uses a refined, professional aesthetic with clear status colors.

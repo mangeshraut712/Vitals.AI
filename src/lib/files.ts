@@ -293,7 +293,7 @@ export function getDataFiles(): DataFile[] {
   }
 
   console.log(
-    '[HealthAI] Detected data sources:',
+    '[Vitals.AI] Detected data sources:',
     dataFiles.map(
       (f) =>
         `${f.name} (${f.type}${f.trackerType ? `, ${f.trackerType}` : ''}${f.isFolder ? ', folder' : ''})`
@@ -309,7 +309,7 @@ export function getDataFiles(): DataFile[] {
  */
 function scanLegacyDataFolder(): DataFile[] {
   if (!fs.existsSync(DATA_DIR)) {
-    console.log('[HealthAI] Data directory not found:', DATA_DIR);
+    console.log('[Vitals.AI] Data directory not found:', DATA_DIR);
     return [];
   }
 

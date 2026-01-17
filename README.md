@@ -1,4 +1,4 @@
-# OpenHealth
+# Vitals.AI
 
 A privacy-first health dashboard with AI-powered insights. Runs entirely on your local machine - your health data never leaves your computer (except for AI API calls to Anthropic).
 

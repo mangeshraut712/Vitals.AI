@@ -41,7 +41,7 @@ export function TabNav(): React.JSX.Element {
                 />
               </svg>
             </div>
-            <span className="text-lg font-semibold text-slate-900">HealthAI</span>
+            <span className="text-lg font-semibold text-slate-900">Vitals.AI</span>
           </Link>
 
           {/* Tab Navigation */}

@@ -227,7 +227,7 @@ export function TopNav(): React.JSX.Element {
                 />
               </svg>
             </div>
-            <span className="text-sm font-semibold text-gray-900">HealthAI</span>
+            <span className="text-sm font-semibold text-gray-900">Vitals.AI</span>
           </Link>
         </motion.div>
 

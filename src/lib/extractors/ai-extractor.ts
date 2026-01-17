@@ -305,14 +305,14 @@ interface AIExtractionResult {
 export async function extractBiomarkersWithAI(text: string): Promise<ExtractedBiomarkers> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
-    console.warn('[HealthAI] No API key, skipping AI extraction');
+    console.warn('[Vitals.AI] No API key, skipping AI extraction');
     return {};
   }
 
   try {
     const client = new Anthropic({ apiKey });
 
-    console.log('[HealthAI] Extracting ALL biomarkers with AI...');
+    console.log('[Vitals.AI] Extracting ALL biomarkers with AI...');
 
     const response = await client.messages.create({
       model: 'claude-sonnet-4-20250514',
@@ -334,7 +334,7 @@ export async function extractBiomarkersWithAI(text: string): Promise<ExtractedBi
       const result = toolUse.input as AIExtractionResult;
       const biomarkers = result.biomarkers || [];
 
-      console.log(`[HealthAI] AI extracted ${biomarkers.length} biomarkers`);
+      console.log(`[Vitals.AI] AI extracted ${biomarkers.length} biomarkers`);
 
       // Build the ExtractedBiomarkers object
       const extracted: ExtractedBiomarkers = {
@@ -367,15 +367,15 @@ export async function extractBiomarkersWithAI(text: string): Promise<ExtractedBi
       }
 
       const knownKeys = Object.keys(extracted).filter((k) => k !== 'all' && k !== 'patientAge');
-      console.log(`[HealthAI] Mapped ${knownKeys.length} to known biomarker keys`);
+      console.log(`[Vitals.AI] Mapped ${knownKeys.length} to known biomarker keys`);
 
       return extracted;
     }
 
-    console.warn('[HealthAI] No tool use in response');
+    console.warn('[Vitals.AI] No tool use in response');
     return {};
   } catch (error) {
-    console.error('[HealthAI] AI extraction error:', error);
+    console.error('[Vitals.AI] AI extraction error:', error);
     return {};
   }
 }

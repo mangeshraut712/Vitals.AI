@@ -1,4 +1,4 @@
-# HealthAI Product Vision
+# Vitals.AI Product Vision
 
 ## One-Liner
 
@@ -24,7 +24,7 @@ Existing solutions have problems:
 
 ## The Solution
 
-HealthAI gives you:
+Vitals.AI gives you:
 
 1. **Unified Dashboard** — One view of blood work, body composition, activity
 2. **Biological Age** — Levine PhenoAge calculation from your biomarkers
@@ -94,7 +94,7 @@ V1 is successful if:
 
 ## Differentiation
 
-| Feature | HealthAI | Apple Health | InsideTracker | Random GPT |
+| Feature | Vitals.AI | Apple Health | InsideTracker | Random GPT |
 |---------|----------|--------------|---------------|------------|
 | Runs locally | ✅ | ❌ | ❌ | ❌ |
 | Your API key | ✅ | N/A | N/A | ❌ |
@@ -108,8 +108,8 @@ V1 is successful if:
 
 **V1.5 — CLI Mode**
 - Terminal-based interface
-- `healthai dashboard` opens HTML report
-- `healthai chat "question"` for quick queries
+- `vitals-ai dashboard` opens HTML report
+- `vitals-ai chat "question"` for quick queries
 
 **V2 — Integrations**
 - Whoop API OAuth
@@ -146,7 +146,7 @@ V1 is successful if:
 
 ## Naming
 
-**HealthAI** — Simple, descriptive, available.
+**Vitals.AI** — Simple, descriptive, available.
 
 Alternatives considered:
 - BioAge (too narrow)

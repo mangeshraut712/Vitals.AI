@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "HealthAI Dashboard",
+  title: "Vitals.AI Dashboard",
   description: "Privacy-first health dashboard with AI agent",
 };
 

@@ -1,6 +1,6 @@
 import { query } from '@anthropic-ai/claude-agent-sdk';
 
-const HEALTH_SYSTEM_PROMPT = `You are HealthAI, a knowledgeable health assistant that helps users understand their health data and make informed decisions about their wellness.
+const HEALTH_SYSTEM_PROMPT = `You are Vitals.AI, a knowledgeable health assistant that helps users understand their health data and make informed decisions about their wellness.
 
 ## Your Role
 - Analyze health biomarkers and provide context
@@ -113,7 +113,7 @@ ${message}`;
           break;
         case 'system':
           if (msg.subtype === 'init') {
-            console.log(`[HealthAI] Session started: ${msg.session_id}`);
+            console.log(`[Vitals.AI] Session started: ${msg.session_id}`);
           }
           break;
       }

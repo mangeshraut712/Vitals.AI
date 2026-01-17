@@ -248,14 +248,14 @@ export async function extractBodyCompWithAI(
 ): Promise<ExtendedBodyComposition> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
-    console.warn('[HealthAI] No API key, skipping AI body comp extraction');
+    console.warn('[Vitals.AI] No API key, skipping AI body comp extraction');
     return {};
   }
 
   try {
     const client = new Anthropic({ apiKey });
 
-    console.log('[HealthAI] Extracting body composition with AI...');
+    console.log('[Vitals.AI] Extracting body composition with AI...');
 
     const response = await client.messages.create({
       model: 'claude-sonnet-4-20250514',
@@ -286,26 +286,26 @@ export async function extractBodyCompWithAI(
         (k) => extracted[k as keyof ExtendedBodyComposition] !== undefined
       ).length;
 
-      console.log(`[HealthAI] AI extracted ${fieldCount} body composition fields`);
+      console.log(`[Vitals.AI] AI extracted ${fieldCount} body composition fields`);
 
       // Log key metrics for debugging
       if (extracted.bodyFatPercent) {
-        console.log(`[HealthAI] Body Fat: ${extracted.bodyFatPercent}%`);
+        console.log(`[Vitals.AI] Body Fat: ${extracted.bodyFatPercent}%`);
       }
       if (extracted.leanMass) {
-        console.log(`[HealthAI] Lean Mass: ${extracted.leanMass} lbs`);
+        console.log(`[Vitals.AI] Lean Mass: ${extracted.leanMass} lbs`);
       }
       if (extracted.vatMass) {
-        console.log(`[HealthAI] VAT: ${extracted.vatMass} lbs`);
+        console.log(`[Vitals.AI] VAT: ${extracted.vatMass} lbs`);
       }
 
       return extracted;
     }
 
-    console.warn('[HealthAI] No tool use in body comp response');
+    console.warn('[Vitals.AI] No tool use in body comp response');
     return {};
   } catch (error) {
-    console.error('[HealthAI] AI body comp extraction error:', error);
+    console.error('[Vitals.AI] AI body comp extraction error:', error);
     return {};
   }
 }

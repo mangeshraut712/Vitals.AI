@@ -1,6 +1,6 @@
 import { query } from '@anthropic-ai/claude-agent-sdk';
 
-const GOAL_CREATION_SYSTEM_PROMPT = `You are a Goal Coach for HealthAI, helping users create personalized health goals grounded in their actual health data.
+const GOAL_CREATION_SYSTEM_PROMPT = `You are a Goal Coach for Vitals.AI, helping users create personalized health goals grounded in their actual health data.
 
 ## Your Role
 - Help users articulate and refine their health goals

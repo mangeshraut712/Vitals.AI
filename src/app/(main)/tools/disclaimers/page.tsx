@@ -3,7 +3,7 @@ export default function DisclaimersPage(): React.JSX.Element {
     <div className="max-w-4xl mx-auto px-6 py-8">
       <header className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900">Disclaimers</h1>
-        <p className="text-gray-500 mt-1">Important information about using HealthAI</p>
+        <p className="text-gray-500 mt-1">Important information about using Vitals.AI</p>
       </header>
 
       <div className="space-y-6">
@@ -27,7 +27,7 @@ export default function DisclaimersPage(): React.JSX.Element {
             <div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">Not Medical Advice</h3>
               <p className="text-gray-600">
-                HealthAI is an informational tool and does not provide medical advice, diagnosis,
+                Vitals.AI is an informational tool and does not provide medical advice, diagnosis,
                 or treatment. The information displayed is based on your uploaded health data and
                 should not replace professional medical consultation. Always consult with qualified
                 healthcare providers before making health decisions.
@@ -56,7 +56,7 @@ export default function DisclaimersPage(): React.JSX.Element {
             <div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">Privacy & Data</h3>
               <p className="text-gray-600">
-                HealthAI runs entirely on your local machine. Your health data never leaves your
+                Vitals.AI runs entirely on your local machine. Your health data never leaves your
                 computer except when sent to Anthropic&apos;s API for AI analysis (using your own API key).
                 No data is stored on external servers, and no analytics or tracking is used.
                 You maintain full control of your data at all times.
@@ -115,7 +115,7 @@ export default function DisclaimersPage(): React.JSX.Element {
             <div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">Data Accuracy</h3>
               <p className="text-gray-600">
-                HealthAI extracts data from your uploaded files using pattern matching and AI.
+                Vitals.AI extracts data from your uploaded files using pattern matching and AI.
                 While we strive for accuracy, parsing errors may occur with unusual file formats
                 or layouts. Always verify that extracted values match your original documents,
                 especially for critical health metrics.

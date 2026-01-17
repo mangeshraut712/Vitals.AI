@@ -112,7 +112,7 @@ class HealthDataStoreClass {
             const cached = readBiomarkerCache();
             if (cached && cached.sourceHash === fileHash) {
               this.data.biomarkers = this.convertCachedToExtracted(cached.biomarkers, cached.patientAge);
-              console.log('[HealthAI] Loaded biomarkers from cache');
+              console.log('[Vitals.AI] Loaded biomarkers from cache');
               usedAIExtraction = true; // Skip regex fallback
             }
           } else {
@@ -137,11 +137,11 @@ class HealthDataStoreClass {
                 updateManifestEntry(manifest, relativePath, fileHash, 'bloodwork');
                 manifestChanged = true;
                 console.log(
-                  `[HealthAI] Biomarker extraction successful (${biomarkerCount}), cached`
+                  `[Vitals.AI] Biomarker extraction successful (${biomarkerCount}), cached`
                 );
               } else {
                 console.warn(
-                  `[HealthAI] Biomarker extraction returned only ${biomarkerCount} items, NOT caching`
+                  `[Vitals.AI] Biomarker extraction returned only ${biomarkerCount} items, NOT caching`
                 );
               }
             }
@@ -163,7 +163,7 @@ class HealthDataStoreClass {
             const cached = readBodyCompCache();
             if (cached && cached.sourceHash === fileHash) {
               this.data.bodyComp = cached.data;
-              console.log('[HealthAI] Loaded body composition from cache');
+              console.log('[Vitals.AI] Loaded body composition from cache');
               usedAIBodyCompExtraction = true; // Skip regex fallback
             }
           } else {
@@ -184,9 +184,9 @@ class HealthDataStoreClass {
                 writeBodyCompCache(this.data.bodyComp, relativePath, fileHash);
                 updateManifestEntry(manifest, relativePath, fileHash, 'dexa');
                 manifestChanged = true;
-                console.log('[HealthAI] Body comp extraction successful, cached');
+                console.log('[Vitals.AI] Body comp extraction successful, cached');
               } else {
-                console.warn('[HealthAI] Body comp extraction returned empty, NOT caching');
+                console.warn('[Vitals.AI] Body comp extraction returned empty, NOT caching');
               }
             }
           }
@@ -315,7 +315,7 @@ class HealthDataStoreClass {
     }
 
     this.loaded = true;
-    console.log('[HealthAI] Health data loaded successfully');
+    console.log('[Vitals.AI] Health data loaded successfully');
   }
 
   /**

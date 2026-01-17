@@ -32,7 +32,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const result = await queryHealthAgent(trimmedMessage, healthContext);
 
     if (result.error) {
-      console.error('[HealthAI] Agent error:', result.error);
+      console.error('[Vitals.AI] Agent error:', result.error);
       return NextResponse.json(
         { error: 'Failed to get response from health agent' },
         { status: 500 }
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     return NextResponse.json({ response: result.content });
   } catch (error) {
-    console.error('[HealthAI] API error:', error);
+    console.error('[Vitals.AI] API error:', error);
 
     if (error instanceof SyntaxError) {
       return NextResponse.json(

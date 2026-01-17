@@ -1,4 +1,4 @@
-# HealthAI Knowledge Base
+# Vitals.AI Knowledge Base
 
 This document contains verified health knowledge embedded into the agent's system prompt.
 
@@ -274,7 +274,7 @@ According to a 2018 study in Aging, the Levine PhenoAge formula uses 9 biomarker
 
 ## Disclaimer
 
-This knowledge base is for informational purposes only. HealthAI is not a medical device and does not provide medical advice. Always consult a qualified healthcare provider for medical decisions.
+This knowledge base is for informational purposes only. Vitals.AI is not a medical device and does not provide medical advice. Always consult a qualified healthcare provider for medical decisions.
 
 Users should:
 - Share results with their doctor

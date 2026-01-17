@@ -542,6 +542,6 @@ Use this to map lab variations to canonical names:
 
 ---
 
-*Reference document for HealthAI dashboard application v2.0*  
+*Reference document for Vitals.AI dashboard application v2.0*  
 *Total: 177 biomarkers including calculated ratios and indices*  
 *Last Updated: January 2026*

@@ -1,8 +1,8 @@
-# HealthAI Architecture
+# Vitals.AI Architecture
 
 ## System Overview
 
-HealthAI is a localhost-only health dashboard with an AI chat agent. All data stays on the user's machine.
+Vitals.AI is a localhost-only health dashboard with an AI chat agent. All data stays on the user's machine.
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐

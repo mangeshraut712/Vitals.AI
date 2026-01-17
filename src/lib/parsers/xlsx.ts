@@ -25,7 +25,7 @@ export function parseXlsx(filePath: string): XlsxSheet[] {
 
     return sheets;
   } catch (error) {
-    console.error('[HealthAI] Error reading XLSX file:', filePath, error);
+    console.error('[Vitals.AI] Error reading XLSX file:', filePath, error);
     return [];
   }
 }

@@ -15,12 +15,12 @@ export function parseCsv(filePath: string): CsvRow[] {
     });
 
     if (result.errors.length > 0) {
-      console.warn('[HealthAI] CSV parsing warnings:', result.errors);
+      console.warn('[Vitals.AI] CSV parsing warnings:', result.errors);
     }
 
     return result.data;
   } catch (error) {
-    console.error('[HealthAI] Error reading CSV file:', filePath, error);
+    console.error('[Vitals.AI] Error reading CSV file:', filePath, error);
     return [];
   }
 }
