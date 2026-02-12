@@ -6,6 +6,9 @@ import type {
   HealthEventSeverity,
 } from '@/lib/types/health-events';
 
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 const VALID_DOMAINS: HealthEventDomain[] = [
   'biomarker',
   'activity',

@@ -6,6 +6,8 @@ import type { StatusType } from '@/lib/design/tokens';
 import type { BiomarkerStatus } from '@/lib/types/health';
 import type { Metadata } from 'next';
 
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
   title: 'Biomarkers',
   description: 'View and analyze your blood biomarker results with AI-powered insights and reference ranges.',

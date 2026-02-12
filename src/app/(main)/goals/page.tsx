@@ -2,6 +2,8 @@ import { HealthDataStore } from '@/lib/store/health-data';
 import { generateGoals, type Goal } from '@/lib/analysis/goals';
 import { GoalsClient } from './GoalsClient';
 
+export const dynamic = 'force-dynamic';
+
 async function getGoals(): Promise<Goal[]> {
   const biomarkers = await HealthDataStore.getBiomarkers();
   const phenoAge = await HealthDataStore.getPhenoAge();

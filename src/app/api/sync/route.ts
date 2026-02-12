@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { clearAllCache } from '@/lib/cache';
 
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 // Reset the singleton so it reloads on next request
 const globalForHealthData = globalThis as unknown as {
   healthDataStore: unknown;

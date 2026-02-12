@@ -2,6 +2,8 @@ import { HealthDataStore, type ActivityData } from '@/lib/store/health-data';
 import type { WhoopData } from '@/lib/parsers/whoop';
 import { LifestyleClient } from './LifestyleClient';
 
+export const dynamic = 'force-dynamic';
+
 async function getActivityData(): Promise<ActivityData[]> {
   return await HealthDataStore.getActivity();
 }

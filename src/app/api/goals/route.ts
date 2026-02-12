@@ -3,6 +3,9 @@ import fs from 'fs';
 import path from 'path';
 import type { GoalPriority } from '@/lib/analysis/goals';
 
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 const USER_GOALS_FILE = path.join(process.cwd(), 'data', 'user-goals.json');
 const globalForGoals = globalThis as unknown as {
   inMemoryGoals?: UserGoal[];

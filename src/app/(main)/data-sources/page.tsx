@@ -1,6 +1,8 @@
 import { getDataFiles, type FileType } from '@/lib/files';
 import { DataSourcesClient } from './DataSourcesClient';
 
+export const dynamic = 'force-dynamic';
+
 export interface DataSourceInfo {
   name: string;
   type: FileType;

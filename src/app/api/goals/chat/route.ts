@@ -2,6 +2,10 @@ import { NextResponse, NextRequest } from 'next/server';
 import { queryGoalAgent, type GoalAgentResponse } from '@/lib/agent/goal-agent';
 import { HealthDataStore } from '@/lib/store/health-data';
 
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
+
 interface ChatRequest {
   message: string;
   conversationHistory: Array<{ role: 'user' | 'assistant'; content: string }>;

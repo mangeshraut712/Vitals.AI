@@ -3,6 +3,10 @@ import crypto from 'crypto';
 import type { TerraWebhookPayload } from '@/lib/terra/types';
 import prisma from '@/lib/db';
 
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+export const maxDuration = 30;
+
 // Verify Terra Webhook signature
 function verifySignature(signature: string | null, payload: string, secret: string | undefined): boolean {
     if (!signature || !secret) return false;

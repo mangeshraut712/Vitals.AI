@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { clearAllCache } from '@/lib/cache';
 
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 /**
  * POST /api/cache/clear
  * Clears all cached extraction data, forcing re-extraction on next load

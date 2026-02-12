@@ -30,6 +30,8 @@ import { type StatusType } from '@/lib/design/tokens';
 import type { BodyComposition } from '@/lib/extractors/body-comp';
 import type { ExtractedBiomarkers } from '@/lib/extractors/biomarkers';
 
+export const dynamic = 'force-dynamic';
+
 const CORE_BLOODWORK_ORDER = [
   'ldl',
   'hba1c',

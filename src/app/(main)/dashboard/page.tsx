@@ -17,6 +17,8 @@ import { type StatusType } from '@/lib/design/tokens';
 import { readCache } from '@/lib/cache/biomarker-cache';
 import { getBiomarkerStatus, BIOMARKER_REFERENCES } from '@/lib/biomarkers';
 
+export const dynamic = 'force-dynamic';
+
 function getStatStatus(value: number | null, type: 'hrv' | 'sleepConsistency' | 'recovery' | 'steps'): StatusType {
   if (value === null) return 'normal';
 
