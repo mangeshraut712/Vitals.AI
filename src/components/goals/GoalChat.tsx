@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, FormEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { CARD_CLASSES, GRADIENTS } from '@/lib/design/tokens';
+import { GRADIENTS } from '@/lib/design/tokens';
 import type { GoalProposal } from '@/lib/agent/goal-agent';
 
 interface Message {
@@ -73,7 +73,7 @@ export function GoalChat({ onGoalAccepted }: GoalChatProps): React.JSX.Element {
 
       const data = (await response.json()) as ChatApiResponse;
 
-      if (!response.ok) {
+      if (!response.ok || data.success === false) {
         throw new Error(data.error ?? 'Failed to get response');
       }
 
@@ -135,9 +135,9 @@ export function GoalChat({ onGoalAccepted }: GoalChatProps): React.JSX.Element {
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto space-y-4 mb-4 min-h-[200px]">
         {messages.length === 0 ? (
-          <div className="text-center text-slate-500 py-8">
+          <div className="text-center text-muted-foreground py-8">
             <p className="mb-2 font-medium">Tell me about your goal</p>
-            <p className="text-sm text-slate-400">
+            <p className="text-sm text-muted-foreground">
               Examples: &quot;I want to get stronger&quot; or &quot;Help me improve my sleep&quot;
             </p>
           </div>
@@ -153,7 +153,7 @@ export function GoalChat({ onGoalAccepted }: GoalChatProps): React.JSX.Element {
                 className={`max-w-[85%] rounded-xl px-4 py-3 ${
                   message.role === 'user'
                     ? 'bg-slate-900 text-white'
-                    : 'bg-slate-100 text-slate-900'
+                    : 'bg-slate-100 text-foreground'
                 }`}
               >
                 <p className="text-sm whitespace-pre-wrap leading-relaxed">{message.content}</p>
@@ -192,13 +192,13 @@ export function GoalChat({ onGoalAccepted }: GoalChatProps): React.JSX.Element {
           >
             <div className="flex items-start justify-between mb-2">
               <h4 className="font-semibold text-lg">{pendingProposal.title}</h4>
-              <span className="text-xs bg-white/20 px-2 py-1 rounded-full uppercase">
+              <span className="text-xs bg-card/20 px-2 py-1 rounded-full uppercase">
                 {pendingProposal.priority}
               </span>
             </div>
             <p className="text-sm text-white/90 mb-3">{pendingProposal.description}</p>
             <div className="text-xs text-white/80 mb-3">
-              <span className="bg-white/20 px-2 py-1 rounded">{pendingProposal.category}</span>
+              <span className="bg-card/20 px-2 py-1 rounded">{pendingProposal.category}</span>
             </div>
             <ul className="text-sm space-y-1 mb-4">
               {pendingProposal.actionItems.slice(0, 3).map((item, i) => (
@@ -216,14 +216,14 @@ export function GoalChat({ onGoalAccepted }: GoalChatProps): React.JSX.Element {
             <div className="flex gap-2">
               <Button
                 onClick={handleAcceptGoal}
-                className="flex-1 bg-white text-slate-900 hover:bg-white/90"
+                className="flex-1 bg-card text-foreground hover:bg-card/90"
               >
                 Add Goal
               </Button>
               <Button
                 onClick={handleRefineGoal}
                 variant="outline"
-                className="flex-1 border-white/30 text-white hover:bg-white/10"
+                className="flex-1 border-white/30 text-white hover:bg-card/10"
               >
                 Keep Refining
               </Button>

@@ -75,9 +75,6 @@ Common test name mappings to be aware of:
 - "RDW" = Red Cell Distribution Width
 - "MPV" = Mean Platelet Volume`;
 
-// Numeric biomarker keys (excluding 'all' and 'patientAge' for type safety)
-type NumericBiomarkerKey = Exclude<keyof ExtractedBiomarkers, 'all' | 'patientAge'>;
-
 // Comprehensive name mappings for all biomarkers
 // Maps lab test names (variations) to our standardized keys
 const NAME_TO_KEY: Record<string, string> = {
@@ -315,7 +312,7 @@ export async function extractBiomarkersWithAI(text: string): Promise<ExtractedBi
     console.log('[Vitals.AI] Extracting ALL biomarkers with AI...');
 
     const response = await client.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-3-5-sonnet-latest',
       max_tokens: 8192, // Increased for large lab reports
       system: SYSTEM_PROMPT,
       tools: [EXTRACTION_TOOL],

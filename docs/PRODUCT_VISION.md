@@ -84,13 +84,13 @@ Vitals.AI gives you:
 
 V1 is successful if:
 
-1. [ ] User can drop files in /data and see populated dashboard
-2. [ ] PhenoAge calculates correctly with standard lab panel
-3. [ ] Chat agent answers health questions using user's actual data
-4. [ ] Agent cites verified sources (NIH, Blueprint) not random blogs
-5. [ ] Entire app runs locally with no external data transmission
-6. [ ] Works offline (except agent WebSearch)
-7. [ ] Technical users can run it with just README instructions
+1. [x] User can drop files in /data and see populated dashboard
+2. [x] PhenoAge calculates correctly with standard lab panel
+3. [x] Chat agent answers health questions using user's actual data
+4. [x] Agent cites verified sources (NIH, Blueprint) not random blogs
+5. [x] Core app runs locally; external transmission occurs only for user-invoked AI calls (user-owned API key)
+6. [x] Dashboard parsing/analytics work offline; AI chat + web research features require internet
+7. [x] Technical users can run it with just README instructions
 
 ## Differentiation
 

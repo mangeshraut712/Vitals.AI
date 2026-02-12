@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { CARD_CLASSES, STATUS_COLORS } from '@/lib/design/tokens';
 import type { DataSourceInfo } from './page';
 import type { FileType } from '@/lib/files';
@@ -57,7 +58,7 @@ function getFileTypeIcon(type: FileType): React.JSX.Element {
     default:
       return (
         <div className={baseClasses} style={{ backgroundColor: '#f1f5f9' }}>
-          <svg className="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
           </svg>
         </div>
@@ -96,6 +97,7 @@ function getStatusBadge(status: DataSourceInfo['status']): React.JSX.Element {
 export function DataSourcesClient({ dataSources }: DataSourcesClientProps): React.JSX.Element {
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<{ success: boolean; message: string } | null>(null);
+  const router = useRouter();
 
   const handleSync = async (): Promise<void> => {
     setIsSyncing(true);
@@ -110,8 +112,8 @@ export function DataSourcesClient({ dataSources }: DataSourcesClientProps): Reac
           success: true,
           message: `Synced ${data.biomarkersExtracted ?? 0} biomarkers`,
         });
-        // Reload after short delay to show success message
-        setTimeout(() => window.location.reload(), 1500);
+        // Refresh after short delay so success state is visible.
+        setTimeout(() => router.refresh(), 1000);
       } else {
         setSyncResult({
           success: false,
@@ -132,24 +134,24 @@ export function DataSourcesClient({ dataSources }: DataSourcesClientProps): Reac
     <div className="space-y-6">
       {/* Instructions card */}
       <div className={`${CARD_CLASSES.base} ${CARD_CLASSES.padding}`} style={{ backgroundColor: '#f8fafc' }}>
-        <h3 className="font-medium text-slate-900 mb-2">Adding New Data</h3>
-        <p className="text-sm text-slate-600 mb-3">
+        <h3 className="font-medium text-foreground mb-2">Adding New Data</h3>
+        <p className="text-sm text-muted-foreground mb-3">
           To add new health data, place files in the <code className="bg-slate-200 px-1.5 py-0.5 rounded text-xs">/data</code> folder in the project directory.
         </p>
-        <div className="text-sm text-slate-600 space-y-1">
+        <div className="text-sm text-muted-foreground space-y-1">
           <p><strong>Supported formats:</strong> .txt, .csv, .xlsx</p>
-          <p><strong>File naming:</strong> Include keywords like "blood", "dexa", or "whoop" for auto-detection.</p>
+          <p><strong>File naming:</strong> Include keywords like &quot;blood&quot;, &quot;dexa&quot;, or &quot;whoop&quot; for auto-detection.</p>
         </div>
       </div>
 
       {/* Data sources list */}
       {dataSources.length === 0 ? (
         <div className={`${CARD_CLASSES.base} ${CARD_CLASSES.padding} text-center py-12`}>
-          <svg className="w-12 h-12 text-slate-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-12 h-12 text-muted-foreground mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
           </svg>
-          <h3 className="text-lg font-medium text-slate-900 mb-2">No data files found</h3>
-          <p className="text-slate-500">
+          <h3 className="text-lg font-medium text-foreground mb-2">No data files found</h3>
+          <p className="text-muted-foreground">
             Add .txt, .csv, or .xlsx files to the <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/data</code> folder to get started.
           </p>
         </div>
@@ -165,11 +167,11 @@ export function DataSourcesClient({ dataSources }: DataSourcesClientProps): Reac
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <h3 className="font-medium text-slate-900 truncate">{source.name}</h3>
+                    <h3 className="font-medium text-foreground truncate">{source.name}</h3>
                     {getStatusBadge(source.status)}
                   </div>
 
-                  <div className="flex items-center gap-4 mt-1 text-sm text-slate-500">
+                  <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
                     <span>{getFileTypeLabel(source.type)}</span>
                     <span>{formatFileSize(source.size)}</span>
                     <span>{formatDate(source.lastModified)}</span>

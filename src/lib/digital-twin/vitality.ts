@@ -64,10 +64,10 @@ function lerp(a: number, b: number, t: number): number {
 /**
  * Get vitality color based on energy level
  *
- * High energy (80-100): Warm white/cream - hsl(30, 10%, 90%)
- * Medium energy (50-79): Neutral white - hsl(30, 5%, 88%)
- * Low energy (20-49): Cool gray - hsl(220, 5%, 82%)
- * Very low energy (0-19): Cool desaturated gray - hsl(220, 5%, 80%)
+ * High energy (80-100): Warm healthy skin tone.
+ * Medium energy (50-79): Neutral natural skin tone.
+ * Low energy (20-49): Slightly muted/cooler tone.
+ * Very low energy (0-19): More desaturated depleted tone.
  *
  * @param energyLevel - Energy level from 0-100
  * @returns Hex color string
@@ -79,17 +79,15 @@ export function getVitalityColor(energyLevel: number): string {
   // Normalize to 0-1
   const t = energy / 100;
 
-  // High energy: warm hue (30 = orange-ish), more saturation, lighter
-  // Low energy: cool hue (220 = blue-ish), less saturation, darker
+  // Keep hue in skin-friendly range while shifting warmth by vitality.
+  // Hue: 18 (cooler brown) at low energy → 30 (warmer tan) at high energy
+  const h = lerp(18, 30, t);
 
-  // Hue: 220 (cool blue) at low energy → 30 (warm orange) at high energy
-  const h = lerp(220, 30, t);
+  // Saturation: 24% at low energy → 38% at high energy
+  const s = lerp(24, 38, t);
 
-  // Saturation: 5% at low energy → 10% at high energy
-  const s = lerp(5, 10, t);
-
-  // Lightness: 80% at low energy → 92% at high energy
-  const l = lerp(80, 92, t);
+  // Lightness: 52% at low energy → 76% at high energy
+  const l = lerp(52, 76, t);
 
   return hslToHex(h, s, l);
 }

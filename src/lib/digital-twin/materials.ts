@@ -9,17 +9,18 @@ import { MeshStandardMaterial, Color } from 'three';
 
 // Default mannequin colors
 export const MANNEQUIN_COLORS = {
-  base: '#fafafa', // Warm white
+  base: '#f1f5f9', // Slate-100 base
   highlight: {
-    warning: '#ff6b35', // Orange for concerns
-    critical: '#ff4444', // Red for serious issues
-    info: '#4a90d9', // Blue for informational
+    warning: '#f59e0b', // Amber-500
+    critical: '#ef4444', // Red-500
+    info: '#3b82f6', // Blue-500
+    optimal: '#10b981', // Emerald-500
   },
 } as const;
 
-// Material settings
-const BASE_ROUGHNESS = 0.85; // Matte, not shiny
-const BASE_METALNESS = 0;
+// Material settings tuned for human-like matte skin (less robotic/metallic).
+const BASE_ROUGHNESS = 0.58;
+const BASE_METALNESS = 0.04;
 
 /**
  * Creates the base mannequin material.
@@ -33,29 +34,24 @@ export function createBaseMaterial(color: string = MANNEQUIN_COLORS.base): MeshS
     color,
     roughness: BASE_ROUGHNESS,
     metalness: BASE_METALNESS,
+    transparent: true,
+    opacity: 0.85,
   });
 }
 
-/**
- * Creates a highlight material with emissive glow.
- * Used to indicate areas of concern on the body.
- *
- * @param color - Highlight color (default orange)
- * @param intensity - Emissive intensity 0-1 (default 0.4)
- * @param baseColor - Base material color (default warm white)
- * @returns MeshStandardMaterial with emissive glow
- */
 export function createHighlightMaterial(
   color: string = MANNEQUIN_COLORS.highlight.warning,
-  intensity: number = 0.4,
+  intensity: number = 0.6,
   baseColor: string = MANNEQUIN_COLORS.base
 ): MeshStandardMaterial {
   return new MeshStandardMaterial({
     color: baseColor,
-    roughness: BASE_ROUGHNESS,
-    metalness: BASE_METALNESS,
+    roughness: 0.42,
+    metalness: 0.08,
     emissive: new Color(color),
-    emissiveIntensity: Math.max(0, Math.min(1, intensity)), // Clamp 0-1
+    emissiveIntensity: Math.max(0.2, Math.min(2, intensity * 2)), // Boost intensity
+    transparent: true,
+    opacity: 0.95,
   });
 }
 

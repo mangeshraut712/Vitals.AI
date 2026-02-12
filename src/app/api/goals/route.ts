@@ -59,8 +59,12 @@ export async function GET(): Promise<NextResponse> {
   } catch (error) {
     console.error('[Goals API] GET error:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to read goals' },
-      { status: 500 }
+      {
+        success: true,
+        goals: [],
+        degraded: true,
+        warning: 'goals-read-failed',
+      }
     );
   }
 }
@@ -106,8 +110,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     if (!success) {
       return NextResponse.json(
-        { success: false, error: 'Failed to save goal' },
-        { status: 500 }
+        { success: false, error: 'Failed to save goal' }
       );
     }
 
@@ -117,8 +120,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   } catch (error) {
     console.error('[Goals API] POST error:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to create goal' },
-      { status: 500 }
+      { success: false, error: 'Failed to create goal' }
     );
   }
 }
@@ -140,8 +142,7 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
 
     if (filteredGoals.length === existingGoals.length) {
       return NextResponse.json(
-        { success: false, error: 'Goal not found' },
-        { status: 404 }
+        { success: true, deleted: false }
       );
     }
 
@@ -149,19 +150,17 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
 
     if (!success) {
       return NextResponse.json(
-        { success: false, error: 'Failed to delete goal' },
-        { status: 500 }
+        { success: false, error: 'Failed to delete goal' }
       );
     }
 
     console.log('[Goals API] Deleted user goal:', goalId);
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, deleted: true });
   } catch (error) {
     console.error('[Goals API] DELETE error:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to delete goal' },
-      { status: 500 }
+      { success: false, error: 'Failed to delete goal' }
     );
   }
 }

@@ -2,12 +2,12 @@ export default function DisclaimersPage(): React.JSX.Element {
   return (
     <div className="max-w-4xl mx-auto px-6 py-8">
       <header className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Disclaimers</h1>
-        <p className="text-gray-500 mt-1">Important information about using Vitals.AI</p>
+        <h1 className="text-2xl font-bold text-foreground">Disclaimers</h1>
+        <p className="text-muted-foreground mt-1">Important information about using Vitals.AI</p>
       </header>
 
       <div className="space-y-6">
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+        <div className="bg-card rounded-xl border border-border shadow-sm p-6">
           <div className="flex items-start gap-4">
             <div className="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center flex-shrink-0">
               <svg
@@ -25,8 +25,8 @@ export default function DisclaimersPage(): React.JSX.Element {
               </svg>
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Not Medical Advice</h3>
-              <p className="text-gray-600">
+              <h3 className="text-lg font-semibold text-foreground mb-2">Not Medical Advice</h3>
+              <p className="text-muted-foreground">
                 Vitals.AI is an informational tool and does not provide medical advice, diagnosis,
                 or treatment. The information displayed is based on your uploaded health data and
                 should not replace professional medical consultation. Always consult with qualified
@@ -36,7 +36,7 @@ export default function DisclaimersPage(): React.JSX.Element {
           </div>
         </div>
 
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+        <div className="bg-card rounded-xl border border-border shadow-sm p-6">
           <div className="flex items-start gap-4">
             <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
               <svg
@@ -54,8 +54,8 @@ export default function DisclaimersPage(): React.JSX.Element {
               </svg>
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Privacy & Data</h3>
-              <p className="text-gray-600">
+              <h3 className="text-lg font-semibold text-foreground mb-2">Privacy & Data</h3>
+              <p className="text-muted-foreground">
                 Vitals.AI runs entirely on your local machine. Your health data never leaves your
                 computer except when sent to Anthropic&apos;s API for AI analysis (using your own API key).
                 No data is stored on external servers, and no analytics or tracking is used.
@@ -65,7 +65,7 @@ export default function DisclaimersPage(): React.JSX.Element {
           </div>
         </div>
 
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+        <div className="bg-card rounded-xl border border-border shadow-sm p-6">
           <div className="flex items-start gap-4">
             <div className="w-10 h-10 rounded-lg bg-purple-50 flex items-center justify-center flex-shrink-0">
               <svg
@@ -83,8 +83,8 @@ export default function DisclaimersPage(): React.JSX.Element {
               </svg>
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">AI Limitations</h3>
-              <p className="text-gray-600">
+              <h3 className="text-lg font-semibold text-foreground mb-2">AI Limitations</h3>
+              <p className="text-muted-foreground">
                 The AI agent uses Claude to provide health insights based on your data.
                 AI responses may occasionally be inaccurate or incomplete. The biological age
                 calculations (PhenoAge) are research-based estimates and should not be used as
@@ -95,7 +95,7 @@ export default function DisclaimersPage(): React.JSX.Element {
           </div>
         </div>
 
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+        <div className="bg-card rounded-xl border border-border shadow-sm p-6">
           <div className="flex items-start gap-4">
             <div className="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center flex-shrink-0">
               <svg
@@ -113,8 +113,8 @@ export default function DisclaimersPage(): React.JSX.Element {
               </svg>
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Data Accuracy</h3>
-              <p className="text-gray-600">
+              <h3 className="text-lg font-semibold text-foreground mb-2">Data Accuracy</h3>
+              <p className="text-muted-foreground">
                 Vitals.AI extracts data from your uploaded files using pattern matching and AI.
                 While we strive for accuracy, parsing errors may occur with unusual file formats
                 or layouts. Always verify that extracted values match your original documents,

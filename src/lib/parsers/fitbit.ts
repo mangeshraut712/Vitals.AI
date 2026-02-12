@@ -30,14 +30,6 @@ interface FitbitSleepRecord {
   };
 }
 
-interface FitbitHeartRateRecord {
-  dateTime: string;
-  value: {
-    bpm: number;
-    confidence: number;
-  };
-}
-
 interface FitbitRestingHeartRateRecord {
   dateTime: string;
   value: {

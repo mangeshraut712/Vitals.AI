@@ -2,7 +2,7 @@
 
 import { Suspense } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { OrbitControls, ContactShadows } from '@react-three/drei';
+import { OrbitControls, ContactShadows, Environment, Float } from '@react-three/drei';
 import type { ReactNode } from 'react';
 
 interface TwinCanvasProps {
@@ -12,24 +12,17 @@ interface TwinCanvasProps {
 function Lighting(): React.JSX.Element {
   return (
     <>
-      {/* Soft ambient fill light */}
-      <ambientLight intensity={0.6} color="#ffffff" />
-
-      {/* Main directional light - subtle shadows */}
-      <directionalLight
-        position={[5, 10, 5]}
-        intensity={0.8}
-        color="#ffffff"
+      <ambientLight intensity={0.52} />
+      <spotLight
+        position={[6, 12, 8]}
+        angle={0.28}
+        penumbra={0.9}
+        intensity={1.35}
         castShadow
         shadow-mapSize={[1024, 1024]}
       />
-
-      {/* Rim light from behind for depth */}
-      <directionalLight
-        position={[-3, 5, -5]}
-        intensity={0.3}
-        color="#e0e8f0"
-      />
+      <pointLight position={[-6, 4, -4]} intensity={0.45} color="#fff3e9" />
+      <Environment preset="studio" />
     </>
   );
 }
@@ -54,55 +47,57 @@ function LoadingFallback(): React.JSX.Element {
 
 export function TwinCanvas({ children }: TwinCanvasProps): React.JSX.Element {
   return (
-    <div className="relative w-full h-full">
-      {/* Soft gray gradient background */}
+    <div className="relative w-full h-full bg-slate-100 rounded-xl overflow-hidden shadow-inner">
+      {/* Soft studio backdrop */}
       <div
-        className="absolute inset-0 rounded-lg"
+        className="absolute inset-0 opacity-40 pointer-events-none"
         style={{
-          background: 'linear-gradient(180deg, #f0f2f5 0%, #d8dce3 50%, #c5cad3 100%)'
+          background: 'radial-gradient(circle at 50% 30%, #f8fafc 0%, #dbe4f1 70%, #c7d2e3 100%)'
         }}
       />
 
       <Canvas
         shadows
-        dpr={[1, 2]} // Pixel ratio for performance
-        camera={{
-          position: [0, 1.2, 3.5],
-          fov: 50,
-          near: 0.1,
-          far: 100,
-        }}
+        dpr={[1, 2]}
+        camera={{ position: [0, 1.2, 4], fov: 45 }}
         style={{ position: 'absolute', inset: 0 }}
         gl={{
           antialias: true,
           powerPreference: 'high-performance',
+          alpha: true,
         }}
       >
         <Suspense fallback={<LoadingFallback />}>
           <Lighting />
 
-          {/* Subtle contact shadow beneath the figure */}
           <ContactShadows
             position={[0, 0, 0]}
-            opacity={0.4}
-            scale={3}
+            opacity={0.42}
+            scale={8}
             blur={2}
-            far={2}
-            color="#1a1a1a"
+            far={10}
+            color="#1f2937"
           />
 
-          {/* Model content */}
-          {children ?? <TestBox />}
+          <Float
+            speed={1.5}
+            rotationIntensity={0.2}
+            floatIntensity={0.5}
+            floatingRange={[-0.05, 0.05]}
+          >
+            {children ?? <TestBox />}
+          </Float>
 
-          {/* OrbitControls for user interaction */}
           <OrbitControls
             enablePan={false}
             enableZoom={true}
-            minDistance={2}
-            maxDistance={10}
-            minPolarAngle={Math.PI / 6}
-            maxPolarAngle={Math.PI / 2}
-            target={[0, 1, 0]}
+            minDistance={3}
+            maxDistance={8}
+            minPolarAngle={Math.PI / 4}
+            maxPolarAngle={Math.PI / 1.8}
+            autoRotate
+            autoRotateSpeed={0.35}
+            target={[0, 1.2, 0]}
           />
         </Suspense>
       </Canvas>

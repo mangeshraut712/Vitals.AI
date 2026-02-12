@@ -1,8 +1,8 @@
 'use client';
 
 import { formatDistanceToNow, differenceInDays, parseISO } from 'date-fns';
-import { TEXT_COLORS, BORDERS, STATUS_COLORS } from '@/lib/design/tokens';
 import type { DataSourceTimestamps } from '@/lib/store/health-data';
+import { Droplets, Activity, ScanLine } from 'lucide-react';
 
 interface DataFreshnessBarProps {
   timestamps: DataSourceTimestamps;
@@ -32,16 +32,16 @@ function getFreshnessStatus(
 /**
  * Get text color for freshness status
  */
-function getFreshnessColor(status: 'fresh' | 'stale' | 'very_stale' | 'none'): string {
+function getFreshnessClasses(status: 'fresh' | 'stale' | 'very_stale' | 'none'): string {
   switch (status) {
     case 'fresh':
-      return TEXT_COLORS.secondary;
+      return 'text-emerald-500';
     case 'stale':
-      return STATUS_COLORS.normal.text;
+      return 'text-amber-500';
     case 'very_stale':
-      return STATUS_COLORS.outOfRange.text;
+      return 'text-rose-500';
     case 'none':
-      return TEXT_COLORS.muted;
+      return 'text-muted-foreground';
   }
 }
 
@@ -60,11 +60,6 @@ function formatRelativeTime(timestamp: string | null): string {
 
 /**
  * DataFreshnessBar - Shows data source freshness
- *
- * Displays last updated time for each data source with color coding:
- * - Fresh (<7 days): normal text
- * - Stale (>30 days): yellow warning
- * - Very stale (>90 days): red with "Retest recommended"
  */
 export function DataFreshnessBar({
   timestamps,
@@ -73,55 +68,41 @@ export function DataFreshnessBar({
     {
       label: 'Blood work',
       timestamp: timestamps.bloodwork,
-      icon: <BloodIcon />,
+      icon: <Droplets className="w-3.5 h-3.5" />,
     },
     {
       label: 'Activity',
       timestamp: timestamps.activity,
-      icon: <ActivityIcon />,
+      icon: <Activity className="w-3.5 h-3.5" />,
     },
     {
       label: 'DEXA',
       timestamp: timestamps.dexa,
-      icon: <DexaIcon />,
+      icon: <ScanLine className="w-3.5 h-3.5" />,
     },
   ];
 
   return (
-    <div
-      className="flex flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3 text-xs"
-      style={{
-        borderBottom: `1px solid ${BORDERS.light}`,
-      }}
-    >
+    <div className="flex flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3 text-xs border-b border-border">
       {sources.map((source, index) => {
         const status = getFreshnessStatus(source.timestamp);
-        const color = getFreshnessColor(status);
+        const colorClass = getFreshnessClasses(status);
         const relativeTime = formatRelativeTime(source.timestamp);
 
         return (
           <div key={source.label} className="flex items-center gap-1.5">
             {index > 0 && (
-              <span
-                className="hidden sm:inline mr-4"
-                style={{ color: BORDERS.medium }}
-              >
+              <span className="hidden sm:inline mr-4 text-border">
                 |
               </span>
             )}
-            <span style={{ color: TEXT_COLORS.muted }}>{source.icon}</span>
-            <span style={{ color: TEXT_COLORS.muted }}>{source.label}:</span>
-            <span style={{ color }} className="font-medium">
+            <span className="text-muted-foreground">{source.icon}</span>
+            <span className="text-muted-foreground">{source.label}:</span>
+            <span className={`font-medium ${colorClass}`}>
               {relativeTime}
             </span>
             {status === 'very_stale' && (
-              <span
-                className="ml-1 px-1.5 py-0.5 rounded text-[10px] font-semibold"
-                style={{
-                  backgroundColor: STATUS_COLORS.outOfRange.light,
-                  color: STATUS_COLORS.outOfRange.text,
-                }}
-              >
+              <span className="ml-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-rose-500/10 text-rose-500">
                 Retest
               </span>
             )}
@@ -129,59 +110,6 @@ export function DataFreshnessBar({
         );
       })}
     </div>
-  );
-}
-
-// Icons
-function BloodIcon(): React.JSX.Element {
-  return (
-    <svg
-      width="14"
-      height="14"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" />
-    </svg>
-  );
-}
-
-function ActivityIcon(): React.JSX.Element {
-  return (
-    <svg
-      width="14"
-      height="14"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
-    </svg>
-  );
-}
-
-function DexaIcon(): React.JSX.Element {
-  return (
-    <svg
-      width="14"
-      height="14"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <circle cx="12" cy="12" r="10" />
-      <path d="M12 8v8M8 12h8" />
-    </svg>
   );
 }
 

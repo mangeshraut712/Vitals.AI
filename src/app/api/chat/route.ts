@@ -1,58 +1,41 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { queryHealthAgent } from '@/lib/agent/health-agent';
+import { queryHealthAgentStream } from '@/lib/agent/health-agent';
 import { HealthDataStore } from '@/lib/store/health-data';
 
-interface ChatRequest {
-  message: string;
-}
-
-export async function POST(request: NextRequest): Promise<NextResponse> {
+export async function POST(request: NextRequest): Promise<Response> {
   try {
-    const body = (await request.json()) as ChatRequest;
+    const body = await request.json();
+    const message = body.message;
 
-    if (!body.message || typeof body.message !== 'string') {
-      return NextResponse.json(
-        { error: 'Message is required and must be a string' },
-        { status: 400 }
-      );
+    if (!message || typeof message !== 'string') {
+      return NextResponse.json({ error: 'Message is required' }, { status: 400 });
     }
 
-    const trimmedMessage = body.message.trim();
-    if (trimmedMessage.length === 0) {
-      return NextResponse.json(
-        { error: 'Message cannot be empty' },
-        { status: 400 }
-      );
-    }
-
-    // Get health context from data store
     const healthContext = await HealthDataStore.getHealthSummary();
 
-    // Query the health agent
-    const result = await queryHealthAgent(trimmedMessage, healthContext);
+    const encoder = new TextEncoder();
+    const stream = new ReadableStream({
+      async start(controller) {
+        try {
+          await queryHealthAgentStream(message, healthContext, (chunk) => {
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: chunk })}\n\n`));
+          });
+          controller.close();
+        } catch (error) {
+          controller.error(error);
+        }
+      },
+    });
 
-    if (result.error) {
-      console.error('[Vitals.AI] Agent error:', result.error);
-      return NextResponse.json(
-        { error: 'Failed to get response from health agent' },
-        { status: 500 }
-      );
-    }
-
-    return NextResponse.json({ response: result.content });
+    return new Response(stream, {
+      headers: {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+      },
+    });
   } catch (error) {
-    console.error('[Vitals.AI] API error:', error);
-
-    if (error instanceof SyntaxError) {
-      return NextResponse.json(
-        { error: 'Invalid JSON in request body' },
-        { status: 400 }
-      );
-    }
-
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    console.error('[Vitals.AI] Chat API error:', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

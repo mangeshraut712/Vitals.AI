@@ -1,4 +1,13 @@
-import { query } from '@anthropic-ai/claude-agent-sdk';
+import Anthropic from '@anthropic-ai/sdk';
+
+const VERIFIED_SOURCE_DOMAINS = [
+  'pubmed.ncbi.nlm.nih.gov',
+  'nih.gov',
+  'blueprint.bryanjohnson.com',
+  'peterattiamd.com',
+  'examine.com',
+  'doi.org',
+];
 
 const HEALTH_SYSTEM_PROMPT = `You are Vitals.AI, a knowledgeable health assistant that helps users understand their health data and make informed decisions about their wellness.
 
@@ -8,55 +17,46 @@ const HEALTH_SYSTEM_PROMPT = `You are Vitals.AI, a knowledgeable health assistan
 - Suggest evidence-based lifestyle improvements
 - Help users understand their PhenoAge (biological age) results
 
-## Reference Ranges (Optimal)
+## Reference Ranges (Optimal for Longevity)
 
 ### Levine PhenoAge Biomarkers
 - Albumin: 4.5-5.0 g/dL (higher generally better)
-- Creatinine: 0.7-1.0 mg/dL (kidney function)
-- Glucose (fasting): 70-85 mg/dL (lower is better within range)
-- CRP: <0.5 mg/L (lower is better; inflammation marker)
-- Lymphocyte %: 25-35% (immune function)
-- MCV: 82-92 fL (red blood cell size)
-- RDW: 11.5-13.0% (lower is better)
-- Alkaline Phosphatase: 40-70 U/L (liver/bone health)
-- WBC: 4.0-6.0 10³/µL (lower-normal is better)
+- Creatinine: 0.7-1.0 mg/dL (lower renal stress)
+- Glucose (fasting): 70-85 mg/dL (optimal metabolic health)
+- CRP: <0.5 mg/L (minimal inflammation)
+- Lymphocyte %: 25-35% (balanced immune function)
+- MCV: 82-92 fL (optimal RBC size)
+- RDW: 11.5-13.0% (low variation is better)
+- Alkaline Phosphatase: 40-70 U/L
+- WBC: 4.0-6.0 10³/µL
 
 ### Lipid Panel
-- LDL: <70 mg/dL (lower is better for longevity)
-- HDL: >60 mg/dL (higher is better)
-- Triglycerides: <100 mg/dL (lower is better)
+- LDL-C: <70 mg/dL (or ApoB < 60 mg/dL)
+- HDL-C: >60 mg/dL
+- Triglycerides: <100 mg/dL (ideally < 70 mg/dL)
 
-### Additional Markers
-- Vitamin D: 50-70 ng/mL (most people deficient)
-- HbA1c: <5.2% (3-month glucose average)
-- Fasting Insulin: 2-5 µIU/mL (lower is better)
+### Metabolic Health
+- HbA1c: <5.2%
+- Fasting Insulin: 2-5 µIU/mL
 
 ### Activity Metrics
-- HRV: Higher is better (age-dependent; 50-75 ms good for 30-39 year olds)
-- Resting Heart Rate: 50-60 bpm is good, <50 is excellent
-- Sleep: 7-9 hours optimal
+- HRV: Higher is better (relative to baseline)
+- Resting Heart Rate: <60 bpm is excellent
+- Sleep: 7-9 hours, with >1.5h Deep and >1.5h REM
 
-## Verified Sources
-When researching, prefer these sources:
-- PubMed (pubmed.ncbi.nlm.nih.gov) - Research studies
-- NIH (nih.gov) - Health guidelines
-- Bryan Johnson Blueprint (blueprint.bryanjohnson.com) - Longevity protocols
-- Peter Attia / Outlive - Longevity framework
-- Examine.com - Supplement evidence
+## Verified Knowledge Sources
+Prefer information from:
+- PubMed / NIH (Research)
+- Peter Attia (Longevity Medicine)
+- Bryan Johnson (Blueprint)
+- Examine.com (Supplements)
+- Rhonda Patrick (FoundMyFitness)
 
 ## Response Guidelines
-1. Always explain results in plain language
-2. Provide context for why values matter
-3. Suggest actionable improvements when relevant
-4. Cite sources when making specific claims
-5. Be encouraging but honest about areas for improvement
-
-## Important Disclaimer
-You are NOT a medical professional. Always recommend users:
-- Share results with their doctor
-- Not make medication changes based solely on this tool
-- Understand that "optimal" ranges are based on longevity research, not clinical standards
-- Recognize individual variation exists
+1. **Be Precise**: Use the user's provided data values.
+2. **Contextualize**: Explain *why* a number matters (e.g., "Elevated CRP indicates systemic inflammation...").
+3. **Actionable**: Suggest specific behavioral changes (sleep, diet, exercise) before supplements.
+4. **Disclaimer**: You are an AI, not a doctor. Medical advice disclaimer is mandatory for any diagnostic opinion.
 
 The Levine PhenoAge formula is a research tool, not a clinical diagnostic.`;
 
@@ -65,24 +65,48 @@ export interface HealthAgentResponse {
   error?: string;
 }
 
-interface ContentBlock {
-  type: string;
-  text?: string;
+function isVerifiedSourceUrl(url: string): boolean {
+  try {
+    const hostname = new URL(url).hostname.toLowerCase();
+    return VERIFIED_SOURCE_DOMAINS.some(
+      (domain) => hostname === domain || hostname.endsWith(`.${domain}`)
+    );
+  } catch {
+    return false;
+  }
 }
 
-function extractTextFromContent(content: ContentBlock[]): string {
-  return content
-    .filter((block): block is ContentBlock & { text: string } =>
-      block.type === 'text' && typeof block.text === 'string'
-    )
-    .map((block) => block.text)
-    .join('');
+function sanitizeUnverifiedSourceUrls(content: string): { content: string; removedCount: number } {
+  const urlRegex = /https?:\/\/[^\s)\]]+/g;
+  let removedCount = 0;
+
+  const sanitized = content.replace(urlRegex, (url) => {
+    if (isVerifiedSourceUrl(url)) {
+      return url;
+    }
+    removedCount += 1;
+    return '[source-removed]';
+  });
+
+  return { content: sanitized, removedCount };
 }
 
 export async function queryHealthAgent(
   message: string,
   healthContext: string
 ): Promise<HealthAgentResponse> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+
+  if (!apiKey) {
+    return {
+      content: "I'm ready to help! Please set your `ANTHROPIC_API_KEY` in the `.env.local` file to connect me to the intelligence engine.",
+    };
+  }
+
+  const anthropic = new Anthropic({
+    apiKey: apiKey,
+  });
+
   const fullPrompt = `## User's Health Data Context
 ${healthContext}
 
@@ -90,40 +114,95 @@ ${healthContext}
 ${message}`;
 
   try {
-    const response = query({
-      prompt: fullPrompt,
-      options: {
-        model: 'claude-sonnet-4-5',
-        systemPrompt: HEALTH_SYSTEM_PROMPT,
-        permissionMode: 'default',
-        maxBudgetUsd: 0.5,
-        allowedTools: ['Read', 'Bash', 'WebSearch', 'WebFetch'],
-      },
+    const response = await anthropic.messages.create({
+      model: "claude-3-5-sonnet-latest",
+      max_tokens: 1024,
+      system: HEALTH_SYSTEM_PROMPT,
+      messages: [
+        { role: "user", content: fullPrompt }
+      ],
     });
 
-    let content = '';
+    const content = response.content.map(block => block.type === 'text' ? block.text : '').join('');
+    const { content: sanitizedContent, removedCount } = sanitizeUnverifiedSourceUrls(content);
 
-    for await (const msg of response) {
-      switch (msg.type) {
-        case 'assistant':
-          // msg.message is BetaMessage which has content array
-          if (msg.message && msg.message.content) {
-            content += extractTextFromContent(msg.message.content as ContentBlock[]);
-          }
-          break;
-        case 'system':
-          if (msg.subtype === 'init') {
-            console.log(`[Vitals.AI] Session started: ${msg.session_id}`);
-          }
-          break;
+    const finalContent = removedCount > 0
+      ? `${sanitizedContent}\n\n*Note: unverified links were removed.*`
+      : sanitizedContent;
+
+    return { content: finalContent };
+
+  } catch (error) {
+    console.error('[Vitals.AI] Anthropic API Error:', error);
+    return {
+      content: "I'm having trouble connecting to my knowledge base right now.",
+      error: error instanceof Error ? error.message : 'Unknown error'
+    };
+  }
+}
+
+export async function queryHealthAgentStream(
+  message: string,
+  healthContext: string,
+  onChunk: (text: string) => void
+): Promise<HealthAgentResponse> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+
+  if (!apiKey) {
+    return {
+      content: "I'm ready to help! Please set your `ANTHROPIC_API_KEY` in the `.env.local` file to connect me to the intelligence engine.",
+    };
+  }
+
+  const anthropic = new Anthropic({
+    apiKey: apiKey,
+  });
+
+  const fullPrompt = `## User's Health Data Context
+${healthContext}
+
+## User Question
+${message}`;
+
+  try {
+    let fullContent = '';
+    const stream = await anthropic.messages.create({
+      model: "claude-3-5-sonnet-latest",
+      max_tokens: 1024,
+      system: HEALTH_SYSTEM_PROMPT,
+      messages: [
+        { role: "user", content: fullPrompt }
+      ],
+      stream: true,
+    });
+
+    for await (const chunk of stream) {
+      if (chunk.type === 'content_block_delta') {
+        const delta = chunk.delta;
+        const text =
+          delta && typeof delta === 'object' && 'text' in delta && typeof delta.text === 'string'
+            ? delta.text
+            : '';
+        if (text) {
+          fullContent += text;
+          onChunk(text);
+        }
       }
     }
 
-    return { content };
+    const { content: sanitizedContent, removedCount } = sanitizeUnverifiedSourceUrls(fullContent);
+
+    const finalContent = removedCount > 0
+      ? `${sanitizedContent}\n\n*Note: unverified links were removed.*`
+      : sanitizedContent;
+
+    return { content: finalContent };
+
   } catch (error) {
+    console.error('[Vitals.AI] Anthropic API Streaming Error:', error);
     return {
-      content: '',
-      error: error instanceof Error ? error.message : 'Unknown error occurred',
+      content: "I'm having trouble connecting to my knowledge base right now.",
+      error: error instanceof Error ? error.message : 'Unknown error'
     };
   }
 }

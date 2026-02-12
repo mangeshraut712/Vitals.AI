@@ -3,7 +3,7 @@
 import { useMemo, forwardRef } from 'react';
 import { Group } from 'three';
 import { createTorsoGeometry } from '@/lib/digital-twin/geometry';
-import { BODY_PROPORTIONS } from '@/lib/digital-twin/proportions';
+import { BODY_PROPORTIONS, type BodyProportions } from '@/lib/digital-twin/proportions';
 import { getBaseMaterialProps, getHighlightMaterialProps, MaterialProps } from '@/lib/digital-twin/materials';
 
 export interface TorsoProps {
@@ -16,6 +16,10 @@ export interface TorsoProps {
   };
   /** Click handler */
   onClick?: () => void;
+  /** Emissive intensity multiplier for pulsing */
+  intensityBoost?: number;
+  /** Resolved anatomy profile */
+  proportions?: BodyProportions;
 }
 
 /**
@@ -24,16 +28,16 @@ export interface TorsoProps {
  * Centered at origin, bottom at Y=0.
  */
 export const Torso = forwardRef<Group, TorsoProps>(function Torso(
-  { color, highlight, onClick },
+  { color, highlight, onClick, intensityBoost, proportions = BODY_PROPORTIONS },
   ref
 ) {
   // Create torso geometry using LatheGeometry
   const geometry = useMemo(() => {
     const { height, shoulderHalfWidth, waistHalfWidth, hipHalfWidth } = {
-      height: BODY_PROPORTIONS.torso.height,
-      shoulderHalfWidth: BODY_PROPORTIONS.torso.shoulderHalfWidth,
-      waistHalfWidth: BODY_PROPORTIONS.torso.waistHalfWidth,
-      hipHalfWidth: BODY_PROPORTIONS.torso.hipHalfWidth,
+      height: proportions.torso.height,
+      shoulderHalfWidth: proportions.torso.shoulderHalfWidth,
+      waistHalfWidth: proportions.torso.waistHalfWidth,
+      hipHalfWidth: proportions.torso.hipHalfWidth,
     };
 
     return createTorsoGeometry(
@@ -43,15 +47,19 @@ export const Torso = forwardRef<Group, TorsoProps>(function Torso(
       hipHalfWidth,
       32 // 32 segments for smoothness
     );
-  }, []);
+  }, [proportions]);
 
   // Get material properties based on highlight state
   const materialProps: MaterialProps = useMemo(() => {
     if (highlight) {
-      return getHighlightMaterialProps(highlight.color, highlight.intensity, color);
+      const intensifiedHighlight = {
+        ...highlight,
+        intensity: highlight.intensity * (intensityBoost ?? 1.0)
+      };
+      return getHighlightMaterialProps(intensifiedHighlight.color, intensifiedHighlight.intensity, color);
     }
     return getBaseMaterialProps(color);
-  }, [color, highlight]);
+  }, [color, highlight, intensityBoost]);
 
   return (
     <group ref={ref}>

@@ -1,5 +1,4 @@
 import fs from 'fs';
-import pdfParse from 'pdf-parse';
 
 export async function parsePdf(filePath: string): Promise<string> {
   try {
@@ -8,6 +7,7 @@ export async function parsePdf(filePath: string): Promise<string> {
       return '';
     }
 
+    const { default: pdfParse } = await import('pdf-parse');
     const dataBuffer = fs.readFileSync(filePath);
     const result = await pdfParse(dataBuffer);
 

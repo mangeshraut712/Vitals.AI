@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { RADIUS, SHADOWS } from '@/lib/design/tokens';
 
 export type InsightStatus = 'optimal' | 'warning' | 'critical';
 
@@ -13,12 +12,6 @@ export interface InsightCardProps {
   subtitle?: string;
   actionItems: string[];
 }
-
-const INSIGHT_GRADIENTS: Record<InsightStatus, string> = {
-  optimal: 'linear-gradient(135deg, #10b981 0%, #34d399 100%)',
-  warning: 'linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%)',
-  critical: 'linear-gradient(135deg, #ef4444 0%, #f97316 100%)',
-};
 
 const STATUS_LABELS: Record<InsightStatus, string> = {
   optimal: 'Optimal',
@@ -35,49 +28,48 @@ export function InsightCard({
   actionItems,
 }: InsightCardProps): React.JSX.Element {
   const [expanded, setExpanded] = useState(false);
-  const gradient = INSIGHT_GRADIENTS[status];
+
+  const statusColors = {
+    optimal: { text: 'text-emerald-500', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20' },
+    warning: { text: 'text-amber-500', bg: 'bg-amber-500/10', border: 'border-amber-500/20' },
+    critical: { text: 'text-rose-500', bg: 'bg-rose-500/10', border: 'border-rose-500/20' },
+  };
+
+  const colors = statusColors[status];
   const statusLabel = STATUS_LABELS[status];
 
   return (
-    <div
-      className="text-white relative overflow-hidden transition-all duration-300"
-      style={{
-        background: gradient,
-        borderRadius: RADIUS.xl,
-        boxShadow: SHADOWS.md,
-      }}
-    >
-      {/* Main content - always visible */}
+    <div className={`relative overflow-hidden transition-all duration-300 bg-card border border-border rounded-xl hover:shadow-md group ${expanded ? 'ring-1 ring-primary/20' : ''}`}>
+
+      {/* Main content */}
       <button
         onClick={() => setExpanded(!expanded)}
-        className="w-full p-5 text-left focus:outline-none focus:ring-2 focus:ring-white/30 focus:ring-inset"
+        className="w-full p-5 text-left focus:outline-none"
         aria-expanded={expanded}
-        aria-controls={`insight-${title.replace(/\s+/g, '-').toLowerCase()}-content`}
       >
-        {/* Status badge */}
-        <span className="absolute top-4 right-4 text-xs bg-white/20 px-2.5 py-1 rounded-full">
-          {statusLabel}
-        </span>
-
-        {/* Value display */}
-        <div className="pr-20">
-          <span className="text-xs text-white/70 uppercase tracking-wide font-medium">
+        <div className="flex justify-between items-start mb-2">
+          <span className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
             {title}
           </span>
-          <div className="mt-1 flex items-baseline gap-1">
-            <span className="text-3xl font-bold">{value}</span>
-            {unit && <span className="text-lg text-white/80">{unit}</span>}
-          </div>
-          {subtitle && (
-            <p className="text-sm text-white/70 mt-1">{subtitle}</p>
-          )}
+          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide ${colors.bg} ${colors.text}`}>
+            {statusLabel}
+          </span>
         </div>
 
-        {/* Expand indicator */}
-        <div className="flex items-center gap-1 mt-3 text-sm text-white/80">
-          <span>{expanded ? 'Hide tips' : 'View tips'}</span>
+        <div className="flex items-baseline gap-1 mt-1">
+          <span className={`text-3xl font-bold ${colors.text} tabular-nums`}>{value}</span>
+          {unit && <span className="text-sm font-medium text-muted-foreground">{unit}</span>}
+        </div>
+
+        {subtitle && (
+          <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>
+        )}
+
+        {/* Expand toggle */}
+        <div className="flex items-center gap-1.5 mt-4 text-xs font-medium text-muted-foreground group-hover:text-foreground transition-colors">
+          <span>{expanded ? 'Hide recommendations' : 'View recommendations'}</span>
           <svg
-            className={`w-4 h-4 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`}
+            className={`w-3.5 h-3.5 transition-transform duration-300 ${expanded ? 'rotate-180' : ''}`}
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -89,17 +81,20 @@ export function InsightCard({
 
       {/* Expandable action items */}
       <div
-        id={`insight-${title.replace(/\s+/g, '-').toLowerCase()}-content`}
-        className={`overflow-hidden transition-all duration-300 ease-out ${
-          expanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
-        }`}
+        className={`overflow-hidden transition-all duration-500 ease-in-out ${expanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+          }`}
       >
-        <div className="px-5 pb-5 pt-0 border-t border-white/20">
-          <h4 className="text-sm font-medium mb-3 pt-4">Recommendations</h4>
-          <ul className="space-y-2">
+        {/* Separator */}
+        <div className="h-px bg-border mx-5" />
+
+        <div className="p-5 pt-4 bg-muted/30">
+          <h4 className="text-xs font-semibold text-foreground uppercase tracking-wide mb-3">
+            Tips to Improve
+          </h4>
+          <ul className="space-y-2.5">
             {actionItems.map((item, index) => (
-              <li key={index} className="flex items-start gap-2 text-sm text-white/90">
-                <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-white/60 flex-shrink-0" />
+              <li key={index} className="flex items-start gap-2.5 text-sm text-muted-foreground leading-relaxed">
+                <span className={`mt-1.5 w-1.5 h-1.5 rounded-full flex-shrink-0 ${colors.bg.replace('/10', '')}`} />
                 <span>{item}</span>
               </li>
             ))}

@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { BACKGROUNDS, TEXT_COLORS, BORDERS, ANIMATION } from '@/lib/design/tokens';
 
 interface TabItem {
   href: string;
@@ -22,7 +21,7 @@ export function TabNav(): React.JSX.Element {
   const pathname = usePathname();
 
   return (
-    <nav className="bg-white border-b border-slate-200">
+    <nav className="bg-card border-b border-border">
       <div className="max-w-6xl mx-auto px-6">
         <div className="flex items-center justify-between h-16">
           {/* Logo / Brand */}
@@ -41,7 +40,7 @@ export function TabNav(): React.JSX.Element {
                 />
               </svg>
             </div>
-            <span className="text-lg font-semibold text-slate-900">Vitals.AI</span>
+            <span className="text-lg font-semibold text-foreground">Vitals.AI</span>
           </Link>
 
           {/* Tab Navigation */}
@@ -56,10 +55,9 @@ export function TabNav(): React.JSX.Element {
                   className={`
                     relative px-4 py-2 text-sm font-medium rounded-lg
                     transition-all duration-200 ease-out
-                    ${
-                      isActive
-                        ? 'text-emerald-700 bg-emerald-50'
-                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                    ${isActive
+                      ? 'text-primary bg-secondary/80 font-semibold'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
                     }
                   `}
                 >

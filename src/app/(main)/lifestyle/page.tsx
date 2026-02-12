@@ -1,5 +1,5 @@
 import { HealthDataStore, type ActivityData } from '@/lib/store/health-data';
-import type { WhoopData, WhoopWorkout } from '@/lib/parsers/whoop';
+import type { WhoopData } from '@/lib/parsers/whoop';
 import { LifestyleClient } from './LifestyleClient';
 
 async function getActivityData(): Promise<ActivityData[]> {

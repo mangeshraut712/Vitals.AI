@@ -258,7 +258,7 @@ export async function extractBodyCompWithAI(
     console.log('[Vitals.AI] Extracting body composition with AI...');
 
     const response = await client.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-3-5-sonnet-latest',
       max_tokens: 4096,
       system: SYSTEM_PROMPT,
       tools: [EXTRACTION_TOOL],

@@ -56,7 +56,7 @@ export function CreateGoalPanel({
 
       const data = (await response.json()) as { success: boolean; error?: string };
 
-      if (!response.ok) {
+      if (!response.ok || !data.success) {
         throw new Error(data.error ?? 'Failed to save goal');
       }
 
@@ -81,7 +81,7 @@ export function CreateGoalPanel({
 
       {/* Panel */}
       <div
-        className="fixed top-0 right-0 h-full w-full sm:w-[480px] bg-white flex flex-col"
+        className="fixed top-0 right-0 h-full w-full sm:w-[480px] bg-card flex flex-col"
         style={{
           zIndex: Z_INDEX.modal + 1,
           boxShadow: SHADOWS.xl,
@@ -89,11 +89,11 @@ export function CreateGoalPanel({
         }}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-slate-200">
-          <h2 className="text-lg font-semibold text-slate-900">Create a Goal</h2>
+        <div className="flex items-center justify-between p-4 border-b border-border">
+          <h2 className="text-lg font-semibold text-foreground">Create a Goal</h2>
           <button
             onClick={onClose}
-            className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+            className="p-2 text-muted-foreground hover:text-muted-foreground hover:bg-slate-100 rounded-lg transition-colors"
             aria-label="Close panel"
           >
             <svg

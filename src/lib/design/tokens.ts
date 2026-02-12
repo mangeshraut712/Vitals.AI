@@ -3,6 +3,7 @@
  *
  * Inspired by clinical health dashboards like InsideTracker.
  * Uses a refined, professional aesthetic with clear status colors.
+ * Supports both light and dark modes.
  */
 
 // ============================================================================
@@ -12,18 +13,18 @@
 export const STATUS_COLORS = {
   optimal: {
     base: '#10b981', // Emerald green
-    light: '#d1fae5', // Light background
-    text: '#065f46', // Dark text on light bg
+    light: 'var(--vitals-status-optimal-bg, #d1fae5)', // Light background
+    text: 'var(--vitals-status-optimal-text, #065f46)', // Dark text on light bg
   },
   normal: {
     base: '#eab308', // Yellow
-    light: '#fef9c3', // Light background
-    text: '#854d0e', // Dark text on light bg
+    light: 'var(--vitals-status-normal-bg, #fef9c3)', // Light background
+    text: 'var(--vitals-status-normal-text, #854d0e)', // Dark text on light bg
   },
   outOfRange: {
     base: '#ec4899', // Pink
-    light: '#fce7f3', // Light background
-    text: '#9d174d', // Dark text on light bg
+    light: 'var(--vitals-status-outofrange-bg, #fce7f3)', // Light background
+    text: 'var(--vitals-status-outofrange-text, #9d174d)', // Dark text on light bg
   },
 } as const;
 
@@ -32,11 +33,11 @@ export const STATUS_COLORS = {
 // ============================================================================
 
 export const BACKGROUNDS = {
-  page: '#f8fafc', // Slate-50 - main page background
-  card: '#ffffff', // White cards
-  cardHover: '#f9fafb', // Subtle hover
-  accent: '#f1f5f9', // Slightly darker for sections
-  overlay: 'rgba(15, 23, 42, 0.5)', // Modal overlay
+  page: 'var(--background)',
+  card: 'var(--card)',
+  cardHover: 'var(--accent)',
+  accent: 'var(--muted)',
+  overlay: 'var(--vitals-overlay, rgba(0, 0, 0, 0.5))',
 } as const;
 
 // ============================================================================
@@ -44,10 +45,10 @@ export const BACKGROUNDS = {
 // ============================================================================
 
 export const TEXT_COLORS = {
-  primary: '#0f172a', // Slate-900 - headings
-  secondary: '#475569', // Slate-600 - body text
-  muted: '#94a3b8', // Slate-400 - labels, hints
-  inverse: '#ffffff', // White text on dark bg
+  primary: 'var(--foreground)',
+  secondary: 'var(--muted-foreground)',
+  muted: 'var(--muted-foreground)',
+  inverse: 'var(--primary-foreground)',
 } as const;
 
 // ============================================================================
@@ -55,15 +56,15 @@ export const TEXT_COLORS = {
 // ============================================================================
 
 export const BORDERS = {
-  light: '#e2e8f0', // Slate-200
-  medium: '#cbd5e1', // Slate-300
-  focus: '#3b82f6', // Blue-500 for focus rings
+  light: 'var(--border)',
+  medium: 'var(--border)',
+  focus: 'var(--ring)',
 } as const;
 
 export const SHADOWS = {
-  sm: '0 1px 2px 0 rgb(0 0 0 / 0.05)',
-  md: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
-  lg: '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)',
+  sm: 'var(--vitals-card-shadow, 0 1px 2px 0 rgb(0 0 0 / 0.05))',
+  md: 'var(--vitals-card-shadow, 0 4px 6px -1px rgb(0 0 0 / 0.1))',
+  lg: 'var(--vitals-card-hover-shadow, 0 10px 15px -3px rgb(0 0 0 / 0.1))',
   xl: '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)',
 } as const;
 
@@ -102,15 +103,16 @@ export const GRADIENTS = {
   medium: 'linear-gradient(135deg, #f59e0b 0%, #eab308 100%)', // Amber to yellow
   low: 'linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%)', // Blue to cyan
   success: 'linear-gradient(135deg, #10b981 0%, #34d399 100%)', // Green gradient
-  ai: 'linear-gradient(135deg, #0d9488 0%, #14b8a6 100%)', // Teal gradient for AI elements
+  ai: 'linear-gradient(135deg, #10b981 0%, #06b6d4 50%, #8b5cf6 100%)', // Emerald to cyan to purple
+  vitals: 'linear-gradient(135deg, #10b981 0%, #14b8a6 50%, #0ea5e9 100%)', // Brand gradient
 } as const;
 
 // AI-specific colors (health-appropriate teal)
 export const AI_COLORS = {
   primary: '#0d9488', // Teal-600
   light: '#14b8a6', // Teal-500
-  bg: '#f0fdfa', // Teal-50
-  text: '#134e4a', // Teal-900
+  bg: 'var(--muted)',
+  text: 'var(--foreground)',
 } as const;
 
 // ============================================================================
@@ -173,11 +175,12 @@ export const ANIMATION = {
     in: 'cubic-bezier(0.4, 0, 1, 1)',
     out: 'cubic-bezier(0, 0, 0.2, 1)',
     inOut: 'cubic-bezier(0.4, 0, 0.2, 1)',
+    spring: 'cubic-bezier(0.22, 1, 0.36, 1)',
   },
 } as const;
 
 // ============================================================================
-// TAILWIND UTILITY CLASSES
+// TAILWIND UTILITY CLASSES (theme-aware)
 // ============================================================================
 
 /**
@@ -185,33 +188,33 @@ export const ANIMATION = {
  */
 export const STATUS_CLASSES = {
   optimal: {
-    bg: 'bg-emerald-100',
-    text: 'text-emerald-700',
-    border: 'border-emerald-200',
+    bg: 'bg-emerald-500/10',
+    text: 'text-emerald-500',
+    border: 'border-emerald-500/20',
     dot: 'bg-emerald-500',
-    badge: 'bg-emerald-100 text-emerald-700',
+    badge: 'bg-emerald-500/10 text-emerald-500',
   },
   normal: {
-    bg: 'bg-yellow-100',
-    text: 'text-yellow-700',
-    border: 'border-yellow-200',
-    dot: 'bg-yellow-500',
-    badge: 'bg-yellow-100 text-yellow-700',
+    bg: 'bg-amber-500/10',
+    text: 'text-amber-500',
+    border: 'border-amber-500/20',
+    dot: 'bg-amber-500',
+    badge: 'bg-amber-500/10 text-amber-500',
   },
   outOfRange: {
-    bg: 'bg-pink-100',
-    text: 'text-pink-700',
-    border: 'border-pink-200',
-    dot: 'bg-pink-500',
-    badge: 'bg-pink-100 text-pink-700',
+    bg: 'bg-rose-500/10',
+    text: 'text-rose-500',
+    border: 'border-rose-500/20',
+    dot: 'bg-rose-500',
+    badge: 'bg-rose-500/10 text-rose-500',
   },
 } as const;
 
 /**
- * Card styles
+ * Card styles - use vitals-card CSS class for the premium glassmorphism effect
  */
 export const CARD_CLASSES = {
-  base: 'bg-white rounded-xl shadow-sm border border-slate-100',
+  base: 'vitals-card',
   hover: 'hover:shadow-md transition-shadow duration-200',
   padding: 'p-6',
 };

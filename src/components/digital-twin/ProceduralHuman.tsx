@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState, useEffect, useMemo, useCallback } from 'react';
+import { useRef, useState, useMemo, useCallback } from 'react';
 import { Group } from 'three';
 import { useFrame } from '@react-three/fiber';
 
@@ -13,7 +13,12 @@ import { Leg, LegHighlights } from './body-parts/Leg';
 
 // Types and utilities
 import { BodyState, DEFAULT_BODY_STATE, HighlightArea, HighlightRegion } from '@/lib/digital-twin/types';
-import { BODY_PROPORTIONS, BODY_POSITIONS, LIMB_POSITIONS } from '@/lib/digital-twin/proportions';
+import {
+  BODY_POSITIONS,
+  BodyType,
+  getBodyProportions,
+  getLimbPositions,
+} from '@/lib/digital-twin/proportions';
 import { getPostureRotations, getArmRotations } from '@/lib/digital-twin/posture';
 import { getVitalityColor } from '@/lib/digital-twin/vitality';
 import { MANNEQUIN_COLORS } from '@/lib/digital-twin/materials';
@@ -22,6 +27,7 @@ import { lerpPosture, lerpColor, AnimatedPosture, createDefaultAnimatedPosture }
 export interface ProceduralHumanProps {
   position?: [number, number, number];
   bodyState?: BodyState;
+  bodyType?: BodyType;
   onRegionClick?: (area: HighlightArea) => void;
 }
 
@@ -71,6 +77,7 @@ function buildLegHighlights(
 export function ProceduralHuman({
   position = [0, 0, 0],
   bodyState = DEFAULT_BODY_STATE,
+  bodyType = 'male',
   onRegionClick,
 }: ProceduralHumanProps): React.JSX.Element {
   // Refs for animation
@@ -92,13 +99,15 @@ export function ProceduralHuman({
 
   // Use body state for rendering
   const { posture, energyLevel, highlights } = bodyState;
+  const proportions = useMemo(() => getBodyProportions(bodyType), [bodyType]);
+  const limbPositions = useMemo(() => getLimbPositions(proportions), [proportions]);
 
   // Calculate target posture rotations
   const targetPostureRotations = getPostureRotations(energyLevel, posture);
   const targetArmRotations = getArmRotations(energyLevel);
 
   // Calculate target vitality color
-  const targetVitalityColor = getVitalityColor(energyLevel);
+  const targetVitalityColor = bodyState.skinTone ?? getVitalityColor(energyLevel);
 
   // Target posture state for animation
   const targetPosture: AnimatedPosture = {
@@ -109,8 +118,9 @@ export function ProceduralHuman({
     rightShoulderZ: targetArmRotations.rightShoulderZ,
   };
 
-  // State for re-rendering with animated vitality color
+  // State for re-rendering with animated vitality color and pulsing highlights
   const [currentVitalityColor, setCurrentVitalityColor] = useState<string>(MANNEQUIN_COLORS.base);
+  const [highlightPulse, setHighlightPulse] = useState<number>(1.0);
 
   // Animate posture and colors each frame
   useFrame((_, delta) => {
@@ -124,6 +134,15 @@ export function ProceduralHuman({
     // Lerp vitality color
     const newColor = lerpColor(animatedVitalityColor.current, targetVitalityColor, delta);
     animatedVitalityColor.current = newColor;
+
+    // === Pulsing highlights ===
+    const pulseIntensity = 0.8 + Math.sin(timeRef.current * 3) * 0.4;
+
+    // Update state occasionally to trigger material updates
+    if (Math.floor(timeRef.current * 10) % 2 === 0) {
+      setHighlightPulse(pulseIntensity);
+      setCurrentVitalityColor((prev) => (prev === newColor ? prev : newColor));
+    }
 
     // Apply rotations directly to group refs for smooth animation
     if (spineRef.current) {
@@ -148,14 +167,6 @@ export function ProceduralHuman({
     if (bodyRef.current) {
       bodyRef.current.rotation.y = swayCycle * 0.008;
     }
-
-    // Update state periodically for material colors
-    const colorDiff = Math.abs(
-      parseInt(newColor.slice(1), 16) - parseInt(currentVitalityColor.slice(1), 16)
-    );
-    if (colorDiff > 500) {
-      setCurrentVitalityColor(newColor);
-    }
   });
 
   // Build highlights for sub-components
@@ -178,29 +189,23 @@ export function ProceduralHuman({
   const handleRightHipClick = useCallback(() => onRegionClick?.('right-hip'), [onRegionClick]);
   const handleRightKneeClick = useCallback(() => onRegionClick?.('right-knee'), [onRegionClick]);
 
-  // Log body state for debugging (only on prop change)
-  useEffect(() => {
-    console.log('[DigitalTwin] Body state:', bodyState);
-    console.log('[DigitalTwin] Target vitality color:', targetVitalityColor);
-  }, [bodyState, targetVitalityColor]);
-
   // Positions based on proportions
-  const { torso, neck, head } = BODY_PROPORTIONS;
+  const { torso, neck, head } = proportions;
   const { torsoBottom, torsoTop } = BODY_POSITIONS;
 
   // Calculate positions for a figure standing on Y=0
   // Torso bottom is at torsoBottom position
   const torsoY = torsoBottom;
-  const neckY = torsoTop - BODY_PROPORTIONS.overlap.neckToTorso;
-  const headY = neckY + neck.height - BODY_PROPORTIONS.overlap.neckToHead + head.height / 2;
+  const neckY = torsoTop - proportions.overlap.neckToTorso;
+  const headY = neckY + neck.height - proportions.overlap.neckToHead + head.height / 2;
 
   // Shoulders are at shoulder height on the torso
   const shoulderY = torsoBottom + torso.height * 0.85;
-  const shoulderOffsetX = LIMB_POSITIONS.shoulderOffsetX;
+  const shoulderOffsetX = limbPositions.shoulderOffsetX;
 
   // Hips are at hip level
   const hipY = torsoBottom + torso.height * 0.08;
-  const hipOffsetX = LIMB_POSITIONS.hipOffsetX;
+  const hipOffsetX = limbPositions.hipOffsetX;
 
   return (
     <group ref={groupRef} position={position}>
@@ -214,12 +219,14 @@ export function ProceduralHuman({
               color={currentVitalityColor}
               highlight={headHighlight}
               onClick={handleHeadClick}
+              intensityBoost={highlightPulse}
+              proportions={proportions}
             />
           </group>
 
           {/* Neck */}
           <group ref={neckRef} position={[0, neckY, 0]}>
-            <Neck color={currentVitalityColor} />
+            <Neck color={currentVitalityColor} proportions={proportions} />
           </group>
 
           {/* Torso - with breathing animation */}
@@ -228,6 +235,8 @@ export function ProceduralHuman({
               color={currentVitalityColor}
               highlight={torsoHighlight}
               onClick={handleTorsoClick}
+              intensityBoost={highlightPulse}
+              proportions={proportions}
             />
           </group>
 
@@ -240,6 +249,8 @@ export function ProceduralHuman({
               highlights={leftArmHighlights}
               onShoulderClick={handleLeftShoulderClick}
               onElbowClick={handleLeftElbowClick}
+              intensityBoost={highlightPulse}
+              proportions={proportions}
             />
           </group>
 
@@ -252,6 +263,8 @@ export function ProceduralHuman({
               highlights={rightArmHighlights}
               onShoulderClick={handleRightShoulderClick}
               onElbowClick={handleRightElbowClick}
+              intensityBoost={highlightPulse}
+              proportions={proportions}
             />
           </group>
         </group>
@@ -265,6 +278,8 @@ export function ProceduralHuman({
             highlights={leftLegHighlights}
             onHipClick={handleLeftHipClick}
             onKneeClick={handleLeftKneeClick}
+            intensityBoost={highlightPulse}
+            proportions={proportions}
           />
         </group>
 
@@ -276,6 +291,8 @@ export function ProceduralHuman({
             highlights={rightLegHighlights}
             onHipClick={handleRightHipClick}
             onKneeClick={handleRightKneeClick}
+            intensityBoost={highlightPulse}
+            proportions={proportions}
           />
         </group>
       </group>

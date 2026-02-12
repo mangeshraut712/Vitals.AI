@@ -77,12 +77,12 @@ export const HIGHLIGHT_COLORS = {
  * Skin tone palette based on vitality
  */
 export const VITALITY_TONES = {
-  /** High energy - warm white */
-  high: '#f5f0e8',
-  /** Normal energy - neutral gray-white */
-  normal: '#f0f0f0',
-  /** Low energy - cooler gray */
-  low: '#e0e4e8',
-  /** Very low energy - desaturated */
-  depleted: '#d8dce0',
+  /** High energy - warm healthy tone */
+  high: '#e8c2a1',
+  /** Normal energy - natural tone */
+  normal: '#d9ad88',
+  /** Low energy - cooler, slightly muted tone */
+  low: '#c19474',
+  /** Very low energy - visibly depleted tone */
+  depleted: '#ad8468',
 } as const;

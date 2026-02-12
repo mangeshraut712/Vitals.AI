@@ -4,6 +4,12 @@ import { BiomarkersClient, type BiomarkerData } from './BiomarkersClient';
 import { type CategoryFilter } from '@/components/biomarkers/BiomarkerFilters';
 import type { StatusType } from '@/lib/design/tokens';
 import type { BiomarkerStatus } from '@/lib/types/health';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Biomarkers',
+  description: 'View and analyze your blood biomarker results with AI-powered insights and reference ranges.',
+};
 
 // Map status to display type
 function mapStatusToType(status: ReturnType<typeof getBiomarkerStatus>): StatusType {
@@ -116,9 +122,9 @@ export default function BiomarkersPage(): React.JSX.Element {
 
   return (
     <div className="max-w-6xl mx-auto px-6 py-8 space-y-6">
-      <header>
-        <h1 className="text-2xl font-bold text-gray-900">Biomarkers</h1>
-        <p className="text-gray-500 mt-1">
+      <header className="vitals-fade-in">
+        <h1 className="text-2xl font-bold text-foreground">Biomarkers</h1>
+        <p className="text-muted-foreground mt-1">
           {hasData
             ? `Tracking ${data.counts.total} biomarkers from your lab results`
             : 'No biomarkers synced yet. Go to Data Sources and click Sync Data.'}
@@ -126,11 +132,13 @@ export default function BiomarkersPage(): React.JSX.Element {
       </header>
 
       {hasData ? (
-        <BiomarkersClient data={data} />
+        <div className="vitals-fade-in vitals-fade-in-delay-1">
+          <BiomarkersClient data={data} />
+        </div>
       ) : (
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-8 text-center">
+        <div className="vitals-card p-8 text-center vitals-fade-in vitals-fade-in-delay-1">
           <svg
-            className="w-12 h-12 text-gray-300 mx-auto mb-4"
+            className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -142,13 +150,13 @@ export default function BiomarkersPage(): React.JSX.Element {
               d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"
             />
           </svg>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">No Biomarkers Yet</h3>
-          <p className="text-gray-500 mb-4">
+          <h3 className="text-lg font-semibold text-foreground mb-2">No Biomarkers Yet</h3>
+          <p className="text-muted-foreground mb-4">
             Add a lab results PDF to the /data folder, then sync your data.
           </p>
           <a
             href="/data-sources"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium"
+            className="inline-flex items-center gap-2 px-4 py-2 vitals-gradient-bg text-white rounded-xl hover:opacity-90 transition-opacity font-medium"
           >
             Go to Data Sources
           </a>

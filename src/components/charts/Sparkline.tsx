@@ -16,17 +16,16 @@ export function Sparkline({
   data,
   status,
   optimalRange,
-  currentValue,
   width = 120,
   height = 40,
 }: SparklineProps): React.JSX.Element {
-  const { path, points, rangeY, minY, maxY } = useMemo(() => {
+  const { path, points, rangeY } = useMemo(() => {
     if (data.length === 0) {
-      return { path: '', points: [], rangeY: null, minY: 0, maxY: 1 };
+      return { path: '', points: [], rangeY: null };
     }
 
     // Calculate bounds
-    let allValues = [...data];
+    const allValues = [...data];
     if (optimalRange) {
       if (optimalRange.min !== undefined) allValues.push(optimalRange.min);
       if (optimalRange.max !== undefined) allValues.push(optimalRange.max);
@@ -62,7 +61,7 @@ export function Sparkline({
       };
     }
 
-    return { path: pathStr, points: pts, rangeY: rangeYCoords, minY: minVal, maxY: maxVal };
+    return { path: pathStr, points: pts, rangeY: rangeYCoords };
   }, [data, optimalRange, width, height]);
 
   const lineColor = STATUS_COLORS[status].base;
@@ -71,7 +70,7 @@ export function Sparkline({
   if (data.length === 0) {
     return (
       <div
-        className="flex items-center justify-center text-slate-400 text-xs"
+        className="flex items-center justify-center text-muted-foreground text-xs"
         style={{ width, height }}
       >
         No data

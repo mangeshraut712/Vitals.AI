@@ -60,15 +60,46 @@ export async function chatWithAI(message: string): Promise<ChatResponse> {
 export async function* streamChatWithAI(
   message: string
 ): AsyncGenerator<string, void, unknown> {
-  // For now, just get the full response and yield it
-  const result = await chatWithAI(message);
+  try {
+    const response = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message }),
+    });
 
-  if (result.error) {
-    yield `Error: ${result.error}`;
-    return;
+    if (!response.ok) {
+      yield 'Sorry, I encountered an error. Please try again.';
+      return;
+    }
+
+    const reader = response.body?.getReader();
+    if (!reader) return;
+
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          try {
+            const data = JSON.parse(line.slice(6));
+            if (data.text) yield data.text;
+          } catch (e) {
+            console.warn('Failed to parse stream chunk', e);
+          }
+        }
+      }
+    }
+  } catch {
+    yield 'Failed to connect to the AI assistant.';
   }
-
-  yield result.response;
 }
 
 export default chatWithAI;

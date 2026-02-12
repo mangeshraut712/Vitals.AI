@@ -3,7 +3,7 @@
 import { useMemo, forwardRef } from 'react';
 import { Group } from 'three';
 import { createHeadGeometry } from '@/lib/digital-twin/geometry';
-import { BODY_PROPORTIONS } from '@/lib/digital-twin/proportions';
+import { BODY_PROPORTIONS, type BodyProportions } from '@/lib/digital-twin/proportions';
 import { getBaseMaterialProps, getHighlightMaterialProps, MaterialProps } from '@/lib/digital-twin/materials';
 
 export interface HeadProps {
@@ -16,6 +16,10 @@ export interface HeadProps {
   };
   /** Click handler */
   onClick?: () => void;
+  /** Emissive intensity multiplier for pulsing */
+  intensityBoost?: number;
+  /** Resolved anatomy profile */
+  proportions?: BodyProportions;
 }
 
 /**
@@ -24,27 +28,32 @@ export interface HeadProps {
  * Centered on Y axis.
  */
 export const Head = forwardRef<Group, HeadProps>(function Head(
-  { color, highlight, onClick },
+  { color, highlight, onClick, intensityBoost, proportions = BODY_PROPORTIONS },
   ref
 ) {
   // Create head geometry using LatheGeometry
   const geometry = useMemo(() => {
-    const { width, height } = BODY_PROPORTIONS.head;
-    return createHeadGeometry(width, height, 32);
-  }, []);
+    const { width, height, jawTaper } = proportions.head;
+    return createHeadGeometry(width, height, 32, jawTaper);
+  }, [proportions]);
 
   // Get material properties based on highlight state
   const materialProps: MaterialProps = useMemo(() => {
     if (highlight) {
-      return getHighlightMaterialProps(highlight.color, highlight.intensity, color);
+      const intensifiedHighlight = {
+        ...highlight,
+        intensity: highlight.intensity * (intensityBoost ?? 1.0)
+      };
+      return getHighlightMaterialProps(intensifiedHighlight.color, intensifiedHighlight.intensity, color);
     }
     return getBaseMaterialProps(color);
-  }, [color, highlight]);
+  }, [color, highlight, intensityBoost]);
 
   return (
     <group ref={ref}>
       <mesh
         geometry={geometry}
+        scale={[1, 1, proportions.head.depth / proportions.head.width]}
         castShadow
         onClick={onClick}
       >

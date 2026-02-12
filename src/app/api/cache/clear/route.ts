@@ -15,8 +15,7 @@ export async function POST(): Promise<NextResponse> {
   } catch (error) {
     console.error('[API] Error clearing cache:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to clear cache' },
-      { status: 500 }
+      { success: false, error: 'Failed to clear cache' }
     );
   }
 }

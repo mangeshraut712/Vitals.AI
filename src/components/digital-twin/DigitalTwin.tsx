@@ -6,6 +6,7 @@ import { ProceduralHuman } from './ProceduralHuman';
 import { mapHealthToBodyState, HealthDataInput } from '@/lib/digital-twin/mapper';
 import { BodyState, DEFAULT_BODY_STATE, HighlightArea } from '@/lib/digital-twin/types';
 import { getRegionHealthData, RegionHealthData } from '@/lib/digital-twin/regions';
+import { BodyType } from '@/lib/digital-twin/proportions';
 import { ExtractedBiomarkers } from '@/lib/extractors/biomarkers';
 import { BodyComposition } from '@/lib/extractors/body-comp';
 import { ActivityData } from '@/lib/store/health-data';
@@ -46,9 +47,14 @@ interface RegionTooltipProps {
   onClose: () => void;
 }
 
+interface BodyTypeToggleProps {
+  value: BodyType;
+  onChange: (value: BodyType) => void;
+}
+
 function RegionTooltip({ data, onClose }: RegionTooltipProps): React.JSX.Element {
   return (
-    <div className="absolute bottom-3 left-3 right-3 bg-white/95 dark:bg-zinc-900/95 rounded-lg p-4 shadow-lg backdrop-blur-sm">
+    <div className="absolute bottom-3 left-3 right-3 bg-card/95 dark:bg-zinc-900/95 rounded-lg p-4 shadow-lg backdrop-blur-sm">
       <div className="flex justify-between items-start mb-2">
         <div>
           <div className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">
@@ -91,11 +97,38 @@ function RegionTooltip({ data, onClose }: RegionTooltipProps): React.JSX.Element
   );
 }
 
+function BodyTypeToggle({ value, onChange }: BodyTypeToggleProps): React.JSX.Element {
+  return (
+    <div className="absolute top-3 right-3 bg-card/90 dark:bg-zinc-900/90 rounded-lg p-2 shadow-sm backdrop-blur-sm">
+      <div className="text-[11px] text-zinc-500 dark:text-zinc-400 mb-1">Body model</div>
+      <div className="flex gap-1">
+        {(['male', 'female'] as const).map((type) => {
+          const isActive = value === type;
+          return (
+            <button
+              key={type}
+              onClick={() => onChange(type)}
+              className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
+                isActive
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700'
+              }`}
+              type="button"
+            >
+              {type === 'male' ? 'Male' : 'Female'}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function StatusOverlay({ energyLevel, highlightCount }: StatusOverlayProps): React.JSX.Element {
   const status = getOverallStatus(energyLevel);
 
   return (
-    <div className="absolute top-3 left-3 bg-white/90 dark:bg-zinc-900/90 rounded-lg p-3 shadow-sm backdrop-blur-sm">
+    <div className="absolute top-3 left-3 bg-card/90 dark:bg-zinc-900/90 rounded-lg p-3 shadow-sm backdrop-blur-sm">
       <div className="text-xs text-zinc-500 dark:text-zinc-400 mb-1">Status</div>
       <div className={`text-sm font-semibold ${status.color}`}>{status.label}</div>
 
@@ -147,17 +180,13 @@ export function DigitalTwin({ className, healthData }: DigitalTwinProps): React.
 
   // Use provided health data or defaults
   const data = useMemo(() => healthData ?? defaultHealthData, [healthData]);
+  const inferredBodyType: BodyType = data.bodyComp.sex === 'female' ? 'female' : 'male';
+  const [bodyType, setBodyType] = useState<BodyType>(inferredBodyType);
 
   // Map to body state
   const bodyState: BodyState = useMemo(() => {
     try {
-      const state = mapHealthToBodyState(data);
-
-      // Console log for debugging (acceptance criteria requirement)
-      console.log('[DigitalTwin] Health data input:', data);
-      console.log('[DigitalTwin] Mapped body state:', state);
-
-      return state;
+      return mapHealthToBodyState(data);
     } catch (error) {
       console.error('[DigitalTwin] Error mapping health data:', error);
       return DEFAULT_BODY_STATE;
@@ -169,7 +198,6 @@ export function DigitalTwin({ className, healthData }: DigitalTwinProps): React.
     (area: HighlightArea) => {
       const regionData = getRegionHealthData(area, data.biomarkers, data.bodyComp);
       setSelectedRegion(regionData);
-      console.log('[DigitalTwin] Region clicked:', area, regionData);
     },
     [data]
   );
@@ -182,12 +210,17 @@ export function DigitalTwin({ className, healthData }: DigitalTwinProps): React.
   return (
     <div className={`relative ${className ?? ''}`}>
       <TwinCanvas>
-        <ProceduralHuman bodyState={bodyState} onRegionClick={handleRegionClick} />
+        <ProceduralHuman
+          bodyState={bodyState}
+          bodyType={bodyType}
+          onRegionClick={handleRegionClick}
+        />
       </TwinCanvas>
       <StatusOverlay
         energyLevel={bodyState.energyLevel}
         highlightCount={bodyState.highlights.length}
       />
+      <BodyTypeToggle value={bodyType} onChange={setBodyType} />
       {selectedRegion && (
         <RegionTooltip data={selectedRegion} onClose={handleCloseTooltip} />
       )}

@@ -32,12 +32,13 @@ interface ChatActions {
   setInputValue: (value: string) => void;
   prefillInput: (question: string) => void;
   addMessage: (role: 'user' | 'assistant', content: string) => void;
+  updateLastMessage: (chunk: string) => void;
   setLoading: (loading: boolean) => void;
   clearMessages: () => void;
 }
 
 // Combined context type
-interface ChatContextType extends ChatState, ChatActions {}
+interface ChatContextType extends ChatState, ChatActions { }
 
 // Create context with undefined default
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
@@ -49,12 +50,6 @@ function generateId(): string {
 
 /**
  * ChatProvider - Provides chat state to children components
- *
- * Manages:
- * - isExpanded: whether chat modal is open
- * - messages: chat history
- * - inputValue: current input field value
- * - isLoading: whether AI is responding
  */
 export function ChatProvider({ children }: { children: ReactNode }): React.JSX.Element {
   // State
@@ -64,17 +59,9 @@ export function ChatProvider({ children }: { children: ReactNode }): React.JSX.E
   const [isLoading, setIsLoading] = useState(false);
 
   // Actions
-  const expand = useCallback(() => {
-    setIsExpanded(true);
-  }, []);
-
-  const collapse = useCallback(() => {
-    setIsExpanded(false);
-  }, []);
-
-  const toggle = useCallback(() => {
-    setIsExpanded((prev) => !prev);
-  }, []);
+  const expand = useCallback(() => setIsExpanded(true), []);
+  const collapse = useCallback(() => setIsExpanded(false), []);
+  const toggle = useCallback(() => setIsExpanded((prev) => !prev), []);
 
   const prefillInput = useCallback((question: string) => {
     setInputValue(question);
@@ -90,10 +77,24 @@ export function ChatProvider({ children }: { children: ReactNode }): React.JSX.E
     };
     setMessages((prev) => [...prev, message]);
 
-    // Clear input after adding user message
     if (role === 'user') {
       setInputValue('');
     }
+  }, []);
+
+  const updateLastMessage = useCallback((chunk: string) => {
+    setMessages((prev) => {
+      if (prev.length === 0) return prev;
+      const last = prev[prev.length - 1];
+      if (last.role !== 'assistant') return prev;
+
+      const newMessages = [...prev];
+      newMessages[newMessages.length - 1] = {
+        ...last,
+        content: last.content + chunk,
+      };
+      return newMessages;
+    });
   }, []);
 
   const setLoadingState = useCallback((loading: boolean) => {
@@ -104,20 +105,18 @@ export function ChatProvider({ children }: { children: ReactNode }): React.JSX.E
     setMessages([]);
   }, []);
 
-  // Context value
   const value: ChatContextType = {
-    // State
     isExpanded,
     messages,
     inputValue,
     isLoading,
-    // Actions
     expand,
     collapse,
     toggle,
     setInputValue,
     prefillInput,
     addMessage,
+    updateLastMessage,
     setLoading: setLoadingState,
     clearMessages,
   };
@@ -125,11 +124,6 @@ export function ChatProvider({ children }: { children: ReactNode }): React.JSX.E
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;
 }
 
-/**
- * useChat - Hook to access chat context
- *
- * Must be used within a ChatProvider
- */
 export function useChat(): ChatContextType {
   const context = useContext(ChatContext);
   if (!context) {

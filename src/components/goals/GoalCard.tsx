@@ -50,7 +50,7 @@ export function GoalCard({ goal, compact = false }: GoalCardProps): React.JSX.El
             <h3 className="font-semibold text-sm leading-tight line-clamp-2">{goal.title}</h3>
             <p className="text-white/70 text-xs mt-1 line-clamp-1">{goal.category}</p>
           </div>
-          <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full whitespace-nowrap">
+          <span className="text-xs bg-card/20 px-2 py-0.5 rounded-full whitespace-nowrap">
             {getPriorityLabel(goal.priority)}
           </span>
         </div>
@@ -68,7 +68,7 @@ export function GoalCard({ goal, compact = false }: GoalCardProps): React.JSX.El
       }}
     >
       {/* Priority badge */}
-      <span className="absolute top-4 right-4 text-xs bg-white/20 px-3 py-1 rounded-full">
+      <span className="absolute top-4 right-4 text-xs bg-card/20 px-3 py-1 rounded-full">
         {getPriorityLabel(goal.priority)}
       </span>
 
@@ -116,7 +116,7 @@ export function GoalCard({ goal, compact = false }: GoalCardProps): React.JSX.El
           <ul className="space-y-2">
             {goal.actionItems.map((item, index) => (
               <li key={index} className="flex items-start gap-2 text-sm text-white/90">
-                <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-white/60 flex-shrink-0" />
+                <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-card/60 flex-shrink-0" />
                 <span>{item}</span>
               </li>
             ))}

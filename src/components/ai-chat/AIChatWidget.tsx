@@ -1,7 +1,6 @@
 'use client';
 
 import { useChat } from '@/lib/ai-chat/ChatContext';
-import { chatWithAI } from '@/lib/ai-chat/chatWithAI';
 import { ChatBar } from './ChatBar';
 import { ChatModal } from './ChatModal';
 import type { ContextualPill } from '@/lib/ai-chat/generateContextualPills';
@@ -29,6 +28,7 @@ export function AIChatWidget({
     setInputValue,
     prefillInput,
     addMessage,
+    updateLastMessage,
     setLoading,
   } = useChat();
 
@@ -39,22 +39,18 @@ export function AIChatWidget({
     setLoading(true);
 
     try {
-      // Call the AI chat API
-      const result = await chatWithAI(content);
+      // Add empty assistant message to start streaming into
+      addMessage('assistant', '');
 
-      if (result.error) {
-        addMessage(
-          'assistant',
-          `I'm sorry, I encountered an error: ${result.error}. Please try again.`
-        );
-      } else {
-        addMessage('assistant', result.response);
+      const { streamChatWithAI } = await import('@/lib/ai-chat/chatWithAI');
+      const stream = streamChatWithAI(content);
+
+      for await (const chunk of stream) {
+        updateLastMessage(chunk);
       }
-    } catch {
-      addMessage(
-        'assistant',
-        'Sorry, something went wrong. Please check your API key is set and try again.'
-      );
+    } catch (error) {
+      console.error('[Vitals.AI] Chat Stream Error:', error);
+      updateLastMessage('Sorry, something went wrong. Please check your connection and try again.');
     } finally {
       setLoading(false);
     }

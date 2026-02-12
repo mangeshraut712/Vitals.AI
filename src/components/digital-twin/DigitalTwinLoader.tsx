@@ -11,8 +11,8 @@ const DigitalTwin = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="w-full min-h-[300px] bg-gray-50 rounded-xl animate-pulse flex items-center justify-center">
-        <span className="text-sm text-gray-400">Loading Digital Twin...</span>
+      <div className="w-full min-h-[300px] bg-muted rounded-xl animate-pulse flex items-center justify-center">
+        <span className="text-sm text-muted-foreground">Loading Digital Twin...</span>
       </div>
     ),
   }

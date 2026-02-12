@@ -15,7 +15,7 @@ export interface BiomarkerInfoModalProps {
   onClose: () => void;
 }
 
-function formatRange(range?: { min?: number; max?: number }, unit?: string): string {
+function formatRange(range?: { min?: number; max?: number }): string {
   if (!range) return 'Not specified';
   if (range.min !== undefined && range.max !== undefined) {
     return `${range.min}–${range.max}`;
@@ -44,36 +44,36 @@ function getStatusDescription(status: BiomarkerStatus): string {
 
 const statusConfig = {
   optimal: {
-    bg: 'bg-emerald-50',
-    text: 'text-emerald-700',
-    border: 'border-emerald-200',
-    badge: 'bg-emerald-100 text-emerald-700 ring-emerald-600/20',
+    bg: 'bg-emerald-500/10',
+    text: 'text-emerald-500',
+    border: 'border-emerald-500/20',
+    badge: 'bg-emerald-500/10 text-emerald-500 ring-emerald-500/20',
     icon: '✓',
-    glow: 'shadow-emerald-100',
+    glow: 'shadow-emerald-500/20',
   },
   normal: {
-    bg: 'bg-amber-50',
-    text: 'text-amber-700',
-    border: 'border-amber-200',
-    badge: 'bg-amber-100 text-amber-700 ring-amber-600/20',
+    bg: 'bg-amber-500/10',
+    text: 'text-amber-500',
+    border: 'border-amber-500/20',
+    badge: 'bg-amber-500/10 text-amber-500 ring-amber-500/20',
     icon: '~',
-    glow: 'shadow-amber-100',
+    glow: 'shadow-amber-500/20',
   },
   borderline: {
-    bg: 'bg-orange-50',
-    text: 'text-orange-700',
-    border: 'border-orange-200',
-    badge: 'bg-orange-100 text-orange-700 ring-orange-600/20',
+    bg: 'bg-orange-500/10',
+    text: 'text-orange-500',
+    border: 'border-orange-500/20',
+    badge: 'bg-orange-500/10 text-orange-500 ring-orange-500/20',
     icon: '!',
-    glow: 'shadow-orange-100',
+    glow: 'shadow-orange-500/20',
   },
   out_of_range: {
-    bg: 'bg-rose-50',
-    text: 'text-rose-700',
-    border: 'border-rose-200',
-    badge: 'bg-rose-100 text-rose-700 ring-rose-600/20',
+    bg: 'bg-rose-500/10',
+    text: 'text-rose-500',
+    border: 'border-rose-500/20',
+    badge: 'bg-rose-500/10 text-rose-500 ring-rose-500/20',
     icon: '✗',
-    glow: 'shadow-rose-100',
+    glow: 'shadow-rose-500/20',
   },
 };
 
@@ -131,27 +131,25 @@ export function BiomarkerInfoModal({
 
   return (
     <div
-      className={`fixed inset-0 z-50 flex items-center justify-center p-4 transition-all duration-200 ${
-        isVisible ? 'bg-black/50 backdrop-blur-sm' : 'bg-black/0'
-      }`}
+      className={`fixed inset-0 z-50 flex items-center justify-center p-4 transition-all duration-200 ${isVisible ? 'bg-black/50 backdrop-blur-sm' : 'bg-black/0'
+        }`}
       onClick={handleBackdropClick}
       role="dialog"
       aria-modal="true"
       aria-labelledby="modal-title"
     >
       <div
-        className={`relative w-full max-w-xl max-h-[90vh] overflow-hidden bg-white rounded-3xl shadow-2xl transition-all duration-300 ${
-          isVisible ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 translate-y-4'
-        }`}
+        className={`relative w-full max-w-xl max-h-[90vh] overflow-hidden bg-card rounded-3xl shadow-2xl transition-all duration-300 ${isVisible ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 translate-y-4'
+          }`}
       >
         {/* Scrollable content */}
         <div className="relative max-h-[90vh] overflow-y-auto">
           {/* Header */}
-          <div className="sticky top-0 z-10 bg-white border-b border-slate-100 px-6 py-5">
+          <div className="sticky top-0 z-10 bg-card border-b border-border px-6 py-5">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-xs text-slate-400 uppercase tracking-wider mb-1">{category}</p>
-                <h2 id="modal-title" className="text-xl font-semibold text-slate-900">
+                <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">{category}</p>
+                <h2 id="modal-title" className="text-xl font-semibold text-foreground">
                   {name}
                 </h2>
               </div>
@@ -161,7 +159,7 @@ export function BiomarkerInfoModal({
                 aria-label="Close modal"
               >
                 <svg
-                  className="w-5 h-5 text-slate-400"
+                  className="w-5 h-5 text-muted-foreground"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -187,30 +185,30 @@ export function BiomarkerInfoModal({
             {/* Value Cards - Two Columns */}
             <div className="grid grid-cols-2 gap-4">
               {/* Your Value Card */}
-              <div className="rounded-2xl p-5 bg-slate-50">
+              <div className="rounded-2xl p-5 bg-muted/30 border border-border/50">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-slate-500">Your Value</span>
-                  <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${config.badge}`}>
+                  <span className="text-sm font-medium text-muted-foreground">Your Value</span>
+                  <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${config.badge}`}>
                     {statusLabels[status]}
                   </span>
                 </div>
                 <div className="flex items-baseline gap-1">
-                  <span className="text-3xl font-semibold text-slate-900">{value}</span>
-                  <span className="text-sm text-slate-500">{unit}</span>
+                  <span className="text-3xl font-bold text-foreground">{value}</span>
+                  <span className="text-sm font-medium text-muted-foreground">{unit}</span>
                 </div>
               </div>
 
               {/* Optimal Range Card */}
-              <div className="rounded-2xl p-5 bg-emerald-50">
-                <span className="text-sm text-emerald-600">Optimal Range</span>
+              <div className="rounded-2xl p-5 bg-emerald-500/10 border border-emerald-500/20">
+                <span className="text-sm font-medium text-emerald-500">Optimal Range</span>
                 <div className="flex items-baseline gap-1 mt-2">
-                  <span className="text-3xl font-semibold text-emerald-700">
+                  <span className="text-3xl font-bold text-emerald-500">
                     {formatRange(reference?.optimalRange)}
                   </span>
-                  <span className="text-sm text-emerald-600">{unit}</span>
+                  <span className="text-sm font-medium text-emerald-500/80">{unit}</span>
                 </div>
                 {reference?.standardRange && (
-                  <p className="text-xs text-emerald-500 mt-2">
+                  <p className="text-xs text-emerald-500/70 mt-2 font-medium">
                     Standard: {formatRange(reference.standardRange)} {unit}
                   </p>
                 )}
@@ -220,24 +218,24 @@ export function BiomarkerInfoModal({
             {/* Information Sections */}
             <div className="space-y-3">
               <InfoSection title={`What is ${name}?`}>
-                <p className="text-slate-600 leading-relaxed">
+                <p className="text-muted-foreground leading-relaxed">
                   Information about what {name} measures and its role in your body will appear here.
                   This section explains the biological function and clinical significance.
                 </p>
                 {reference?.isCalculated && reference.formula && (
-                  <div className="mt-3 p-3 bg-slate-50 rounded-lg font-mono text-sm text-slate-600">
+                  <div className="mt-3 p-3 bg-muted/30 border border-border/50 rounded-lg font-mono text-xs text-muted-foreground">
                     {reference.formula}
                   </div>
                 )}
               </InfoSection>
 
               <InfoSection title={`What Influences ${name}?`}>
-                <p className="text-slate-600 leading-relaxed mb-3">
+                <p className="text-muted-foreground leading-relaxed mb-3">
                   Factors that affect your {name} levels:
                 </p>
                 <div className="grid grid-cols-2 gap-1.5">
                   {['Diet & nutrition', 'Exercise habits', 'Sleep quality', 'Stress levels', 'Medications', 'Genetics'].map((factor) => (
-                    <div key={factor} className="flex items-center gap-2 text-sm text-slate-500">
+                    <div key={factor} className="flex items-center gap-2 text-sm text-muted-foreground">
                       <span className="w-1 h-1 rounded-full bg-slate-300" />
                       {factor}
                     </div>
@@ -246,9 +244,9 @@ export function BiomarkerInfoModal({
               </InfoSection>
 
               <InfoSection title="What Does This Mean for You?">
-                <p className="text-slate-600 leading-relaxed">
+                <p className="text-muted-foreground leading-relaxed">
                   Based on your value of{' '}
-                  <span className="font-medium text-slate-900">
+                  <span className="font-medium text-foreground">
                     {value} {unit}
                   </span>
                   , {getStatusDescription(status).toLowerCase()} Personalized recommendations will appear here.
@@ -258,9 +256,9 @@ export function BiomarkerInfoModal({
           </div>
 
           {/* Footer */}
-          <div className="border-t border-slate-100 px-6 py-4">
+          <div className="border-t border-border px-6 py-4">
             <div className="flex items-center justify-between">
-              <span className="text-xs text-slate-400">
+              <span className="text-xs text-muted-foreground">
                 {reference?.isCalculated ? 'Calculated' : 'Lab result'}
               </span>
               <button
@@ -284,11 +282,11 @@ interface InfoSectionProps {
 
 function InfoSection({ title, children }: InfoSectionProps): React.JSX.Element {
   return (
-    <details className="group border-b border-slate-100 last:border-0">
+    <details className="group border-b border-border last:border-0">
       <summary className="flex items-center justify-between py-4 cursor-pointer list-none">
-        <h3 className="text-sm font-medium text-slate-900">{title}</h3>
+        <h3 className="text-sm font-medium text-foreground">{title}</h3>
         <svg
-          className="w-4 h-4 text-slate-400 transition-transform group-open:rotate-180"
+          className="w-4 h-4 text-muted-foreground transition-transform group-open:rotate-180"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"

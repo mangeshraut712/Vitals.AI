@@ -5,8 +5,7 @@
  * All geometries are centered on the Y axis.
  */
 
-import { LatheGeometry, Vector2, BufferGeometry, SphereGeometry } from 'three';
-import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import { LatheGeometry, Vector2, BufferGeometry } from 'three';
 
 /**
  * Creates a smooth tapered capsule geometry using LatheGeometry.
@@ -26,10 +25,6 @@ export function createTaperedCapsule(
   capSegments: number = 8,
   radialSegments: number = 16
 ): BufferGeometry {
-  // Calculate the body length (excluding caps)
-  const capHeight = Math.max(radiusTop, radiusBottom);
-  const bodyLength = Math.max(0, length - capHeight * 2);
-
   // Create profile points for LatheGeometry (right side only, will be rotated)
   const points: Vector2[] = [];
 
@@ -82,7 +77,8 @@ export function createTaperedCapsule(
 export function createHeadGeometry(
   width: number,
   height: number,
-  segments: number = 32
+  segments: number = 32,
+  jawTaper: number = 0.86
 ): BufferGeometry {
   // Create egg-shaped profile using LatheGeometry
   const points: Vector2[] = [];
@@ -101,7 +97,7 @@ export function createHeadGeometry(
 
     // Add taper to bottom half (jaw is narrower)
     if (t < 0.4) {
-      const taperFactor = 0.85 + 0.15 * (t / 0.4); // 0.85 at bottom, 1.0 at t=0.4
+      const taperFactor = jawTaper + (1 - jawTaper) * (t / 0.4);
       x *= taperFactor;
     }
 

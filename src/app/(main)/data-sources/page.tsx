@@ -1,4 +1,4 @@
-import { getDataFiles, type DataFile, type FileType } from '@/lib/files';
+import { getDataFiles, type FileType } from '@/lib/files';
 import { DataSourcesClient } from './DataSourcesClient';
 
 export interface DataSourceInfo {
@@ -43,9 +43,9 @@ export default function DataSourcesPage(): React.JSX.Element {
 
   return (
     <div className="max-w-6xl mx-auto px-6 py-8 space-y-6">
-      <header>
-        <h1 className="text-2xl font-bold text-gray-900">Data Sources</h1>
-        <p className="text-gray-500 mt-1">Manage your health data files</p>
+      <header className="vitals-fade-in">
+        <h1 className="text-2xl font-bold text-foreground">Data Sources</h1>
+        <p className="text-muted-foreground mt-1">Manage your health data files</p>
       </header>
 
       <DataSourcesClient dataSources={dataSources} />

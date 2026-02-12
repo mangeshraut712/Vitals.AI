@@ -1,9 +1,9 @@
 'use client';
 
 import { useMemo, forwardRef } from 'react';
-import { Group, SphereGeometry, BoxGeometry } from 'three';
+import { Group, SphereGeometry } from 'three';
 import { createTaperedCapsule, createFootGeometry } from '@/lib/digital-twin/geometry';
-import { BODY_PROPORTIONS, LIMB_POSITIONS } from '@/lib/digital-twin/proportions';
+import { BODY_PROPORTIONS, LIMB_POSITIONS, type BodyProportions } from '@/lib/digital-twin/proportions';
 import { getBaseMaterialProps, getHighlightMaterialProps, MaterialProps } from '@/lib/digital-twin/materials';
 
 export interface LegHighlights {
@@ -21,6 +21,10 @@ export interface LegProps {
   /** Click handlers for different parts */
   onHipClick?: () => void;
   onKneeClick?: () => void;
+  /** Emissive intensity multiplier for pulsing */
+  intensityBoost?: number;
+  /** Resolved anatomy profile */
+  proportions?: BodyProportions;
 }
 
 /**
@@ -32,7 +36,7 @@ export interface LegProps {
  * Feet at Y=0 (ground level).
  */
 export const Leg = forwardRef<Group, LegProps>(function Leg(
-  { side, color, highlights, onHipClick, onKneeClick },
+  { side, color, highlights, onHipClick, onKneeClick, intensityBoost, proportions = BODY_PROPORTIONS },
   ref
 ) {
   const xSign = side === 'left' ? -1 : 1;
@@ -43,57 +47,54 @@ export const Leg = forwardRef<Group, LegProps>(function Leg(
   // Create geometries
   const hipGeometry = useMemo(() => {
     // Hip is a sphere that overlaps into torso bottom
-    return new SphereGeometry(BODY_PROPORTIONS.thigh.radiusTop * 1.1, 16, 16);
-  }, []);
+    return new SphereGeometry(proportions.thigh.radiusTop * 1.1, 16, 16);
+  }, [proportions]);
 
   const thighGeometry = useMemo(() => {
-    const { length, radiusTop, radiusBottom } = BODY_PROPORTIONS.thigh;
+    const { length, radiusTop, radiusBottom } = proportions.thigh;
     return createTaperedCapsule(length, radiusTop, radiusBottom, 8, 16);
-  }, []);
+  }, [proportions]);
 
   const kneeGeometry = useMemo(() => {
     // Small sphere at knee for smooth joint
-    const kneeRadius = (BODY_PROPORTIONS.thigh.radiusBottom + BODY_PROPORTIONS.shin.radiusTop) / 2;
+    const kneeRadius = (proportions.thigh.radiusBottom + proportions.shin.radiusTop) / 2;
     return new SphereGeometry(kneeRadius, 12, 12);
-  }, []);
+  }, [proportions]);
 
   const shinGeometry = useMemo(() => {
-    const { length, radiusTop, radiusBottom } = BODY_PROPORTIONS.shin;
+    const { length, radiusTop, radiusBottom } = proportions.shin;
     return createTaperedCapsule(length, radiusTop, radiusBottom, 8, 16);
-  }, []);
+  }, [proportions]);
 
   const footGeometry = useMemo(() => {
-    const { length, width, height } = BODY_PROPORTIONS.foot;
-    // Use box geometry for foot - simple wedge shape
-    return new BoxGeometry(width, height, length);
-  }, []);
+    const { length, width, height } = proportions.foot;
+    return createFootGeometry(length, width, height, 14);
+  }, [proportions]);
 
   // Material properties
   const baseMaterialProps: MaterialProps = useMemo(() => getBaseMaterialProps(color), [color]);
+  const hipHighlight = highlights?.hip;
+  const kneeHighlight = highlights?.knee;
 
   const hipMaterialProps: MaterialProps = useMemo(() => {
-    if (highlights?.hip) {
-      return getHighlightMaterialProps(highlights.hip.color, highlights.hip.intensity, color);
+    if (hipHighlight) {
+      return getHighlightMaterialProps(hipHighlight.color, hipHighlight.intensity * (intensityBoost ?? 1.0), color);
     }
     return baseMaterialProps;
-  }, [color, highlights?.hip, baseMaterialProps]);
+  }, [hipHighlight, intensityBoost, color, baseMaterialProps]);
 
   const kneeMaterialProps: MaterialProps = useMemo(() => {
-    if (highlights?.knee) {
-      return getHighlightMaterialProps(highlights.knee.color, highlights.knee.intensity, color);
+    if (kneeHighlight) {
+      return getHighlightMaterialProps(kneeHighlight.color, kneeHighlight.intensity * (intensityBoost ?? 1.0), color);
     }
     return baseMaterialProps;
-  }, [color, highlights?.knee, baseMaterialProps]);
+  }, [kneeHighlight, intensityBoost, color, baseMaterialProps]);
 
   // Positions
-  const thighLength = BODY_PROPORTIONS.thigh.length;
-  const shinLength = BODY_PROPORTIONS.shin.length;
-  const footHeight = BODY_PROPORTIONS.foot.height;
-  const footLength = BODY_PROPORTIONS.foot.length;
-
-  // Total leg height calculation
-  // Hip is at top, foot bottom at Y=0
-  const legTotalHeight = thighLength + shinLength + footHeight;
+  const thighLength = proportions.thigh.length;
+  const shinLength = proportions.shin.length;
+  const footHeight = proportions.foot.height;
+  const footLength = proportions.foot.length;
 
   return (
     <group ref={ref}>

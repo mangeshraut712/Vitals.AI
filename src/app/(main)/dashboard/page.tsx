@@ -7,12 +7,13 @@ import { calculateWeeklySummary } from '@/lib/lifestyle/calculateWeeklySummary';
 import { UnifiedHealthCard } from '@/components/dashboard/UnifiedHealthCard';
 import { StatsGrid } from '@/components/dashboard/StatsGrid';
 import { SyncButton } from '@/components/SyncButton';
-// Dynamic import wrapper for heavy 3D component - reduces initial bundle by ~300KB (Rule 2.4)
+// Dynamic import wrapper for heavy 3D component - reduces initial bundle by ~300KB
 import { DigitalTwinLoader } from '@/components/digital-twin/DigitalTwinLoader';
-import { DataFreshnessBar } from '@/components/dashboard/DataFreshnessBar';
+import { HealthEventFeed } from '@/components/dashboard/HealthEventFeed';
 import { ChatProvider } from '@/lib/ai-chat/ChatContext';
 import { AIChatWidget } from '@/components/ai-chat/AIChatWidget';
-import { type StatusType, SPACING } from '@/lib/design/tokens';
+import { DataFreshnessBar } from '@/components/dashboard/DataFreshnessBar';
+import { type StatusType } from '@/lib/design/tokens';
 import { readCache } from '@/lib/cache/biomarker-cache';
 import { getBiomarkerStatus, BIOMARKER_REFERENCES } from '@/lib/biomarkers';
 
@@ -66,14 +67,15 @@ function getBiomarkerCountsFromCache(): { optimal: number; normal: number; outOf
 }
 
 export default async function DashboardPage(): Promise<React.JSX.Element> {
-  // Load health data on server side - parallel fetching for performance (Rule 1.4)
-  const [biomarkers, bodyComp, activity, phenoAge, chronoAge, timestamps] =
+  // Load health data on server side - parallel fetching for performance
+  const [biomarkers, bodyComp, activity, phenoAge, chronoAge, events, timestamps] =
     await Promise.all([
       HealthDataStore.getBiomarkers(),
       HealthDataStore.getBodyComp(),
       HealthDataStore.getActivity(),
       HealthDataStore.getPhenoAge(),
       HealthDataStore.getChronologicalAge(),
+      HealthDataStore.getHealthEvents({ limit: 8 }),
       HealthDataStore.getTimestamps(),
     ]);
 
@@ -125,28 +127,31 @@ export default async function DashboardPage(): Promise<React.JSX.Element> {
 
   return (
     <ChatProvider>
-      <div className="max-w-6xl mx-auto px-6 py-8" style={{ gap: SPACING.lg }}>
+      <div className="container max-w-7xl mx-auto px-4 lg:px-8 py-8 space-y-8">
         {/* Header */}
-        <header className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-            <p className="text-gray-500 mt-1">Your health at a glance</p>
+        <header className="space-y-4">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight text-foreground">Dashboard</h1>
+              <p className="text-muted-foreground mt-1">Your health at a glance</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <SyncButton />
+            </div>
           </div>
-          <SyncButton />
+          {/* Data Freshness Bar */}
+          <div className="-mx-4 md:mx-0">
+            <DataFreshnessBar timestamps={timestamps} />
+          </div>
         </header>
 
         {/* AI Chat Bar */}
-        <div className="mb-4">
+        <div className="w-full">
           <AIChatWidget contextualPills={contextualPills} />
         </div>
 
-        {/* Data Freshness Bar */}
-        <div className="mb-6 -mx-6 px-6">
-          <DataFreshnessBar timestamps={timestamps} />
-        </div>
-
         {/* Unified Health Card - Bio Age + Health Score + Action Items */}
-        <div className="mb-8">
+        <div className="w-full">
           <UnifiedHealthCard
             chronologicalAge={chronoAge}
             phenoAge={phenoAge}
@@ -165,56 +170,69 @@ export default async function DashboardPage(): Promise<React.JSX.Element> {
         </div>
 
         {/* Main Grid Layout - Digital Twin + Stats */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          {/* Digital Twin */}
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
-            <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-4">
-              Digital Twin
-            </h3>
-            <div className="h-[400px]">
-              <DigitalTwinLoader
-                className="w-full h-full"
-                healthData={{ biomarkers, bodyComp, activity }}
-              />
-            </div>
-          </div>
-
-          {/* Stats Grid with integrated markers */}
-          <div>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          {/* Stats Grid - Takes up more space now */}
+          <div className="lg:col-span-7 space-y-8">
             <StatsGrid
               stats={stats}
               biomarkerCounts={getBiomarkerCountsFromCache()}
               topMarkers={topMarkers}
             />
+            <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
+              <h3 className="text-lg font-semibold mb-4">Recent Events</h3>
+              <HealthEventFeed events={events} />
+            </div>
+          </div>
+
+          {/* Digital Twin - Side panel */}
+          <div className="lg:col-span-5">
+            <div className="bg-card border border-border rounded-xl p-6 shadow-sm h-full min-h-[500px] flex flex-col">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg font-semibold text-foreground">Digital Twin</h3>
+                <span className="px-2 py-1 rounded-full bg-secondary text-xs font-medium text-secondary-foreground">Live Model</span>
+              </div>
+              <div className="flex-1 w-full bg-secondary/30 rounded-lg overflow-hidden relative">
+                <DigitalTwinLoader
+                  className="w-full h-full absolute inset-0"
+                  healthData={{ biomarkers, bodyComp, activity }}
+                />
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Footer links */}
-        <div className="pt-6 border-t border-gray-200">
-          <div className="flex flex-wrap gap-6 text-sm">
+        {/* Footer links - Restored for quick navigation */}
+        <div className="pt-8 mt-8 border-t border-border">
+          <div className="flex flex-wrap gap-6 text-sm font-medium">
             <Link
               href="/biomarkers"
-              className="text-gray-500 hover:text-gray-900 transition-colors"
+              className="text-muted-foreground hover:text-foreground transition-colors"
             >
               Biomarkers
             </Link>
             <Link
               href="/body-comp"
-              className="text-gray-500 hover:text-gray-900 transition-colors"
+              className="text-muted-foreground hover:text-foreground transition-colors"
             >
               Body Composition
             </Link>
             <Link
               href="/lifestyle"
-              className="text-gray-500 hover:text-gray-900 transition-colors"
+              className="text-muted-foreground hover:text-foreground transition-colors"
             >
               Lifestyle
             </Link>
             <Link
               href="/data-sources"
-              className="text-gray-500 hover:text-gray-900 transition-colors"
+              className="text-muted-foreground hover:text-foreground transition-colors"
             >
               Data Sources
+            </Link>
+            <Link
+              href="/future"
+              className="ml-auto text-primary hover:text-primary/80 transition-colors"
+            >
+              Vitals 2.0 (Beta) →
             </Link>
           </div>
         </div>

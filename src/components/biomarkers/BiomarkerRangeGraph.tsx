@@ -31,7 +31,7 @@ export function BiomarkerRangeGraph({
   const hasAnyRange = hasStandardRange || hasOptimalRange;
 
   // Calculate display bounds and zones
-  const { displayMin, displayMax, markerPosition, zones, rangeLabels } = useMemo(() => {
+  const { markerPosition, zones, rangeLabels } = useMemo(() => {
     if (!hasAnyRange) {
       // No range data - show simple bar centered around value
       const buffer = Math.abs(value) * 0.5 || 10;
@@ -130,9 +130,6 @@ export function BiomarkerRangeGraph({
     } else {
       // Mid-range is best (e.g., estradiol, TSH)
       // Build zones from left to right
-      const leftBound = Math.max(hasStandardRange && stdMin !== undefined ? stdMin : displayMin, displayMin);
-      const rightBound = Math.min(hasStandardRange && stdMax !== undefined ? stdMax : displayMax, displayMax);
-
       // Left out-of-range zone
       if (hasStandardRange && stdMin !== undefined && stdMin > displayMin) {
         zones.push({ start: 0, end: toPercent(stdMin), type: 'outOfRange' });
@@ -209,48 +206,48 @@ export function BiomarkerRangeGraph({
   const valueStatus = getValueStatus();
 
   const zoneColors: Record<ZoneType, string> = {
-    optimal: 'bg-gradient-to-r from-emerald-200 via-emerald-100 to-emerald-200',
-    normal: 'bg-gradient-to-r from-amber-200 via-amber-100 to-amber-200',
-    outOfRange: 'bg-gradient-to-r from-rose-200 via-rose-100 to-rose-200',
-    unknown: 'bg-gradient-to-r from-slate-200 via-slate-100 to-slate-200',
+    optimal: 'bg-emerald-500/20 dark:bg-emerald-400/20',
+    normal: 'bg-amber-500/20 dark:bg-amber-400/20',
+    outOfRange: 'bg-rose-500/20 dark:bg-rose-400/20',
+    unknown: 'bg-zinc-500/20 dark:bg-zinc-400/20',
   };
 
   const markerColors: Record<ZoneType, string> = {
     optimal: 'bg-emerald-500',
     normal: 'bg-amber-500',
     outOfRange: 'bg-rose-500',
-    unknown: 'bg-slate-500',
+    unknown: 'bg-zinc-500',
   };
 
   const tooltipColors: Record<ZoneType, string> = {
-    optimal: 'bg-emerald-600',
-    normal: 'bg-amber-600',
-    outOfRange: 'bg-rose-600',
-    unknown: 'bg-slate-600',
+    optimal: 'bg-emerald-600 dark:bg-emerald-500',
+    normal: 'bg-amber-600 dark:bg-amber-500',
+    outOfRange: 'bg-rose-600 dark:bg-rose-500',
+    unknown: 'bg-zinc-600 dark:bg-zinc-500',
   };
 
   // If no range data at all, show a simplified view
   if (!hasAnyRange) {
     return (
       <div className="w-full">
-        <div className="relative h-12 rounded-2xl overflow-hidden bg-slate-100 shadow-inner">
+        <div className="relative h-12 rounded-2xl overflow-hidden bg-muted/30 shadow-inner border border-border/50">
           {/* Gray neutral bar */}
-          <div className="absolute inset-0 bg-gradient-to-r from-slate-200 via-slate-100 to-slate-200" />
+          <div className="absolute inset-0 bg-zinc-500/5" />
 
           {/* Value marker - centered */}
           <div
             className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 z-10"
             style={{ left: '50%' }}
           >
-            <div className="w-1.5 h-10 rounded-full bg-slate-500 shadow-lg" />
-            <div className="absolute -top-9 left-1/2 -translate-x-1/2 px-3 py-1.5 rounded-xl text-sm font-semibold text-white whitespace-nowrap shadow-lg bg-slate-600">
+            <div className="w-1.5 h-10 rounded-full bg-zinc-500 shadow-lg" />
+            <div className="absolute -top-9 left-1/2 -translate-x-1/2 px-3 py-1.5 rounded-xl text-sm font-semibold text-white whitespace-nowrap shadow-lg bg-zinc-600">
               {value} {unit}
             </div>
           </div>
         </div>
 
         <div className="flex justify-center mt-3">
-          <span className="text-sm text-slate-500 font-medium">Reference ranges not available</span>
+          <span className="text-sm text-muted-foreground font-medium">Reference ranges not available</span>
         </div>
       </div>
     );
@@ -259,7 +256,7 @@ export function BiomarkerRangeGraph({
   return (
     <div className="w-full">
       {/* Range bar */}
-      <div className="relative h-12 rounded-2xl overflow-hidden bg-slate-100 shadow-inner">
+      <div className="relative h-12 rounded-2xl overflow-hidden bg-muted/30 shadow-inner border border-border/50">
         {/* Render zones */}
         {zones.map((zone, i) => (
           <div
@@ -276,7 +273,7 @@ export function BiomarkerRangeGraph({
         {zones.slice(1).map((zone, i) => (
           <div
             key={`line-${i}`}
-            className="absolute inset-y-0 w-px bg-slate-300/50"
+            className="absolute inset-y-0 w-px bg-border/50"
             style={{ left: `${zone.start}%` }}
           />
         ))}
@@ -287,7 +284,7 @@ export function BiomarkerRangeGraph({
           style={{ left: `${markerPosition}%` }}
         >
           {/* Marker line with glow effect */}
-          <div className={`w-1.5 h-10 rounded-full ${markerColors[valueStatus]} shadow-lg ring-2 ring-white`} />
+          <div className={`w-1.5 h-10 rounded-full ${markerColors[valueStatus]} shadow-lg ring-2 ring-background`} />
 
           {/* Value tooltip */}
           <div
@@ -300,30 +297,30 @@ export function BiomarkerRangeGraph({
 
       {/* Range labels and legend */}
       <div className="flex justify-between items-start mt-3">
-        <span className="text-xs text-slate-400 font-medium">{rangeLabels.left}</span>
+        <span className="text-xs text-muted-foreground font-medium">{rangeLabels.left}</span>
 
         <div className="flex gap-4 text-xs font-medium">
           {zones.some(z => z.type === 'outOfRange') && (
             <span className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-rose-400" />
-              <span className="text-rose-600">Out of Range</span>
+              <span className="w-2 h-2 rounded-full bg-rose-500" />
+              <span className="text-rose-500">Out of Range</span>
             </span>
           )}
           {zones.some(z => z.type === 'normal') && (
             <span className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-amber-400" />
-              <span className="text-amber-600">Normal</span>
+              <span className="w-2 h-2 rounded-full bg-amber-500" />
+              <span className="text-amber-500">Normal</span>
             </span>
           )}
           {zones.some(z => z.type === 'optimal') && (
             <span className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-400" />
-              <span className="text-emerald-600">Optimal</span>
+              <span className="w-2 h-2 rounded-full bg-emerald-500" />
+              <span className="text-emerald-500">Optimal</span>
             </span>
           )}
         </div>
 
-        <span className="text-xs text-slate-400 font-medium">{rangeLabels.right}</span>
+        <span className="text-xs text-muted-foreground font-medium">{rangeLabels.right}</span>
       </div>
     </div>
   );

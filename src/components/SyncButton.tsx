@@ -1,10 +1,13 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { RefreshCw } from 'lucide-react';
 
 export function SyncButton() {
   const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
 
   const handleSync = async (): Promise<void> => {
     setIsLoading(true);
@@ -20,7 +23,7 @@ export function SyncButton() {
         toast.success('Data synced successfully', {
           description: 'Your health data has been refreshed from the /data folder.',
         });
-        window.location.reload();
+        router.refresh();
       } else {
         toast.error('Sync failed', {
           description: data.error ?? 'Unknown error occurred',
@@ -39,22 +42,14 @@ export function SyncButton() {
     <button
       onClick={handleSync}
       disabled={isLoading}
-      className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white hover:bg-gray-50 border border-gray-200 text-sm font-medium text-gray-700 transition-all duration-200 shadow-sm hover:shadow disabled:opacity-50"
+      className="group flex items-center gap-2 px-4 py-2.5 rounded-xl bg-card hover:bg-accent border border-border text-sm font-medium text-foreground transition-all duration-200 shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
     >
-      <svg
-        className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`}
-        fill="none"
-        stroke="currentColor"
-        viewBox="0 0 24 24"
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={2}
-          d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-        />
-      </svg>
-      {isLoading ? 'Syncing...' : 'Sync Data'}
+      <RefreshCw
+        className={`w-4 h-4 transition-transform duration-500 ${isLoading ? 'animate-spin' : 'group-hover:rotate-90'
+          }`}
+        strokeWidth={2}
+      />
+      <span>{isLoading ? 'Syncing...' : 'Sync Data'}</span>
     </button>
   );
 }

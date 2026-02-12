@@ -1,11 +1,16 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { STATUS_CLASSES, CARD_CLASSES, getStatusType, type StatusType } from '@/lib/design/tokens';
-import { getBiomarkerStatus, BIOMARKER_REFERENCES, type BiomarkerStatus } from '@/lib/types/health';
+import { STATUS_CLASSES, CARD_CLASSES, type StatusType } from '@/lib/design/tokens';
+import { type BiomarkerStatus } from '@/lib/types/health';
 import { Sparkline } from '@/components/charts/Sparkline';
+import dynamic from 'next/dynamic';
 import { StatusFilter, CategoryFilter, BIOMARKER_CATEGORIES } from './BiomarkerFilters';
-import { BiomarkerInfoModal } from './BiomarkerInfoModal';
+
+// Lazy load the modal - it's only needed on click
+const BiomarkerInfoModal = dynamic(() => import('./BiomarkerInfoModal').then(m => m.BiomarkerInfoModal), {
+  ssr: false,
+});
 
 export interface BiomarkerRow {
   key: string;
@@ -119,7 +124,7 @@ export function BiomarkerTable({
   if (filteredAndSorted.length === 0) {
     return (
       <div className={`${CARD_CLASSES.base} ${CARD_CLASSES.padding} text-center`}>
-        <p className="text-slate-500">No biomarkers match your filters.</p>
+        <p className="text-muted-foreground">No biomarkers match your filters.</p>
       </div>
     );
   }
@@ -127,24 +132,24 @@ export function BiomarkerTable({
   return (
     <div className="space-y-2 overflow-x-auto">
       {/* Header row */}
-      <div className="grid grid-cols-12 gap-4 px-4 py-2 text-sm font-medium text-slate-500 min-w-[600px]">
+      <div className="grid grid-cols-12 gap-4 px-4 py-2 text-sm font-medium text-muted-foreground min-w-[600px]">
         <button
           onClick={() => handleSort('name')}
-          className="col-span-4 flex items-center gap-1 hover:text-slate-700 text-left min-w-0"
+          className="col-span-4 flex items-center gap-1 hover:text-foreground text-left min-w-0"
         >
           Name
           <SortIndicator field="name" current={sortField} direction={sortDirection} />
         </button>
         <button
           onClick={() => handleSort('status')}
-          className="col-span-3 flex items-center gap-1 hover:text-slate-700 text-left min-w-0"
+          className="col-span-3 flex items-center gap-1 hover:text-foreground text-left min-w-0"
         >
           Status
           <SortIndicator field="status" current={sortField} direction={sortDirection} />
         </button>
         <button
           onClick={() => handleSort('value')}
-          className="col-span-2 flex items-center gap-1 hover:text-slate-700 text-left min-w-0"
+          className="col-span-2 flex items-center gap-1 hover:text-foreground text-left min-w-0"
         >
           Value
           <SortIndicator field="value" current={sortField} direction={sortDirection} />
@@ -189,28 +194,31 @@ function BiomarkerRowItem({ biomarker, onClick }: BiomarkerRowItemProps): React.
   return (
     <button
       onClick={onClick}
-      className={`${CARD_CLASSES.base} ${CARD_CLASSES.hover} grid grid-cols-12 gap-4 items-center px-4 py-4 w-full text-left cursor-pointer transition-all hover:shadow-md hover:scale-[1.01] min-w-[600px]`}>
+      className="group relative grid grid-cols-12 gap-4 items-center px-5 py-4 w-full text-left cursor-pointer transition-all duration-200 bg-card border border-border rounded-xl hover:border-primary/20 hover:shadow-sm"
+    >
+      <div className="absolute inset-0 bg-muted/0 group-hover:bg-muted/30 transition-colors rounded-xl" />
+
       {/* Name */}
-      <div className="col-span-4 min-w-0 truncate">
-        <span className="font-medium text-slate-900">{biomarker.name}</span>
+      <div className="col-span-4 min-w-0 truncate relative">
+        <span className="font-semibold text-foreground group-hover:text-primary transition-colors">{biomarker.name}</span>
       </div>
 
       {/* Status badge */}
-      <div className="col-span-3 min-w-0">
-        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium whitespace-nowrap ${statusClasses.badge}`}>
+      <div className="col-span-3 min-w-0 relative">
+        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium whitespace-nowrap border ${statusClasses.badge} ${statusClasses.border}`}>
           <span className={`w-1.5 h-1.5 rounded-full mr-1.5 flex-shrink-0 ${statusClasses.dot}`} />
           {getStatusLabel(biomarker.status)}
         </span>
       </div>
 
       {/* Value */}
-      <div className="col-span-2 min-w-0">
-        <span className="font-medium text-slate-900">{biomarker.value}</span>
-        <span className="text-slate-500 ml-1 text-sm">{biomarker.unit}</span>
+      <div className="col-span-2 min-w-0 relative">
+        <span className="font-semibold text-foreground tabular-nums text-base">{biomarker.value}</span>
+        <span className="text-muted-foreground ml-1 text-xs font-medium">{biomarker.unit}</span>
       </div>
 
       {/* Sparkline */}
-      <div className="col-span-3 min-w-0">
+      <div className="col-span-3 min-w-0 relative flex items-center justify-end pr-2">
         <Sparkline
           data={biomarker.history || [biomarker.value]}
           status={statusType}
@@ -218,6 +226,14 @@ function BiomarkerRowItem({ biomarker, onClick }: BiomarkerRowItemProps): React.
           currentValue={biomarker.value}
           width={100}
         />
+        <svg
+          className="w-4 h-4 text-muted-foreground/30 group-hover:text-primary/50 ml-3 transition-colors"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+        </svg>
       </div>
     </button>
   );

@@ -17,7 +17,7 @@ export default function AgentPage(): React.JSX.Element {
     setIsLoading(true);
 
     try {
-      const response = await fetch('/api/agent', {
+      const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: userMessage }),
@@ -43,18 +43,18 @@ export default function AgentPage(): React.JSX.Element {
     <div className="max-w-4xl mx-auto px-6 py-8 h-[calc(100vh-6rem)] flex flex-col">
       <header className="mb-6 flex-shrink-0">
         <div className="flex items-center gap-2">
-          <h1 className="text-2xl font-bold text-gray-900">Health Agent</h1>
+          <h1 className="text-2xl font-bold text-foreground">Health Agent</h1>
           <span className="px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-700 rounded-full">
             Beta
           </span>
         </div>
-        <p className="text-gray-500 mt-1">
+        <p className="text-muted-foreground mt-1">
           Ask questions about your health data and get AI-powered insights
         </p>
       </header>
 
       {/* Chat Container */}
-      <div className="flex-1 bg-white rounded-xl border border-gray-200 shadow-sm flex flex-col overflow-hidden">
+      <div className="flex-1 bg-card rounded-xl border border-border shadow-sm flex flex-col overflow-hidden">
         {/* Messages Area */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {messages.length === 0 ? (
@@ -75,29 +75,29 @@ export default function AgentPage(): React.JSX.Element {
                     />
                   </svg>
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                <h3 className="text-lg font-semibold text-foreground mb-2">
                   Your Personal Health Assistant
                 </h3>
-                <p className="text-gray-500 text-sm mb-4">
+                <p className="text-muted-foreground text-sm mb-4">
                   I have access to your health data including biomarkers, body composition,
                   and lifestyle metrics. Ask me anything!
                 </p>
                 <div className="flex flex-wrap justify-center gap-2 text-sm">
                   <button
                     onClick={() => setInput('What are my key health insights?')}
-                    className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-700 transition-colors"
+                    className="px-3 py-1.5 bg-muted hover:bg-muted rounded-lg text-foreground transition-colors"
                   >
                     Key insights
                   </button>
                   <button
                     onClick={() => setInput('How can I improve my biological age?')}
-                    className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-700 transition-colors"
+                    className="px-3 py-1.5 bg-muted hover:bg-muted rounded-lg text-foreground transition-colors"
                   >
                     Improve biological age
                   </button>
                   <button
                     onClick={() => setInput('Analyze my sleep patterns')}
-                    className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-700 transition-colors"
+                    className="px-3 py-1.5 bg-muted hover:bg-muted rounded-lg text-foreground transition-colors"
                   >
                     Sleep analysis
                   </button>
@@ -114,7 +114,7 @@ export default function AgentPage(): React.JSX.Element {
                   className={`max-w-[80%] px-4 py-3 rounded-2xl ${
                     msg.role === 'user'
                       ? 'bg-emerald-600 text-white'
-                      : 'bg-gray-100 text-gray-900'
+                      : 'bg-muted text-foreground'
                   }`}
                 >
                   <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
@@ -124,7 +124,7 @@ export default function AgentPage(): React.JSX.Element {
           )}
           {isLoading && (
             <div className="flex justify-start">
-              <div className="bg-gray-100 px-4 py-3 rounded-2xl">
+              <div className="bg-muted px-4 py-3 rounded-2xl">
                 <div className="flex gap-1">
                   <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
                   <span
@@ -142,14 +142,14 @@ export default function AgentPage(): React.JSX.Element {
         </div>
 
         {/* Input Area */}
-        <form onSubmit={handleSubmit} className="border-t border-gray-200 p-4">
+        <form onSubmit={handleSubmit} className="border-t border-border p-4">
           <div className="flex gap-3">
             <input
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Ask about your health data..."
-              className="flex-1 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+              className="flex-1 px-4 py-3 bg-muted border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
               disabled={isLoading}
             />
             <button

@@ -2,11 +2,11 @@ export default function GuidesPage(): React.JSX.Element {
   return (
     <div className="max-w-4xl mx-auto px-6 py-8">
       <header className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Guides</h1>
-        <p className="text-gray-500 mt-1">Health optimization guides and resources</p>
+        <h1 className="text-2xl font-bold text-foreground">Guides</h1>
+        <p className="text-muted-foreground mt-1">Health optimization guides and resources</p>
       </header>
 
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-8 text-center">
+      <div className="bg-card rounded-xl border border-border shadow-sm p-8 text-center">
         <div className="w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center bg-emerald-50">
           <svg
             className="w-8 h-8 text-emerald-600"
@@ -22,8 +22,8 @@ export default function GuidesPage(): React.JSX.Element {
             />
           </svg>
         </div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">Coming Soon</h3>
-        <p className="text-gray-500 max-w-md mx-auto">
+        <h3 className="text-lg font-semibold text-foreground mb-2">Coming Soon</h3>
+        <p className="text-muted-foreground max-w-md mx-auto">
           Health optimization guides covering longevity protocols, biomarker interpretation,
           and evidence-based lifestyle interventions.
         </p>

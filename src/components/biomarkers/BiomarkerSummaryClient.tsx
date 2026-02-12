@@ -47,7 +47,7 @@ export function BiomarkerSummaryClient({ counts }: BiomarkerSummaryClientProps):
       </div>
 
       {/* Stacked bar */}
-      <div className="h-3 rounded-full overflow-hidden flex bg-slate-100">
+      <div className="h-3 rounded-full overflow-hidden flex bg-muted">
         {percentages.optimal > 0 && (
           <div
             className="h-full transition-all duration-300"
@@ -78,7 +78,7 @@ export function BiomarkerSummaryClient({ counts }: BiomarkerSummaryClientProps):
       </div>
 
       {/* Legend */}
-      <div className="flex items-center gap-6 mt-4 text-sm text-slate-500">
+      <div className="flex items-center gap-6 mt-4 text-sm text-muted-foreground">
         <LegendItem color={STATUS_COLORS.optimal.base} label="Optimal" />
         <LegendItem color={STATUS_COLORS.normal.base} label="Normal" />
         <LegendItem color={STATUS_COLORS.outOfRange.base} label="Out of Range" />
@@ -98,11 +98,11 @@ function CountDisplay({ label, count, color }: CountDisplayProps): React.JSX.Ele
     <div className="text-center">
       <div
         className="text-3xl font-semibold"
-        style={{ color: color || '#0f172a' }}
+        style={{ color: color || 'var(--foreground)' }}
       >
         {count}
       </div>
-      <div className="text-sm text-slate-500 mt-1">{label}</div>
+      <div className="text-sm text-muted-foreground mt-1">{label}</div>
     </div>
   );
 }

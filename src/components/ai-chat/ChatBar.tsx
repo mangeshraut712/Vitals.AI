@@ -1,6 +1,6 @@
 'use client';
 
-import { BACKGROUNDS, BORDERS, SHADOWS, TEXT_COLORS, RADIUS, GRADIENTS } from '@/lib/design/tokens';
+import { Sparkles, ChevronRight } from 'lucide-react';
 
 interface ContextualPill {
   id: string;
@@ -35,7 +35,7 @@ export function ChatBar({
   };
 
   const handlePillClick = (e: React.MouseEvent, question: string): void => {
-    e.stopPropagation(); // Prevent bar click handler
+    e.stopPropagation();
     onPillClick(question);
   };
 
@@ -51,35 +51,17 @@ export function ChatBar({
       tabIndex={0}
       onClick={handleBarClick}
       onKeyDown={handleKeyDown}
-      className="w-full cursor-pointer transition-all duration-200 hover:scale-[1.01]"
-      style={{
-        background: BACKGROUNDS.card,
-        borderRadius: RADIUS.full,
-        boxShadow: SHADOWS.md,
-        border: `1px solid ${BORDERS.light}`,
-        padding: '12px 20px',
-      }}
+      className="w-full cursor-pointer transition-all duration-200 hover:scale-[1.01] vitals-card px-5 py-3"
       aria-label="Open AI chat"
     >
       <div className="flex items-center gap-4">
         {/* Left: AI Sparkle Icon */}
-        <div
-          className="flex-shrink-0 flex items-center justify-center"
-          style={{
-            width: '36px',
-            height: '36px',
-            borderRadius: RADIUS.md,
-            background: GRADIENTS.ai,
-          }}
-        >
-          <SparkleIcon />
+        <div className="flex-shrink-0 w-9 h-9 rounded-xl vitals-gradient-bg flex items-center justify-center shadow-sm">
+          <Sparkles className="w-4 h-4 text-white" />
         </div>
 
         {/* Center: Placeholder text */}
-        <span
-          className="flex-1 text-sm truncate"
-          style={{ color: TEXT_COLORS.muted }}
-        >
+        <span className="flex-1 text-sm text-muted-foreground truncate">
           Ask anything about your health...
         </span>
 
@@ -89,70 +71,19 @@ export function ChatBar({
             <button
               key={pill.id}
               onClick={(e) => handlePillClick(e, pill.label)}
-              className="hidden sm:inline-flex items-center px-3 py-1.5 text-xs font-medium transition-all duration-150 hover:scale-105"
-              style={{
-                background: BACKGROUNDS.accent,
-                color: TEXT_COLORS.secondary,
-                borderRadius: RADIUS.full,
-                border: `1px solid ${BORDERS.light}`,
-              }}
+              className="hidden sm:inline-flex items-center px-3 py-1.5 text-xs font-medium transition-all duration-150 hover:scale-105 bg-muted text-muted-foreground rounded-full border border-border hover:text-foreground hover:bg-accent"
               type="button"
             >
               {pill.label}
             </button>
           ))}
           {/* Mobile: Show icon hint instead */}
-          <div
-            className="sm:hidden flex items-center justify-center"
-            style={{
-              width: '28px',
-              height: '28px',
-              borderRadius: RADIUS.full,
-              background: BACKGROUNDS.accent,
-            }}
-          >
-            <ChevronRightIcon />
+          <div className="sm:hidden w-7 h-7 flex items-center justify-center bg-muted rounded-full">
+            <ChevronRight className="w-4 h-4 text-muted-foreground" />
           </div>
         </div>
       </div>
     </div>
-  );
-}
-
-// Sparkle/AI Icon
-function SparkleIcon(): React.JSX.Element {
-  return (
-    <svg
-      width="18"
-      height="18"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="white"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707" />
-      <circle cx="12" cy="12" r="4" />
-    </svg>
-  );
-}
-
-// Chevron Right Icon (for mobile)
-function ChevronRightIcon(): React.JSX.Element {
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke={TEXT_COLORS.muted}
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M9 18l6-6-6-6" />
-    </svg>
   );
 }
 

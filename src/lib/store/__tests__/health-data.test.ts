@@ -98,6 +98,54 @@ describe('HealthDataStore', () => {
     expect(extractBiomarkers).toHaveBeenCalledWith('Glucose: 95');
   });
 
+  it('should generate canonical health events after data load', async () => {
+    vi.mocked(getDataFiles).mockReturnValue([
+      {
+        name: 'blood.txt',
+        type: 'bloodwork',
+        path: '/data/blood.txt',
+        extension: '.txt',
+      },
+    ]);
+    vi.mocked(parseTextFile).mockReturnValue('Glucose: 95');
+    vi.mocked(extractBiomarkers).mockReturnValue({
+      glucose: 95,
+      patientAge: 35,
+    });
+
+    const { HealthDataStore } = await import('../health-data');
+    await HealthDataStore.loadAllData();
+
+    const events = await HealthDataStore.getHealthEvents({ limit: 10 });
+
+    expect(events.length).toBeGreaterThan(0);
+    expect(events.some((event) => event.domain === 'biomarker')).toBe(true);
+    expect(events.some((event) => event.metric.toLowerCase().includes('glucose'))).toBe(true);
+  });
+
+  it('should fallback to regex extraction when AI biomarker extraction fails', async () => {
+    vi.mocked(getDataFiles).mockReturnValue([
+      {
+        name: 'labs.pdf',
+        type: 'bloodwork',
+        path: '/data/labs.pdf',
+        extension: '.pdf',
+      },
+    ]);
+    vi.mocked(parsePdf).mockResolvedValue('Glucose: 101');
+    vi.mocked(extractBiomarkersWithAI).mockRejectedValue(new Error('Missing API key'));
+    vi.mocked(extractBiomarkers).mockReturnValue({ glucose: 101, patientAge: 40 });
+
+    const { HealthDataStore } = await import('../health-data');
+    await HealthDataStore.loadAllData();
+
+    const biomarkers = await HealthDataStore.getBiomarkers();
+
+    expect(extractBiomarkersWithAI).toHaveBeenCalledWith('Glucose: 101');
+    expect(extractBiomarkers).toHaveBeenCalledWith('Glucose: 101');
+    expect(biomarkers.glucose).toBe(101);
+  });
+
   it('should handle mixed file types', async () => {
     vi.mocked(getDataFiles).mockReturnValue([
       {

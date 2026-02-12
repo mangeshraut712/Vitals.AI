@@ -5,7 +5,6 @@ import { GoalCard } from '@/components/goals/GoalCard';
 import { CreateGoalPanel } from '@/components/goals/CreateGoalPanel';
 import { Button } from '@/components/ui/button';
 import type { Goal } from '@/lib/analysis/goals';
-import type { GoalProposal } from '@/lib/agent/goal-agent';
 import type { UserGoal } from '@/app/api/goals/route';
 
 interface GoalsClientProps {
@@ -55,7 +54,7 @@ export function GoalsClient({ autoGoals }: GoalsClientProps): React.JSX.Element 
     fetchUserGoals();
   }, [fetchUserGoals]);
 
-  const handleGoalCreated = (_proposal: GoalProposal): void => {
+  const handleGoalCreated = (): void => {
     // Refetch user goals to get the newly created one
     fetchUserGoals();
   };
@@ -75,8 +74,8 @@ export function GoalsClient({ autoGoals }: GoalsClientProps): React.JSX.Element 
       {/* Header with +Create button */}
       <header className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Goals</h1>
-          <p className="text-gray-500 mt-1">Your personalized health improvement goals</p>
+          <h1 className="text-2xl font-bold text-foreground">Goals</h1>
+          <p className="text-muted-foreground mt-1">Your personalized health improvement goals</p>
         </div>
         <Button
           onClick={() => setIsPanelOpen(true)}
@@ -101,7 +100,7 @@ export function GoalsClient({ autoGoals }: GoalsClientProps): React.JSX.Element 
 
       {/* Empty state */}
       {hasNoGoals && (
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 text-center py-12">
+        <div className="bg-card rounded-xl border border-border shadow-sm p-6 text-center py-12">
           <div className="w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center bg-emerald-50">
             <svg
               className="w-8 h-8 text-emerald-600"
@@ -117,10 +116,10 @@ export function GoalsClient({ autoGoals }: GoalsClientProps): React.JSX.Element 
               />
             </svg>
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+          <h3 className="text-lg font-semibold text-foreground mb-2">
             No goals - your health looks great!
           </h3>
-          <p className="text-gray-500 max-w-md mx-auto mb-4">
+          <p className="text-muted-foreground max-w-md mx-auto mb-4">
             All your biomarkers are in optimal or normal ranges. Keep up the good work!
           </p>
           <Button
@@ -138,7 +137,7 @@ export function GoalsClient({ autoGoals }: GoalsClientProps): React.JSX.Element 
         <div className="space-y-8">
           {highPriority.length > 0 && (
             <section>
-              <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-rose-500" />
                 High Priority
               </h2>
@@ -152,7 +151,7 @@ export function GoalsClient({ autoGoals }: GoalsClientProps): React.JSX.Element 
 
           {mediumPriority.length > 0 && (
             <section>
-              <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-amber-500" />
                 Medium Priority
               </h2>
@@ -166,7 +165,7 @@ export function GoalsClient({ autoGoals }: GoalsClientProps): React.JSX.Element 
 
           {lowPriority.length > 0 && (
             <section>
-              <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-blue-500" />
                 Optimization Opportunities
               </h2>

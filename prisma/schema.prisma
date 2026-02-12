@@ -1,0 +1,137 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+// User Profile
+model User {
+  id                String    @id @default(cuid())
+  email             String    @unique
+  fullName          String?
+  chronologicalAge  Int?
+  gender            String?
+  bio               String?
+  avatarUrl         String?
+  
+  // Health Data
+  biomarkers        BiomarkerRecord[]
+  bodyCompositions  BodyCompositionRecord[]
+  activities        ActivityRecord[]
+  devices           DeviceConnection[]
+  
+  // Goals & Insights
+  goals             HealthGoal[]
+  insights          Insight[]
+
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+}
+
+// Biomarker Record (one blood panel)
+model BiomarkerRecord {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  date        DateTime
+  source      String?  // LabCorp, Quest, etc.
+  
+  // JSON field for flexible biomarker storage { "LDL": 120, "HDL": 60 }
+  values      String
+  
+  createdAt   DateTime @default(now())
+}
+
+// Body Composition (DEXA)
+model BodyCompositionRecord {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id])
+  date            DateTime
+  
+  bodyFatPercent  Float
+  leanMass        Float
+  fatMass         Float
+  visceralFat     Float?
+  boneDensity     Float?
+  
+  createdAt       DateTime @default(now())
+}
+
+// Activity Data (Daily Summary)
+model ActivityRecord {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id])
+  date            DateTime // YYYY-MM-DD
+  
+  steps           Int?
+  sleepHours      Float?
+  sleepScore      Int?
+  hrv             Float?
+  rhr             Int?
+  strain          Float?
+  recovery        Int?
+  
+  source          String   // Oura, Whoop, Apple Health
+  
+  createdAt       DateTime @default(now())
+
+  @@unique([userId, date, source])
+}
+
+// Connected Device
+model DeviceConnection {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  
+  name        String   // Apple Watch, Oura Ring
+  type        String   // wearable, scale, cgm
+  status      String   // connected, disconnected, error
+  lastSync    DateTime?
+  
+  providerId  String?  // external ID from Terra/Vital
+  accessToken String?  // encrypted token
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// Health Goal
+model HealthGoal {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  
+  title       String
+  category    String   // sleep, activity, nutrition
+  targetValue Float?
+  currentValue Float?
+  unit        String?
+  deadline    DateTime?
+  status      String   // active, completed, abandoned
+  
+  createdAt   DateTime @default(now())
+}
+
+// AI Insight
+model Insight {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  
+  title       String
+  messsage    String
+  type        String   // daily_readiness, anomaly, trend
+  severity    String   // info, warning, critical
+  
+  createdAt   DateTime @default(now())
+  readAt      DateTime?
+}

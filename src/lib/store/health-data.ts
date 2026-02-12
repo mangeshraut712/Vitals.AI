@@ -12,7 +12,7 @@ import { extractBiomarkersWithAI } from '@/lib/extractors/ai-extractor';
 import { extractBodyComposition, BodyComposition } from '@/lib/extractors/body-comp';
 import { extractBodyCompWithAI } from '@/lib/extractors/ai-body-comp-extractor';
 import { calculatePhenoAge, PhenoAgeResult } from '@/lib/calculations/phenoage';
-import { calculateDerivedBiomarkers } from '@/lib/biomarkers/calculations';
+import { calculateDerivedBiomarkers, getBiomarkerStatus } from '@/lib/biomarkers/calculations';
 import {
   calculateFileHash,
   readManifest,
@@ -26,6 +26,12 @@ import {
   normalizeBiomarkerName,
   type CachedBiomarker,
 } from '@/lib/cache';
+import type {
+  HealthEvent,
+  HealthEventQuery,
+  HealthEventSeverity,
+  HealthEventSource,
+} from '@/lib/types/health-events';
 
 export interface ActivityData {
   date: string;
@@ -54,6 +60,7 @@ export interface HealthData {
   phenoAge: PhenoAgeResult | null;
   chronologicalAge: number | null;
   timestamps: DataSourceTimestamps;
+  events: HealthEvent[];
 }
 
 // Map tracker type to display name
@@ -65,8 +72,8 @@ const TRACKER_DISPLAY_NAMES: Record<TrackerType, string> = {
   unknown: 'Unknown',
 };
 
-class HealthDataStoreClass {
-  private data: HealthData = {
+function createEmptyHealthData(): HealthData {
+  return {
     biomarkers: {},
     bodyComp: {},
     activity: [],
@@ -79,11 +86,19 @@ class HealthDataStoreClass {
       dexa: null,
       activity: null,
     },
+    events: [],
   };
+}
+
+class HealthDataStoreClass {
+  private data: HealthData = createEmptyHealthData();
 
   private loaded = false;
+  private loadingPromise: Promise<void> | null = null;
 
   async loadAllData(): Promise<void> {
+    this.data = createEmptyHealthData();
+
     const files = getDataFiles();
     const manifest = readManifest();
     let manifestChanged = false;
@@ -94,6 +109,8 @@ class HealthDataStoreClass {
 
     let usedAIExtraction = false;
     let usedAIBodyCompExtraction = false;
+    let shouldRunBiomarkerRegexFallback = false;
+    let shouldRunBodyCompRegexFallback = false;
 
     for (const file of files) {
       if (file.type === 'bloodwork') {
@@ -101,7 +118,7 @@ class HealthDataStoreClass {
         this.data.timestamps.bloodwork = file.lastModified ?? null;
 
         if (file.extension === '.txt') {
-          biomarkerText = parseTextFile(file.path);
+          biomarkerText = appendText(biomarkerText, parseTextFile(file.path));
         } else if (file.extension === '.pdf') {
           // Check cache before AI extraction
           const relativePath = path.relative(process.cwd(), file.path);
@@ -119,30 +136,42 @@ class HealthDataStoreClass {
             // Extract with AI
             const pdfText = await parsePdf(file.path);
             if (pdfText) {
-              this.data.biomarkers = await extractBiomarkersWithAI(pdfText);
-              usedAIExtraction = true;
+              try {
+                const aiBiomarkers = await extractBiomarkersWithAI(pdfText);
+                this.data.biomarkers = mergeExtractedBiomarkers(this.data.biomarkers, aiBiomarkers);
+                usedAIExtraction = true;
 
-              // Only cache if extraction succeeded (has meaningful data)
-              const biomarkerCount = this.data.biomarkers.all?.length ?? 0;
+                // Only cache if extraction succeeded with enough breadth.
+                const biomarkerCount = aiBiomarkers.all?.length ?? 0;
 
-              if (biomarkerCount >= 10) {
-                writeBiomarkerCache({
-                  version: 1,
-                  extractedAt: new Date().toISOString(),
-                  sourceFile: relativePath,
-                  sourceHash: fileHash,
-                  patientAge: this.data.biomarkers.patientAge,
-                  biomarkers: this.convertExtractedToCached(this.data.biomarkers),
-                });
-                updateManifestEntry(manifest, relativePath, fileHash, 'bloodwork');
-                manifestChanged = true;
-                console.log(
-                  `[Vitals.AI] Biomarker extraction successful (${biomarkerCount}), cached`
-                );
-              } else {
+                if (biomarkerCount >= 10) {
+                  writeBiomarkerCache({
+                    version: 1,
+                    extractedAt: new Date().toISOString(),
+                    sourceFile: relativePath,
+                    sourceHash: fileHash,
+                    patientAge: aiBiomarkers.patientAge,
+                    biomarkers: this.convertExtractedToCached(aiBiomarkers),
+                  });
+                  updateManifestEntry(manifest, relativePath, fileHash, 'bloodwork');
+                  manifestChanged = true;
+                  console.log(
+                    `[Vitals.AI] Biomarker extraction successful (${biomarkerCount}), cached`
+                  );
+                } else {
+                  console.warn(
+                    `[Vitals.AI] Biomarker extraction returned only ${biomarkerCount} items; using regex fallback merge`
+                  );
+                  shouldRunBiomarkerRegexFallback = true;
+                  biomarkerText = appendText(biomarkerText, pdfText);
+                }
+              } catch (error) {
                 console.warn(
-                  `[Vitals.AI] Biomarker extraction returned only ${biomarkerCount} items, NOT caching`
+                  '[Vitals.AI] AI biomarker extraction failed; falling back to local regex extraction',
+                  error
                 );
+                shouldRunBiomarkerRegexFallback = true;
+                biomarkerText = appendText(biomarkerText, pdfText);
               }
             }
           }
@@ -152,7 +181,7 @@ class HealthDataStoreClass {
         this.data.timestamps.dexa = file.lastModified ?? null;
 
         if (file.extension === '.txt') {
-          bodyCompText = parseTextFile(file.path);
+          bodyCompText = appendText(bodyCompText, parseTextFile(file.path));
         } else if (file.extension === '.pdf') {
           // Check cache before AI extraction
           const relativePath = path.relative(process.cwd(), file.path);
@@ -170,23 +199,29 @@ class HealthDataStoreClass {
             // Extract with AI
             const pdfText = await parsePdf(file.path);
             if (pdfText) {
-              this.data.bodyComp = await extractBodyCompWithAI(pdfText);
-              usedAIBodyCompExtraction = true;
+              try {
+                const aiBodyComp = await extractBodyCompWithAI(pdfText);
+                this.data.bodyComp = mergeBodyCompData(this.data.bodyComp, aiBodyComp);
+                usedAIBodyCompExtraction = true;
 
-              // Only cache if extraction succeeded (has meaningful data)
-              const hasData = !!(
-                this.data.bodyComp.bodyFatPercent ||
-                this.data.bodyComp.leanMass ||
-                this.data.bodyComp.fatMass
-              );
-
-              if (hasData) {
-                writeBodyCompCache(this.data.bodyComp, relativePath, fileHash);
-                updateManifestEntry(manifest, relativePath, fileHash, 'dexa');
-                manifestChanged = true;
-                console.log('[Vitals.AI] Body comp extraction successful, cached');
-              } else {
-                console.warn('[Vitals.AI] Body comp extraction returned empty, NOT caching');
+                // Only cache if extraction succeeded (has meaningful data)
+                if (hasMeaningfulBodyCompData(aiBodyComp)) {
+                  writeBodyCompCache(aiBodyComp, relativePath, fileHash);
+                  updateManifestEntry(manifest, relativePath, fileHash, 'dexa');
+                  manifestChanged = true;
+                  console.log('[Vitals.AI] Body comp extraction successful, cached');
+                } else {
+                  console.warn('[Vitals.AI] Body comp extraction returned empty; using regex fallback merge');
+                  shouldRunBodyCompRegexFallback = true;
+                  bodyCompText = appendText(bodyCompText, pdfText);
+                }
+              } catch (error) {
+                console.warn(
+                  '[Vitals.AI] AI body comp extraction failed; falling back to local regex extraction',
+                  error
+                );
+                shouldRunBodyCompRegexFallback = true;
+                bodyCompText = appendText(bodyCompText, pdfText);
               }
             }
           }
@@ -277,17 +312,19 @@ class HealthDataStoreClass {
       }
     }
 
-    // Extract biomarkers from text files (fallback to regex if AI wasn't used)
-    if (!usedAIExtraction && biomarkerText) {
-      this.data.biomarkers = extractBiomarkers(biomarkerText);
+    // Extract biomarkers from text files (fallback when AI isn't available/complete)
+    if (biomarkerText && (!usedAIExtraction || shouldRunBiomarkerRegexFallback)) {
+      const localBiomarkers = extractBiomarkers(biomarkerText);
+      this.data.biomarkers = mergeExtractedBiomarkers(this.data.biomarkers, localBiomarkers);
     }
 
     // Get patient age from biomarkers extraction
     this.data.chronologicalAge = this.data.biomarkers.patientAge ?? null;
 
-    // Extract body composition (fallback to regex if AI wasn't used)
-    if (!usedAIBodyCompExtraction && bodyCompText) {
-      this.data.bodyComp = extractBodyComposition(bodyCompText);
+    // Extract body composition from text files (fallback when AI isn't available/complete)
+    if (bodyCompText && (!usedAIBodyCompExtraction || shouldRunBodyCompRegexFallback)) {
+      const localBodyComp = extractBodyComposition(bodyCompText);
+      this.data.bodyComp = mergeBodyCompData(this.data.bodyComp, localBodyComp);
     }
 
     // Parse activity data
@@ -308,6 +345,9 @@ class HealthDataStoreClass {
     if (this.data.chronologicalAge !== null) {
       this.data.phenoAge = calculatePhenoAge(this.data.biomarkers, this.data.chronologicalAge);
     }
+
+    // Build normalized event feed for downstream UI/API usage
+    this.data.events = this.buildHealthEvents();
 
     // Save manifest if changed
     if (manifestChanged) {
@@ -457,6 +497,236 @@ class HealthDataStoreClass {
     return this.data.timestamps;
   }
 
+  async getHealthEvents(query: HealthEventQuery = {}): Promise<HealthEvent[]> {
+    await this.ensureLoaded();
+
+    let events = [...this.data.events];
+
+    if (query.domains && query.domains.length > 0) {
+      events = events.filter((event) => query.domains?.includes(event.domain));
+    }
+
+    if (query.severities && query.severities.length > 0) {
+      events = events.filter((event) => query.severities?.includes(event.severity));
+    }
+
+    const limit = Math.max(1, Math.min(query.limit ?? events.length, 200));
+    return events.slice(0, limit);
+  }
+
+  private buildHealthEvents(): HealthEvent[] {
+    const recordedAt = new Date().toISOString();
+    const events: HealthEvent[] = [];
+    const bloodworkTime = this.data.timestamps.bloodwork ?? recordedAt;
+    const bodyCompTime = this.data.timestamps.dexa ?? recordedAt;
+    const activityTime = this.data.timestamps.activity ?? recordedAt;
+    const activitySource = toHealthEventSource(this.data.activitySource);
+
+    // Biomarker events: prefer explicit extracted biomarkers to preserve units/status context.
+    if (this.data.biomarkers.all && this.data.biomarkers.all.length > 0) {
+      this.data.biomarkers.all.forEach((marker, index) => {
+        const id = normalizeBiomarkerName(marker.name);
+        const status = getBiomarkerStatus(id, marker.value);
+        events.push({
+          id: `biomarker:${id}:${index}:${bloodworkTime}`,
+          domain: 'biomarker',
+          severity: biomarkerStatusToSeverity(status),
+          source: 'bloodwork',
+          metric: marker.name,
+          summary: `${marker.name} is ${statusToText(status)} at ${marker.value} ${marker.unit}`,
+          value: marker.value,
+          unit: marker.unit,
+          status,
+          occurredAt: bloodworkTime,
+          recordedAt,
+          confidence: marker.status ? 0.95 : 0.8,
+          metadata: {
+            category: marker.category ?? 'unknown',
+            labStatus: marker.status ?? 'unknown',
+          },
+        });
+      });
+    } else {
+      Object.entries(this.data.biomarkers).forEach(([key, rawValue], index) => {
+        if (key === 'patientAge' || key === 'all' || typeof rawValue !== 'number') {
+          return;
+        }
+
+        const status = getBiomarkerStatus(key, rawValue);
+        events.push({
+          id: `biomarker:${key}:${index}:${bloodworkTime}`,
+          domain: 'biomarker',
+          severity: biomarkerStatusToSeverity(status),
+          source: 'bloodwork',
+          metric: formatKey(key),
+          summary: `${formatKey(key)} is ${statusToText(status)} at ${rawValue}`,
+          value: rawValue,
+          status,
+          occurredAt: bloodworkTime,
+          recordedAt,
+          confidence: 0.75,
+        });
+      });
+    }
+
+    // Body composition events
+    const bodyCompMetrics: Array<{
+      key: keyof BodyComposition;
+      label: string;
+      unit: string;
+      warningThreshold?: number;
+      criticalThreshold?: number;
+      direction?: 'higher_is_risk' | 'lower_is_risk';
+    }> = [
+      {
+        key: 'bodyFatPercent',
+        label: 'Body Fat',
+        unit: '%',
+        warningThreshold: 20,
+        criticalThreshold: 25,
+        direction: 'higher_is_risk',
+      },
+      {
+        key: 'vatMass',
+        label: 'Visceral Fat',
+        unit: 'lbs',
+        warningThreshold: 1.0,
+        criticalThreshold: 1.5,
+        direction: 'higher_is_risk',
+      },
+      {
+        key: 'leanMass',
+        label: 'Lean Mass',
+        unit: 'lbs',
+        warningThreshold: 120,
+        criticalThreshold: 100,
+        direction: 'lower_is_risk',
+      },
+      {
+        key: 'boneDensityTScore',
+        label: 'Bone Density T-Score',
+        unit: '',
+        warningThreshold: -1,
+        criticalThreshold: -2.5,
+        direction: 'lower_is_risk',
+      },
+    ];
+
+    bodyCompMetrics.forEach((metric, index) => {
+      const value = this.data.bodyComp[metric.key];
+      if (typeof value !== 'number') return;
+
+      let severity: HealthEventSeverity = 'info';
+      if (metric.direction === 'higher_is_risk') {
+        if (metric.criticalThreshold !== undefined && value >= metric.criticalThreshold) {
+          severity = 'critical';
+        } else if (metric.warningThreshold !== undefined && value >= metric.warningThreshold) {
+          severity = 'warning';
+        }
+      } else if (metric.direction === 'lower_is_risk') {
+        if (metric.criticalThreshold !== undefined && value <= metric.criticalThreshold) {
+          severity = 'critical';
+        } else if (metric.warningThreshold !== undefined && value <= metric.warningThreshold) {
+          severity = 'warning';
+        }
+      }
+
+      events.push({
+        id: `body_comp:${metric.key}:${index}:${bodyCompTime}`,
+        domain: 'body_comp',
+        severity,
+        source: 'dexa',
+        metric: metric.label,
+        summary: `${metric.label} measured at ${value}${metric.unit ? ` ${metric.unit}` : ''}`,
+        value,
+        unit: metric.unit,
+        occurredAt: bodyCompTime,
+        recordedAt,
+        confidence: 0.9,
+      });
+    });
+
+    // Activity events for the most recent 14 days
+    const recentActivity = this.data.activity.slice(-14);
+    recentActivity.forEach((entry, index) => {
+      const hasSignals = entry.hrv > 0 || entry.rhr > 0 || entry.sleepHours > 0;
+      if (!hasSignals) return;
+
+      let severity: HealthEventSeverity = 'info';
+      if (
+        entry.hrv < 25 ||
+        entry.sleepHours < 5 ||
+        (entry.recovery !== undefined && entry.recovery < 40)
+      ) {
+        severity = 'critical';
+      } else if (
+        entry.hrv < 35 ||
+        entry.sleepHours < 6 ||
+        (entry.recovery !== undefined && entry.recovery < 60)
+      ) {
+        severity = 'warning';
+      }
+
+      events.push({
+        id: `activity:${entry.date}:${index}:${activityTime}`,
+        domain: 'activity',
+        severity,
+        source: activitySource,
+        metric: 'Daily Recovery Snapshot',
+        summary: `HRV ${entry.hrv} ms, RHR ${entry.rhr} bpm, Sleep ${entry.sleepHours.toFixed(1)}h`,
+        value: entry.recovery ?? entry.sleepScore ?? null,
+        unit: '%',
+        occurredAt: toIsoDateOrFallback(entry.date, activityTime),
+        recordedAt,
+        confidence: 0.88,
+        metadata: {
+          strain: entry.strain ?? null,
+          steps: entry.steps ?? null,
+        },
+      });
+    });
+
+    // Longevity event (PhenoAge delta)
+    if (this.data.phenoAge && this.data.chronologicalAge !== null) {
+      const delta = this.data.phenoAge.delta;
+      let severity: HealthEventSeverity = 'info';
+      if (delta > 5) severity = 'critical';
+      else if (delta > 2) severity = 'warning';
+
+      events.push({
+        id: `longevity:phenoage:${recordedAt}`,
+        domain: 'longevity',
+        severity,
+        source: 'bloodwork',
+        metric: 'Biological Age Delta',
+        summary: `PhenoAge ${this.data.phenoAge.phenoAge.toFixed(1)}y vs chronological ${this.data.chronologicalAge}y (${delta > 0 ? '+' : ''}${delta.toFixed(1)}y)`,
+        value: delta,
+        unit: 'years',
+        occurredAt: bloodworkTime,
+        recordedAt,
+        confidence: 0.97,
+      });
+    }
+
+    // Fallback system event if nothing has been ingested yet
+    if (events.length === 0) {
+      events.push({
+        id: `system:no_data:${recordedAt}`,
+        domain: 'system',
+        severity: 'warning',
+        source: 'system',
+        metric: 'Data Ingestion',
+        summary: 'No health data detected yet. Add files or connect a data source.',
+        value: null,
+        occurredAt: recordedAt,
+        recordedAt,
+        confidence: 1,
+      });
+    }
+
+    return events.sort((a, b) => b.occurredAt.localeCompare(a.occurredAt));
+  }
+
   async getHealthSummary(): Promise<string> {
     await this.ensureLoaded();
 
@@ -590,10 +860,112 @@ class HealthDataStoreClass {
   }
 
   private async ensureLoaded(): Promise<void> {
-    if (!this.loaded) {
-      await this.loadAllData();
+    if (this.loaded) return;
+
+    if (this.loadingPromise) {
+      return this.loadingPromise;
+    }
+
+    this.loadingPromise = this.loadAllData();
+    try {
+      await this.loadingPromise;
+    } finally {
+      this.loadingPromise = null;
     }
   }
+}
+
+function appendText(existing: string, next: string): string {
+  if (!next) return existing;
+  if (!existing) return next;
+  return `${existing}\n${next}`;
+}
+
+function mergeExtractedBiomarkers(
+  primary: ExtractedBiomarkers,
+  secondary: ExtractedBiomarkers
+): ExtractedBiomarkers {
+  const merged: ExtractedBiomarkers = { ...secondary };
+
+  for (const [key, value] of Object.entries(primary)) {
+    if (value !== undefined) {
+      (merged as Record<string, unknown>)[key] = value;
+    }
+  }
+
+  const secondaryAll = secondary.all ?? [];
+  const primaryAll = primary.all ?? [];
+
+  if (secondaryAll.length > 0 || primaryAll.length > 0) {
+    const deduped = new Map<string, (typeof secondaryAll)[number]>();
+    for (const marker of secondaryAll) {
+      deduped.set(`${normalizeBiomarkerName(marker.name)}:${marker.unit}`, marker);
+    }
+    for (const marker of primaryAll) {
+      deduped.set(`${normalizeBiomarkerName(marker.name)}:${marker.unit}`, marker);
+    }
+    merged.all = Array.from(deduped.values());
+  }
+
+  return merged;
+}
+
+function hasMeaningfulBodyCompData(data: BodyComposition): boolean {
+  return !!(
+    data.bodyFatPercent !== undefined ||
+    data.leanMass !== undefined ||
+    data.fatMass !== undefined ||
+    data.totalMass !== undefined ||
+    data.vatMass !== undefined
+  );
+}
+
+function mergeBodyCompData(primary: BodyComposition, secondary: BodyComposition): BodyComposition {
+  const merged: BodyComposition = { ...secondary };
+
+  for (const [key, value] of Object.entries(primary)) {
+    if (value !== undefined) {
+      (merged as Record<string, unknown>)[key] = value;
+    }
+  }
+
+  return merged;
+}
+
+function toHealthEventSource(source: TrackerType): HealthEventSource {
+  if (source === 'whoop' || source === 'apple' || source === 'oura' || source === 'fitbit') {
+    return source;
+  }
+  return source === 'unknown' ? 'activity' : source;
+}
+
+function biomarkerStatusToSeverity(
+  status: 'optimal' | 'normal' | 'borderline' | 'out_of_range'
+): HealthEventSeverity {
+  if (status === 'out_of_range') return 'critical';
+  if (status === 'borderline') return 'warning';
+  return 'info';
+}
+
+function statusToText(status: 'optimal' | 'normal' | 'borderline' | 'out_of_range'): string {
+  switch (status) {
+    case 'optimal':
+      return 'optimal';
+    case 'normal':
+      return 'in range';
+    case 'borderline':
+      return 'borderline';
+    case 'out_of_range':
+      return 'out of range';
+  }
+}
+
+function toIsoDateOrFallback(value: string, fallback: string): string {
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return fallback;
+  }
+  return parsed.toISOString();
 }
 
 function formatKey(key: string): string {

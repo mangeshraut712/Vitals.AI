@@ -1,7 +1,5 @@
 'use client';
 
-import { BORDERS, RADIUS, TEXT_COLORS, BACKGROUNDS } from '@/lib/design/tokens';
-
 export type StatusFilter = 'all' | 'optimal' | 'normal' | 'outOfRange';
 export type CategoryFilter = 'all' | 'phenoage' | 'lipids' | 'metabolic' | 'thyroid' | 'other';
 
@@ -15,23 +13,6 @@ interface BiomarkerFiltersProps {
   onReset: () => void;
 }
 
-const inputStyles = {
-  padding: '10px 14px',
-  borderRadius: RADIUS.md,
-  border: `1px solid ${BORDERS.light}`,
-  fontSize: '14px',
-  color: TEXT_COLORS.primary,
-  backgroundColor: BACKGROUNDS.card,
-  outline: 'none',
-  transition: 'border-color 0.2s, box-shadow 0.2s',
-};
-
-const selectStyles = {
-  ...inputStyles,
-  cursor: 'pointer',
-  minWidth: '140px',
-};
-
 export function BiomarkerFilters({
   searchQuery,
   onSearchChange,
@@ -43,8 +24,10 @@ export function BiomarkerFilters({
 }: BiomarkerFiltersProps): React.JSX.Element {
   const hasActiveFilters = searchQuery || statusFilter !== 'all' || categoryFilter !== 'all';
 
+  const baseInputClass = "bg-card text-foreground border border-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all";
+
   return (
-    <div className="flex flex-wrap items-center gap-3">
+    <div className="flex flex-wrap items-center gap-3 vitals-fade-in-delay-1">
       {/* Search input */}
       <div className="relative flex-1 min-w-[200px] max-w-[300px]">
         <input
@@ -52,11 +35,10 @@ export function BiomarkerFilters({
           placeholder="Search biomarkers..."
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
-          className="w-full focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-          style={inputStyles}
+          className={`${baseInputClass} w-full pl-10`}
         />
         <svg
-          className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"
+          className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -74,8 +56,7 @@ export function BiomarkerFilters({
       <select
         value={statusFilter}
         onChange={(e) => onStatusChange(e.target.value as StatusFilter)}
-        className="focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-        style={selectStyles}
+        className={`${baseInputClass} cursor-pointer min-w-[140px]`}
       >
         <option value="all">All Ranges</option>
         <option value="optimal">Optimal</option>
@@ -87,8 +68,7 @@ export function BiomarkerFilters({
       <select
         value={categoryFilter}
         onChange={(e) => onCategoryChange(e.target.value as CategoryFilter)}
-        className="focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-        style={selectStyles}
+        className={`${baseInputClass} cursor-pointer min-w-[140px]`}
       >
         <option value="all">All Categories</option>
         <option value="phenoage">PhenoAge</option>
@@ -99,14 +79,14 @@ export function BiomarkerFilters({
       </select>
 
       {/* Reset button */}
-      {hasActiveFilters && (
+      <div className={`transition-all duration-300 ${hasActiveFilters ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'}`}>
         <button
           onClick={onReset}
-          className="px-4 py-2 text-sm text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"
+          className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-xl transition-colors"
         >
           Clear filters
         </button>
-      )}
+      </div>
     </div>
   );
 }

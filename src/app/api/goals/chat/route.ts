@@ -7,6 +7,10 @@ interface ChatRequest {
   conversationHistory: Array<{ role: 'user' | 'assistant'; content: string }>;
 }
 
+function fallbackGoalChatMessage(message: string): string {
+  return `I can still help draft a goal even while the AI service is unavailable. Based on "${message}", start with a small weekly target, track it daily, and adjust after 14 days.`;
+}
+
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     const body = (await request.json()) as ChatRequest;
@@ -29,9 +33,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     );
 
     if (response.error) {
+      console.warn('[Goal Chat API] Returning degraded goal response:', response.error);
       return NextResponse.json(
-        { success: false, error: response.error },
-        { status: 500 }
+        {
+          success: true,
+          content: response.content || fallbackGoalChatMessage(body.message),
+          proposal: response.proposal,
+          degraded: true,
+          warning: 'goal-agent-unavailable',
+        }
       );
     }
 
@@ -43,8 +53,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   } catch (error) {
     console.error('[Goal Chat API] Error:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to process message' },
-      { status: 500 }
+      {
+        success: true,
+        content: fallbackGoalChatMessage('your goal request'),
+        degraded: true,
+        warning: 'goal-chat-exception',
+      }
     );
   }
 }

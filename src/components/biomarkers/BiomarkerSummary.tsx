@@ -99,7 +99,7 @@ export function BiomarkerSummary(): React.JSX.Element {
       </div>
 
       {/* Legend */}
-      <div className="flex items-center gap-6 mt-4 text-sm text-slate-500">
+      <div className="flex items-center gap-6 mt-4 text-sm text-muted-foreground">
         <LegendItem color={STATUS_COLORS.optimal.base} label="Optimal" />
         <LegendItem color={STATUS_COLORS.normal.base} label="Normal" />
         <LegendItem color={STATUS_COLORS.outOfRange.base} label="Out of Range" />
@@ -123,7 +123,7 @@ function CountDisplay({ label, count, color }: CountDisplayProps): React.JSX.Ele
       >
         {count}
       </div>
-      <div className="text-sm text-slate-500 mt-1">{label}</div>
+      <div className="text-sm text-muted-foreground mt-1">{label}</div>
     </div>
   );
 }
