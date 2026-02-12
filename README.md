@@ -244,6 +244,25 @@ npm run test:ui
 npm run build
 ```
 
+## ☁️ Deploy On Vercel
+
+1. Import this repository in Vercel.
+2. Keep framework preset as **Next.js**.
+3. Configure environment variables in Vercel project settings:
+   - `ANTHROPIC_API_KEY` (required for AI chat)
+   - `NEXT_PUBLIC_SITE_URL` (recommended, e.g. `https://your-app.vercel.app`)
+   - `TERRA_API_SECRET` (optional)
+   - `TERRA_WEBHOOK_STRICT` (optional, defaults to `false`)
+4. Deploy using default commands:
+   - Install: `npm install`
+   - Build: `npm run build`
+
+### Hosted Mode Notes
+
+- This project is local-first. On Vercel, filesystem writes are not guaranteed durable.
+- Goals API now falls back to **memory-only storage** when persistent file writes are unavailable.
+- `/data` imports on Vercel only include files bundled at build time; use a cloud database/object storage for true multi-user production data persistence.
+
 ## 🎨 Design System
 
 Vitals.AI uses a premium dark-first design system with:

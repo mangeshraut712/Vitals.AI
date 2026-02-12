@@ -4,6 +4,9 @@ import path from 'path';
 import type { GoalPriority } from '@/lib/analysis/goals';
 
 const USER_GOALS_FILE = path.join(process.cwd(), 'data', 'user-goals.json');
+const globalForGoals = globalThis as unknown as {
+  inMemoryGoals?: UserGoal[];
+};
 
 export interface UserGoal {
   id: string;
@@ -24,20 +27,31 @@ interface GoalCreateRequest {
   actionItems: string[];
 }
 
+interface WriteUserGoalsResult {
+  success: boolean;
+  persisted: boolean;
+}
+
+function isReadOnlyFsError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  const code = 'code' in error ? String(error.code) : '';
+  return code === 'EROFS' || code === 'EPERM' || code === 'EACCES';
+}
+
 function readUserGoals(): UserGoal[] {
   try {
     if (!fs.existsSync(USER_GOALS_FILE)) {
-      return [];
+      return globalForGoals.inMemoryGoals ?? [];
     }
     const content = fs.readFileSync(USER_GOALS_FILE, 'utf-8');
     return JSON.parse(content) as UserGoal[];
   } catch (error) {
     console.error('[Goals API] Failed to read user goals:', error);
-    return [];
+    return globalForGoals.inMemoryGoals ?? [];
   }
 }
 
-function writeUserGoals(goals: UserGoal[]): boolean {
+function writeUserGoals(goals: UserGoal[]): WriteUserGoalsResult {
   try {
     // Ensure data directory exists
     const dataDir = path.dirname(USER_GOALS_FILE);
@@ -45,10 +59,17 @@ function writeUserGoals(goals: UserGoal[]): boolean {
       fs.mkdirSync(dataDir, { recursive: true });
     }
     fs.writeFileSync(USER_GOALS_FILE, JSON.stringify(goals, null, 2));
-    return true;
+    globalForGoals.inMemoryGoals = goals;
+    return { success: true, persisted: true };
   } catch (error) {
+    if (isReadOnlyFsError(error)) {
+      globalForGoals.inMemoryGoals = goals;
+      console.warn('[Goals API] Read-only filesystem detected, using in-memory goals fallback');
+      return { success: true, persisted: false };
+    }
+
     console.error('[Goals API] Failed to write user goals:', error);
-    return false;
+    return { success: false, persisted: false };
   }
 }
 
@@ -106,9 +127,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     existingGoals.push(newGoal);
 
     // Write back
-    const success = writeUserGoals(existingGoals);
+    const result = writeUserGoals(existingGoals);
 
-    if (!success) {
+    if (!result.success) {
       return NextResponse.json(
         { success: false, error: 'Failed to save goal' }
       );
@@ -116,7 +137,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     console.log('[Goals API] Created new user goal:', newGoal.id);
 
-    return NextResponse.json({ success: true, goal: newGoal });
+    return NextResponse.json({
+      success: true,
+      goal: newGoal,
+      degraded: !result.persisted,
+      warning: result.persisted ? undefined : 'goals-memory-only',
+    });
   } catch (error) {
     console.error('[Goals API] POST error:', error);
     return NextResponse.json(
@@ -146,9 +172,9 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    const success = writeUserGoals(filteredGoals);
+    const result = writeUserGoals(filteredGoals);
 
-    if (!success) {
+    if (!result.success) {
       return NextResponse.json(
         { success: false, error: 'Failed to delete goal' }
       );
@@ -156,7 +182,12 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
 
     console.log('[Goals API] Deleted user goal:', goalId);
 
-    return NextResponse.json({ success: true, deleted: true });
+    return NextResponse.json({
+      success: true,
+      deleted: true,
+      degraded: !result.persisted,
+      warning: result.persisted ? undefined : 'goals-memory-only',
+    });
   } catch (error) {
     console.error('[Goals API] DELETE error:', error);
     return NextResponse.json(

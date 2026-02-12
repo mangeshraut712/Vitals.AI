@@ -4,6 +4,9 @@ import { ThemeProvider } from "next-themes";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
+const isIndexableDeployment =
+  process.env.NODE_ENV === "production" && process.env.VERCEL_ENV !== "preview";
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -42,8 +45,8 @@ export const metadata: Metadata = {
     locale: "en_US",
   },
   robots: {
-    index: false, // localhost app, no indexing
-    follow: false,
+    index: isIndexableDeployment,
+    follow: isIndexableDeployment,
   },
 };
 
