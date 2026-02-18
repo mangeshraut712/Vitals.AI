@@ -47,6 +47,17 @@ describe('Manual Integration Tests', () => {
     }, 30000);
 
     it('should dispatch to OpenClaw', async () => {
+        const openClawEnabled = process.env.OPENCLAW_ENABLED?.trim().toLowerCase() === 'true';
+        if (!openClawEnabled) {
+            console.warn('Skipping OpenClaw dispatch test: OPENCLAW_ENABLED is not true');
+            return;
+        }
+
+        if (!process.env.OPENCLAW_HOOKS_TOKEN?.trim()) {
+            console.warn('Skipping OpenClaw dispatch test: OPENCLAW_HOOKS_TOKEN is not configured');
+            return;
+        }
+
         const { dispatchHealthEventsToOpenClaw } = await import('@/lib/integrations/openclaw');
 
         const mockEvent: HealthEvent = {
