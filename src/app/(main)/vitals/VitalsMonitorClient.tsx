@@ -89,10 +89,12 @@ function VitalCard({
     metric,
     isSelected,
     onClick,
+    chartsReady,
 }: {
     metric: VitalMetric;
     isSelected: boolean;
     onClick: () => void;
+    chartsReady: boolean;
 }) {
     const Icon = metric.icon;
     const statusColors = {
@@ -154,18 +156,22 @@ function VitalCard({
 
                 {/* Mini sparkline */}
                 <div className="mt-3 h-10 -mx-1">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={metric.history.slice(-12)}>
-                            <Line
-                                type="monotone"
-                                dataKey="value"
-                                stroke={metric.color}
-                                strokeWidth={1.5}
-                                dot={false}
-                                strokeOpacity={0.8}
-                            />
-                        </LineChart>
-                    </ResponsiveContainer>
+                    {chartsReady ? (
+                        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={1}>
+                            <LineChart data={metric.history.slice(-12)}>
+                                <Line
+                                    type="monotone"
+                                    dataKey="value"
+                                    stroke={metric.color}
+                                    strokeWidth={1.5}
+                                    dot={false}
+                                    strokeOpacity={0.8}
+                                />
+                            </LineChart>
+                        </ResponsiveContainer>
+                    ) : (
+                        <div className="h-full w-full rounded-md bg-white/5" aria-hidden />
+                    )}
                 </div>
             </div>
         </motion.button>
@@ -174,7 +180,7 @@ function VitalCard({
 
 // ===== Detail Chart =====
 
-function VitalDetailChart({ metric }: { metric: VitalMetric }) {
+function VitalDetailChart({ metric, chartsReady }: { metric: VitalMetric; chartsReady: boolean }) {
     const [min, max] = metric.optimalRange;
 
     return (
@@ -203,41 +209,45 @@ function VitalDetailChart({ metric }: { metric: VitalMetric }) {
             </div>
 
             <div className="h-52">
-                <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={metric.history} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
-                        <defs>
-                            <linearGradient id={metric.gradientId} x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor={metric.color} stopOpacity={0.3} />
-                                <stop offset="95%" stopColor={metric.color} stopOpacity={0.02} />
-                            </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                        <XAxis
-                            dataKey="time"
-                            tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 10 }}
-                            tickLine={false}
-                            axisLine={false}
-                            interval={5}
-                        />
-                        <YAxis
-                            tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 10 }}
-                            tickLine={false}
-                            axisLine={false}
-                        />
-                        <Tooltip content={<CustomTooltip unit={metric.unit} />} />
-                        <ReferenceLine y={min} stroke={metric.color} strokeDasharray="4 4" strokeOpacity={0.4} />
-                        <ReferenceLine y={max} stroke={metric.color} strokeDasharray="4 4" strokeOpacity={0.4} />
-                        <Area
-                            type="monotone"
-                            dataKey="value"
-                            stroke={metric.color}
-                            strokeWidth={2}
-                            fill={`url(#${metric.gradientId})`}
-                            dot={false}
-                            activeDot={{ r: 4, fill: metric.color, strokeWidth: 0 }}
-                        />
-                    </AreaChart>
-                </ResponsiveContainer>
+                {chartsReady ? (
+                    <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={1}>
+                        <AreaChart data={metric.history} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+                            <defs>
+                                <linearGradient id={metric.gradientId} x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor={metric.color} stopOpacity={0.3} />
+                                    <stop offset="95%" stopColor={metric.color} stopOpacity={0.02} />
+                                </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                            <XAxis
+                                dataKey="time"
+                                tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 10 }}
+                                tickLine={false}
+                                axisLine={false}
+                                interval={5}
+                            />
+                            <YAxis
+                                tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 10 }}
+                                tickLine={false}
+                                axisLine={false}
+                            />
+                            <Tooltip content={<CustomTooltip unit={metric.unit} />} />
+                            <ReferenceLine y={min} stroke={metric.color} strokeDasharray="4 4" strokeOpacity={0.4} />
+                            <ReferenceLine y={max} stroke={metric.color} strokeDasharray="4 4" strokeOpacity={0.4} />
+                            <Area
+                                type="monotone"
+                                dataKey="value"
+                                stroke={metric.color}
+                                strokeWidth={2}
+                                fill={`url(#${metric.gradientId})`}
+                                dot={false}
+                                activeDot={{ r: 4, fill: metric.color, strokeWidth: 0 }}
+                            />
+                        </AreaChart>
+                    </ResponsiveContainer>
+                ) : (
+                    <div className="h-full w-full rounded-xl bg-white/5" aria-hidden />
+                )}
             </div>
 
             {/* Status indicators */}
@@ -382,6 +392,7 @@ function DataUploadPanel() {
 
 export default function VitalsMonitorClient() {
     const [selectedMetricId, setSelectedMetricId] = useState('heart_rate');
+    const [chartsReady, setChartsReady] = useState(false);
 
     const metrics: VitalMetric[] = [
         {
@@ -503,6 +514,8 @@ export default function VitalsMonitorClient() {
     // Scroll to top on mount
     useEffect(() => {
         window.scrollTo(0, 0);
+        const frameId = window.requestAnimationFrame(() => setChartsReady(true));
+        return () => window.cancelAnimationFrame(frameId);
     }, []);
 
     const criticalCount = metrics.filter(m => m.status === 'critical').length;
@@ -581,6 +594,7 @@ export default function VitalsMonitorClient() {
                                         metric={metric}
                                         isSelected={selectedMetricId === metric.id}
                                         onClick={() => setSelectedMetricId(metric.id)}
+                                        chartsReady={chartsReady}
                                     />
                                 </motion.div>
                             ))}
@@ -594,7 +608,7 @@ export default function VitalsMonitorClient() {
                             className="rounded-2xl border border-white/10 bg-white/4 p-6 backdrop-blur-sm"
                         >
                             <AnimatePresence mode="wait">
-                                <VitalDetailChart key={selectedMetric.id} metric={selectedMetric} />
+                                <VitalDetailChart key={selectedMetric.id} metric={selectedMetric} chartsReady={chartsReady} />
                             </AnimatePresence>
                         </motion.div>
                     </motion.div>

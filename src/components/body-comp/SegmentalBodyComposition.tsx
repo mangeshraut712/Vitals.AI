@@ -348,7 +348,7 @@ function SegmentDetail({ segment, gender }: { segment: SegmentData; gender: Gend
 
             {/* Mini bar chart */}
             <div className="h-24">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={1}>
                     <BarChart data={barData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
                         <XAxis dataKey="name" tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }} tickLine={false} axisLine={false} />
@@ -469,7 +469,7 @@ export default function SegmentalBodyComposition({ data: _data }: SegmentalBodyC
                 <div className="rounded-2xl border border-white/10 bg-white/4 p-5">
                     <h3 className="text-xs font-semibold uppercase tracking-wider text-white/30 mb-4">Segmental Overview</h3>
                     <div className="h-52">
-                        <ResponsiveContainer width="100%" height="100%">
+                        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={1}>
                             <RadarChart data={radarData}>
                                 <PolarGrid stroke="rgba(255,255,255,0.08)" />
                                 <PolarAngleAxis dataKey="segment" tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 9 }} />

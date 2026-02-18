@@ -17,7 +17,7 @@
 </p>
 
 <p align="center">
-  <a href="#features"><img src="https://img.shields.io/badge/Features-6-10b981?style=flat-square" alt="Features"></a>
+  <a href="#features"><img src="https://img.shields.io/badge/Features-11%2B-10b981?style=flat-square" alt="Features"></a>
   <a href="#tech-stack"><img src="https://img.shields.io/badge/Next.js-16-black?style=flat-square&logo=next.js" alt="Next.js"></a>
   <a href="#tech-stack"><img src="https://img.shields.io/badge/React-19-61dafb?style=flat-square&logo=react" alt="React"></a>
   <a href="#tech-stack"><img src="https://img.shields.io/badge/TypeScript-5.9-3178c6?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript"></a>
@@ -96,7 +96,7 @@ npm install
 # Set up your API key
 cp .env.example .env.local
 # Edit .env.local and add your OPENROUTER_API_KEY
-# Optional: OPENROUTER_MODEL=openrouter/free
+# Optional: OPENROUTER_MODEL=<your preferred OpenRouter model>
 
 # Start the development server
 npm run dev
@@ -224,47 +224,70 @@ Vitals.AI takes your privacy seriously:
 ## 📁 Project Structure
 
 ```
-src/
-├── app/                        # Next.js App Router pages
-│   ├── (main)/                 # Main layout group
-│   │   ├── dashboard/          # Health dashboard
-│   │   ├── vitals/             # Real-time vitals monitoring
-│   │   ├── devices/            # Device management
-│   │   ├── future/             # Vitals 2.0 (Prototype)
-│   │   ├── biomarkers/         # Biomarker analysis
-│   │   ├── lifestyle/          # Activity & sleep tracking
-│   │   ├── body-comp/          # Body composition
-│   │   └── data-sources/       # Data management
-│   ├── api/                    # API routes
-│   │   ├── chat/               # Streaming AI assistant
-│   │   ├── goals/              # Goal CRUD + goal agent chat
-│   │   ├── sync/               # Data cache reset/sync trigger
-│   │   ├── events/             # Canonical health events
-│   │   ├── future/             # Vitals 2.0 stats endpoint
-│   │   └── webhooks/terra/     # Terra webhook receiver
-│   ├── layout.tsx              # Root layout with ThemeProvider
-│   └── globals.css             # Design system & animations
-├── components/
-│   ├── ai-chat/                # AI chat widget (ChatBar + ChatModal)
-│   ├── biomarkers/             # Biomarker display & filtering
-│   ├── dashboard/              # Dashboard cards & stats
-│   ├── digital-twin/           # 3D body visualization
-│   ├── layout/                 # TopNav with theme toggle
-│   └── ui/                     # Base UI components
-├── lib/
-│   ├── agent/                  # OpenRouter-based agent configuration
-│   ├── ai-chat/                # Chat context & pill generation
-│   ├── analysis/               # Goal generation & analysis
-│   ├── biomarkers/             # Biomarker references & status
-│   ├── cache/                  # File-based caching
-│   ├── calculations/           # PhenoAge algorithm
-│   ├── design/                 # Design tokens & theme
-│   ├── extractors/             # AI biomarker extraction
-│   ├── lifestyle/              # Activity data processing
-│   ├── parsers/                # File parsers (CSV, PDF, XML)
-│   ├── store/                  # HealthDataStore singleton
-│   └── types/                  # TypeScript type definitions
-└── data/                       # User health data (gitignored)
+OpenHealth/
+├── src/
+│   ├── app/                            # Next.js App Router
+│   │   ├── (main)/                     # Main product routes + shared layout
+│   │   │   ├── dashboard/
+│   │   │   ├── biomarkers/
+│   │   │   ├── body-comp/
+│   │   │   ├── lifestyle/
+│   │   │   ├── vitals/
+│   │   │   ├── devices/
+│   │   │   ├── data-sources/
+│   │   │   ├── goals/
+│   │   │   ├── plans/
+│   │   │   └── tools/
+│   │   ├── future/                     # /future route that reuses (main) layout
+│   │   ├── api/                        # Server routes
+│   │   │   ├── chat/
+│   │   │   ├── goals/
+│   │   │   ├── sync/
+│   │   │   ├── events/
+│   │   │   ├── cache/clear/
+│   │   │   ├── future/stats/
+│   │   │   ├── integrations/openclaw/dispatch/
+│   │   │   └── webhooks/terra/
+│   │   ├── layout.tsx
+│   │   ├── page.tsx
+│   │   ├── globals.css
+│   │   ├── robots.ts
+│   │   └── sitemap.ts
+│   ├── components/                     # UI + domain components
+│   │   ├── ai-chat/
+│   │   ├── biomarkers/
+│   │   ├── body-comp/
+│   │   ├── charts/
+│   │   ├── dashboard/
+│   │   ├── digital-twin/
+│   │   ├── future/
+│   │   ├── goals/
+│   │   ├── insights/
+│   │   ├── layout/
+│   │   └── ui/
+│   ├── features/
+│   │   └── sync/
+│   ├── lib/                            # Business logic + parsing + integrations
+│   │   ├── agent/
+│   │   ├── ai-chat/
+│   │   ├── analysis/
+│   │   ├── biomarkers/
+│   │   ├── cache/
+│   │   ├── calculations/
+│   │   ├── design/
+│   │   ├── digital-twin/
+│   │   ├── extractors/
+│   │   ├── integrations/
+│   │   ├── lifestyle/
+│   │   ├── parsers/
+│   │   ├── store/
+│   │   ├── terra/
+│   │   └── types/
+│   └── types/
+├── docs/                               # Architecture, roadmap, integrations
+├── data/                               # Local user files (gitignored content)
+├── prisma/                             # Prisma schema + local DB artifacts
+└── public/
 ```
 
 ## 🧪 Development

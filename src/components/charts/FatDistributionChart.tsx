@@ -16,7 +16,7 @@ export default function FatDistributionChart({ data }: FatDistributionChartProps
     return (
         <>
             <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={1}>
                     <PieChart>
                         <Pie
                             data={data}
