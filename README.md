@@ -17,7 +17,7 @@
 </p>
 
 <p align="center">
-  <a href="#features"><img src="https://img.shields.io/badge/Features-11%2B-10b981?style=flat-square" alt="Features"></a>
+  <a href="#features"><img src="https://img.shields.io/badge/Features-15%2B-10b981?style=flat-square" alt="Features"></a>
   <a href="https://github.com/mangeshraut712/Vitals.AI/actions/workflows/ci.yml"><img src="https://github.com/mangeshraut712/Vitals.AI/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="#tech-stack"><img src="https://img.shields.io/badge/Next.js-16-black?style=flat-square&logo=next.js" alt="Next.js"></a>
   <a href="#tech-stack"><img src="https://img.shields.io/badge/React-19-61dafb?style=flat-square&logo=react" alt="React"></a>
@@ -40,6 +40,16 @@
 **Vitals.AI** (OpenHealth) is a privacy-first health dashboard that analyzes your bloodwork, body composition, and activity data — all running locally on your machine. It uses OpenRouter-powered AI while ensuring your data stays under your control.
 
 > **🔒 Privacy Promise:** Your health data is processed entirely on your machine. No external servers, no data collection, no tracking. External calls happen only to your user-configured OpenRouter API key, and you control when those happen.
+
+### 📌 Current Release Snapshot (February 2026)
+
+- OpenRouter-first AI runtime with optional FastAPI server-to-server proxy mode
+- OpenClaw diagnostics + event dispatch pipeline (`/api/agent/diagnostics`, `/api/integrations/openclaw/dispatch`)
+- Withings-inspired dashboard cards and refined body composition UI
+- Upgraded digital twin rendering pipeline (React Three Fiber + Drei + postprocessing)
+- PWA polish: app icons, install manifest, service worker improvements
+- Hardened deployment checks via `npm run doctor` and `npm run deploy:check`
+- Full validation path in CI: lint, typecheck, vitest, build
 
 ## ✨ Features
 
@@ -79,13 +89,13 @@ Forward warning/critical health events to OpenClaw hooks with redacted payloads 
 ### 🧠 Advanced Health Analytics
 Predictive trend analysis using linear regression, metabolic & cardiovascular risk scoring, and automated anomaly detection for early warning signs.
 
-### �️ Enterprise-Grade Security
+### 🛡️ Enterprise-Grade Security
 Built-in input sanitization, Content Security Policy (CSP), rate limiting, and CSRF protection to ensure data integrity and safety.
 
 ### 📱 PWA & Offline Support
 Fully installable Progressive Web App (PWA) with offline support, service workers, and background sync capabilities for reliable access anywhere.
 
-## �🚀 Quick Start
+## 🚀 Quick Start
 
 ### Prerequisites
 
@@ -220,18 +230,19 @@ Vitals.AI takes your privacy seriously:
 
 | Category | Technology |
 |----------|------------|
-| **Framework** | Next.js 16 (App Router, SSR) |
-| **Language** | TypeScript 5.9 |
-| **UI** | React 19, Tailwind CSS 4 |
-| **Styling** | Dark mode (next-themes), Glassmorphism, Framer Motion |
-| **AI** | OpenRouter + Vercel AI SDK (`ai`, `@ai-sdk/openai`) |
-| **3D** | React Three Fiber + Drei |
-| **Charts** | Recharts |
-| **Validation** | Zod |
-| **Testing** | Vitest |
-| **Security** | DOMPurify, Rate Limiting, CSP |
-| **PWA** | Service Workers, Manifest, Background Sync |
-| **Data Parsing** | Papa Parse (CSV), pdf-parse (PDF), fast-xml-parser (XML) |
+| **Framework** | Next.js 16.1.1 (App Router, SSR/ISR, API routes) |
+| **Language** | TypeScript 5.9.3 |
+| **UI Runtime** | React 19.2.3, React DOM 19.2.3 |
+| **Styling & Motion** | Tailwind CSS 4, next-themes, Framer Motion 12 |
+| **AI Layer** | Vercel AI SDK 6 (`ai`) + OpenAI-compatible provider (`@ai-sdk/openai`) via OpenRouter |
+| **3D & Twin Rendering** | three 0.182, `@react-three/fiber` 9, `@react-three/drei` 10, `@react-three/postprocessing` |
+| **Charts & Visualization** | Recharts 3.6, custom sparkline components |
+| **Validation & Schemas** | Zod 4 |
+| **Data & Persistence** | Prisma 5 + SQLite (prototype modules), file-based ingestion/cache for local-first mode |
+| **Parsing Pipeline** | `pdf-parse`, `papaparse`, `xlsx`, `fast-xml-parser` |
+| **Testing** | Vitest 4 (unit/integration), Playwright 1.58 (e2e smoke) |
+| **Security** | Input validation, CSP/security headers, rate limiting, webhook signature checks |
+| **PWA** | `manifest.json`, service worker (`sw.js`), installable app icons |
 
 ## 📁 Project Structure
 
@@ -412,6 +423,29 @@ Notes:
 - `/data` imports on Vercel only include files bundled at build time; use a cloud database/object storage for true multi-user production data persistence.
 - If `FASTAPI_BASE_URL` is set, chatbot traffic is routed server-to-server from Vercel to FastAPI.
 - For OpenClaw in Vercel: `OPENCLAW_HOOKS_BASE_URL=http://127.0.0.1:18789` will not work; use a publicly reachable OpenClaw gateway URL.
+
+### Deployment Health Checklist
+
+After each production deployment, verify:
+
+```bash
+# Home route
+curl -I https://<your-domain>/
+
+# Core app pages
+curl -I https://<your-domain>/dashboard
+curl -I https://<your-domain>/body-comp
+curl -I https://<your-domain>/experience
+
+# Agent diagnostics
+curl -s https://<your-domain>/api/agent/diagnostics
+```
+
+Expected behavior:
+- Core pages return `200`
+- `/api/agent/diagnostics` returns JSON with `openRouter.status` and `openClaw.status`
+- If OpenClaw gateway is unreachable in hosted mode, diagnostics should remain operational but report degraded delivery
+- If `FASTAPI_BASE_URL` is configured, chatbot requests route through FastAPI; otherwise they use direct OpenRouter fallback
 
 ## 🎨 Design System
 
