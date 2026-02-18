@@ -18,6 +18,21 @@ const _origReaddirSync = _fs.readdirSync;
 const _origWriteFile = _fs.writeFile;
 const _origWriteFileSync = _fs.writeFileSync;
 const _origOpen = _fs.open;
+const _origPromisesWriteFile = _fs.promises?.writeFile;
+const _origPromisesOpen = _fs.promises?.open;
+
+function isEperm(err: unknown): err is NodeJS.ErrnoException {
+  return (
+    !!err &&
+    typeof err === "object" &&
+    "code" in err &&
+    (err as NodeJS.ErrnoException).code === "EPERM"
+  );
+}
+
+function isNextEnvPath(p: unknown): boolean {
+  return String(p).includes("next-env.d.ts") || String(p).includes("next-env");
+}
 
 // Patch async readdir
 _fs.readdir = function (p: string, options: unknown, callback?: unknown) {
@@ -57,7 +72,7 @@ _fs.writeFile = function (p: string, data: unknown, options: unknown, callback?:
   const cb = typeof options === "function" ? options : callback;
   const opts = typeof options === "function" ? undefined : options;
   const wrappedCb = (err: NodeJS.ErrnoException | null) => {
-    if (err && err.code === "EPERM" && String(p).includes("next-env")) {
+    if (err && err.code === "EPERM" && isNextEnvPath(p)) {
       (cb as (err: null) => void)(null);
     } else {
       (cb as (err: NodeJS.ErrnoException | null) => void)(err);
@@ -78,7 +93,7 @@ _fs.writeFileSync = function (p: string, data: unknown, options?: unknown) {
     }
     return _origWriteFileSync(p, data);
   } catch (e: unknown) {
-    if (e && typeof e === "object" && "code" in e && (e as NodeJS.ErrnoException).code === "EPERM" && String(p).includes("next-env")) {
+    if (isEperm(e) && isNextEnvPath(p)) {
       return; // silently ignore
     }
     throw e;
@@ -89,7 +104,7 @@ _fs.writeFileSync = function (p: string, data: unknown, options?: unknown) {
 _fs.open = function (p: string, flags: unknown, ...args: unknown[]) {
   const callback = args[args.length - 1] as (err: NodeJS.ErrnoException | null, fd?: number) => void;
   const wrappedCb = (err: NodeJS.ErrnoException | null, fd?: number) => {
-    if (err && err.code === "EPERM" && String(p).includes("next-env")) {
+    if (err && err.code === "EPERM" && isNextEnvPath(p)) {
       callback(null, -1);
     } else {
       callback(err, fd);
@@ -98,6 +113,44 @@ _fs.open = function (p: string, flags: unknown, ...args: unknown[]) {
   const newArgs = [...args.slice(0, -1), wrappedCb];
   _origOpen(p, flags, ...newArgs);
 };
+
+// Patch fs.promises.writeFile (Next.js uses promises API for next-env.d.ts)
+if (_fs.promises && _origPromisesWriteFile) {
+  _fs.promises.writeFile = async function (p: string, data: unknown, options?: unknown) {
+    try {
+      if (options !== undefined) {
+        return await _origPromisesWriteFile.call(this, p, data, options);
+      }
+      return await _origPromisesWriteFile.call(this, p, data);
+    } catch (e: unknown) {
+      if (isEperm(e) && isNextEnvPath(p)) {
+        return;
+      }
+      throw e;
+    }
+  };
+}
+
+// Patch fs.promises.open in case Next.js opens next-env.d.ts directly
+if (_fs.promises && _origPromisesOpen) {
+  _fs.promises.open = async function (p: string, flags: unknown, mode?: unknown) {
+    try {
+      if (mode !== undefined) {
+        return await _origPromisesOpen.call(this, p, flags, mode);
+      }
+      return await _origPromisesOpen.call(this, p, flags);
+    } catch (e: unknown) {
+      if (isEperm(e) && isNextEnvPath(p)) {
+        return {
+          writeFile: async () => undefined,
+          appendFile: async () => undefined,
+          close: async () => undefined,
+        };
+      }
+      throw e;
+    }
+  };
+}
 
 const nextConfig: NextConfig = {
   // Performance optimizations
