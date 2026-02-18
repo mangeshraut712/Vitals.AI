@@ -8,7 +8,7 @@ import { validateGoalCreateRequest } from '@/lib/validation';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-const USER_GOALS_FILE = path.join(process.cwd(), 'data', 'user-goals.json');
+const USER_GOALS_FILE = path.join(process.cwd(), 'user-goals.json');
 const globalForGoals = globalThis as unknown as {
   inMemoryGoals?: UserGoal[];
 };
@@ -37,7 +37,9 @@ function isReadOnlyFsError(error: unknown): boolean {
 
 function readUserGoals(): UserGoal[] {
   try {
-    if (!fs.existsSync(USER_GOALS_FILE)) {
+    let fileExists = false;
+    try { fileExists = fs.existsSync(USER_GOALS_FILE); } catch { /* EPERM */ }
+    if (!fileExists) {
       return globalForGoals.inMemoryGoals ?? [];
     }
     const content = fs.readFileSync(USER_GOALS_FILE, 'utf-8');
@@ -48,13 +50,9 @@ function readUserGoals(): UserGoal[] {
   }
 }
 
+
 function writeUserGoals(goals: UserGoal[]): WriteUserGoalsResult {
   try {
-    // Ensure data directory exists
-    const dataDir = path.dirname(USER_GOALS_FILE);
-    if (!fs.existsSync(dataDir)) {
-      fs.mkdirSync(dataDir, { recursive: true });
-    }
     fs.writeFileSync(USER_GOALS_FILE, JSON.stringify(goals, null, 2));
     globalForGoals.inMemoryGoals = goals;
     return { success: true, persisted: true };
@@ -92,8 +90,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const parsed = validateGoalCreateRequest(await request.json());
     if (!parsed.success) {
       return NextResponse.json(
-        { success: false, error: 'Invalid goal payload' },
-        { status: 400 }
+        { success: false, error: 'Invalid goal payload' }
       );
     }
     const body = parsed.data;
@@ -146,8 +143,7 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
 
     if (!goalId) {
       return NextResponse.json(
-        { success: false, error: 'Goal ID required' },
-        { status: 400 }
+        { success: false, error: 'Goal ID required' }
       );
     }
 

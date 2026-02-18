@@ -12,8 +12,8 @@ import {
   PostureState,
   HighlightRegion,
   HIGHLIGHT_COLORS,
-  VITALITY_TONES,
 } from './types';
+import { getVitalityColor } from './vitality';
 
 export interface HealthDataInput {
   biomarkers: ExtractedBiomarkers;
@@ -110,10 +110,7 @@ function determinePosture(energyLevel: number, hrv: number): PostureState {
  * Determine skin tone from energy level
  */
 function determineSkinTone(energyLevel: number): string {
-  if (energyLevel >= 80) return VITALITY_TONES.high;
-  if (energyLevel >= 60) return VITALITY_TONES.normal;
-  if (energyLevel >= 40) return VITALITY_TONES.low;
-  return VITALITY_TONES.depleted;
+  return getVitalityColor(energyLevel);
 }
 
 /**

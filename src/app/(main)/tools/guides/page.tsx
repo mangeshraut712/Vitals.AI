@@ -1,33 +1,69 @@
+import { BookOpen, FlaskConical, HeartPulse, Leaf, Sparkles } from 'lucide-react';
+import { PageHero } from '@/components/layout/PageHero';
+
+const guides = [
+  {
+    title: 'Biomarker Deep Dive',
+    description:
+      'Understand LDL particles, ApoB, HbA1c, CRP, and how each marker contributes to metabolic and cardiovascular risk.',
+    icon: FlaskConical,
+  },
+  {
+    title: 'Recovery Blueprint',
+    description:
+      'Practical routines for better HRV, sleep consistency, and stress resilience without overengineering your day.',
+    icon: HeartPulse,
+  },
+  {
+    title: 'Nutrition & Lifestyle',
+    description:
+      'Use your health data to tune food quality, meal timing, movement, and supplement priorities.',
+    icon: Leaf,
+  },
+];
+
 export default function GuidesPage(): React.JSX.Element {
   return (
-    <div className="max-w-4xl mx-auto px-6 py-8">
-      <header className="mb-8">
-        <h1 className="text-2xl font-bold text-foreground">Guides</h1>
-        <p className="text-muted-foreground mt-1">Health optimization guides and resources</p>
-      </header>
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-6 py-8">
+      <PageHero
+        eyebrow="Knowledge Base"
+        title="Guides"
+        description="Actionable playbooks for biomarker optimization, recovery, performance, and longevity. Every guide maps directly to pages and metrics inside Vitals.AI."
+        icon={BookOpen}
+        actions={[
+          { label: 'Open Dashboard', href: '/dashboard' },
+          { label: 'Ask The Agent', href: '/tools/agent', variant: 'secondary' },
+        ]}
+      />
 
-      <div className="bg-card rounded-xl border border-border shadow-sm p-8 text-center">
-        <div className="w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center bg-emerald-50">
-          <svg
-            className="w-8 h-8 text-emerald-600"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
-            />
-          </svg>
-        </div>
-        <h3 className="text-lg font-semibold text-foreground mb-2">Coming Soon</h3>
-        <p className="text-muted-foreground max-w-md mx-auto">
-          Health optimization guides covering longevity protocols, biomarker interpretation,
-          and evidence-based lifestyle interventions.
-        </p>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        {guides.map((guide) => {
+          const Icon = guide.icon;
+          return (
+            <article
+              key={guide.title}
+              className="rounded-2xl border border-border bg-card p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
+            >
+              <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-secondary">
+                <Icon className="h-5 w-5 text-foreground" />
+              </span>
+              <h2 className="mt-4 text-lg font-semibold text-foreground">{guide.title}</h2>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                {guide.description}
+              </p>
+              <p className="mt-5 text-sm font-medium text-primary">Guide pack in progress</p>
+            </article>
+          );
+        })}
       </div>
+
+      <section className="rounded-2xl border border-dashed border-border bg-card/40 p-6 text-center">
+        <Sparkles className="mx-auto h-5 w-5 text-cyan-500" />
+        <p className="mt-3 text-sm text-muted-foreground">
+          New guides are being shipped in phases. Use the Agent now for personalized, data-aware
+          recommendations while the full library is being published.
+        </p>
+      </section>
     </div>
   );
 }

@@ -47,7 +47,7 @@ Vitals.AI gives you:
 
 ```
 1. Clone repo
-2. Add ANTHROPIC_API_KEY to .env
+2. Add OPENROUTER_API_KEY to .env
 3. Drop health files into /data folder
 4. Run `npm run dev`
 5. See dashboard with unified health view + biological age

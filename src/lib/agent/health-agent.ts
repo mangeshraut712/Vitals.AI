@@ -1,5 +1,6 @@
 import { createOpenAI } from '@ai-sdk/openai';
 import { streamText, generateText } from 'ai';
+import { getOpenRouterHeaders } from '@/lib/runtime/deployment';
 
 const VERIFIED_SOURCE_DOMAINS = [
   'pubmed.ncbi.nlm.nih.gov',
@@ -81,19 +82,6 @@ function getModelCandidates(): string[] {
   const fallbackFromEnv = parseModelList(process.env.OPENROUTER_FALLBACK_MODELS);
 
   return Array.from(new Set([preferred, ...fallbackFromEnv]));
-}
-
-function getOpenRouterHeaders(): Record<string, string> {
-  const headers: Record<string, string> = {
-    'X-Title': process.env.OPENROUTER_APP_NAME?.trim() || 'OpenHealth (Vitals.AI)',
-  };
-
-  const referer = process.env.NEXT_PUBLIC_SITE_URL?.trim();
-  if (referer) {
-    headers['HTTP-Referer'] = referer;
-  }
-
-  return headers;
 }
 
 function getMissingKeyMessage(): string {

@@ -43,47 +43,59 @@ const SUPPORTED_EXTENSIONS = ['.txt', '.csv', '.xlsx', '.pdf', '.xml', '.json', 
  * Check if a folder contains Apple Health export
  */
 function isAppleHealthFolder(folderPath: string): boolean {
-  if (!fs.existsSync(folderPath) || !fs.statSync(folderPath).isDirectory()) {
+  try {
+    if (!fs.existsSync(folderPath) || !fs.statSync(folderPath).isDirectory()) {
+      return false;
+    }
+    const files = fs.readdirSync(folderPath);
+    return files.some(
+      (f) => f.toLowerCase() === 'export.xml' || f.toLowerCase() === 'export.zip'
+    );
+  } catch {
     return false;
   }
-  const files = fs.readdirSync(folderPath);
-  return files.some(
-    (f) => f.toLowerCase() === 'export.xml' || f.toLowerCase() === 'export.zip'
-  );
 }
 
 /**
  * Check if a folder contains Oura export
  */
 function isOuraFolder(folderPath: string): boolean {
-  if (!fs.existsSync(folderPath) || !fs.statSync(folderPath).isDirectory()) {
+  try {
+    if (!fs.existsSync(folderPath) || !fs.statSync(folderPath).isDirectory()) {
+      return false;
+    }
+    const files = fs.readdirSync(folderPath);
+    return files.some(
+      (f) =>
+        f.toLowerCase().includes('oura') ||
+        f.toLowerCase().startsWith('daily_') ||
+        f.toLowerCase().startsWith('sleep_') ||
+        f.toLowerCase().startsWith('readiness_')
+    );
+  } catch {
     return false;
   }
-  const files = fs.readdirSync(folderPath);
-  return files.some(
-    (f) =>
-      f.toLowerCase().includes('oura') ||
-      f.toLowerCase().startsWith('daily_') ||
-      f.toLowerCase().startsWith('sleep_') ||
-      f.toLowerCase().startsWith('readiness_')
-  );
 }
 
 /**
  * Check if a folder contains Fitbit export (Google Takeout format)
  */
 function isFitbitFolder(folderPath: string): boolean {
-  if (!fs.existsSync(folderPath) || !fs.statSync(folderPath).isDirectory()) {
+  try {
+    if (!fs.existsSync(folderPath) || !fs.statSync(folderPath).isDirectory()) {
+      return false;
+    }
+    const files = fs.readdirSync(folderPath);
+    // Fitbit exports have sleep-*.json, heart_rate-*.json, etc.
+    return files.some(
+      (f) =>
+        f.toLowerCase().startsWith('sleep-') ||
+        f.toLowerCase().startsWith('heart_rate-') ||
+        f.toLowerCase().startsWith('steps-')
+    );
+  } catch {
     return false;
   }
-  const files = fs.readdirSync(folderPath);
-  // Fitbit exports have sleep-*.json, heart_rate-*.json, etc.
-  return files.some(
-    (f) =>
-      f.toLowerCase().startsWith('sleep-') ||
-      f.toLowerCase().startsWith('heart_rate-') ||
-      f.toLowerCase().startsWith('steps-')
-  );
 }
 
 /**
@@ -96,17 +108,31 @@ function scanDirectory(
 ): DataFile[] {
   const dataFiles: DataFile[] = [];
 
-  if (!fs.existsSync(dirPath)) {
+  try {
+    if (!fs.existsSync(dirPath)) {
+      return dataFiles;
+    }
+  } catch {
     return dataFiles;
   }
 
-  const entries = fs.readdirSync(dirPath, { withFileTypes: true });
+  let entries: fs.Dirent[];
+  try {
+    entries = fs.readdirSync(dirPath, { withFileTypes: true });
+  } catch {
+    return dataFiles;
+  }
 
   for (const entry of entries) {
     if (entry.name.startsWith('.')) continue;
 
     const entryPath = path.join(dirPath, entry.name);
-    const stats = fs.statSync(entryPath);
+    let stats: fs.Stats;
+    try {
+      stats = fs.statSync(entryPath);
+    } catch {
+      continue;
+    }
 
     if (entry.isDirectory()) {
       // For activity folders, check if it's a tracker data folder
@@ -147,14 +173,18 @@ function scanDirectory(
  * Returns the first tracker folder that contains data
  */
 function detectActiveTracker(): { trackerType: TrackerType; path: string; files: DataFile[] } | null {
-  if (!fs.existsSync(ACTIVITY_DIR)) {
+  let activityDirExists = false;
+  try { activityDirExists = fs.existsSync(ACTIVITY_DIR); } catch { return null; }
+  if (!activityDirExists) {
     return null;
   }
 
   for (const tracker of TRACKER_FOLDERS) {
     const trackerPath = path.join(ACTIVITY_DIR, tracker.name);
 
-    if (!fs.existsSync(trackerPath)) {
+    let trackerExists = false;
+    try { trackerExists = fs.existsSync(trackerPath); } catch { continue; }
+    if (!trackerExists) {
       continue;
     }
 
@@ -164,7 +194,8 @@ function detectActiveTracker(): { trackerType: TrackerType; path: string; files:
 
     if (tracker.type === 'whoop') {
       // Whoop: look for subfolders with physiological_cycles.csv
-      const subfolders = fs.readdirSync(trackerPath, { withFileTypes: true });
+      let subfolders: fs.Dirent[] = [];
+      try { subfolders = fs.readdirSync(trackerPath, { withFileTypes: true }); } catch { continue; }
       for (const sub of subfolders) {
         if (sub.isDirectory() && !sub.name.startsWith('.')) {
           const subPath = path.join(trackerPath, sub.name);
@@ -181,7 +212,8 @@ function detectActiveTracker(): { trackerType: TrackerType; path: string; files:
         hasData = true;
       } else {
         // Check subfolders
-        const subfolders = fs.readdirSync(trackerPath, { withFileTypes: true });
+        let subfolders: fs.Dirent[] = [];
+        try { subfolders = fs.readdirSync(trackerPath, { withFileTypes: true }); } catch { continue; }
         for (const sub of subfolders) {
           if (sub.isDirectory() && !sub.name.startsWith('.')) {
             const subPath = path.join(trackerPath, sub.name);
@@ -198,7 +230,8 @@ function detectActiveTracker(): { trackerType: TrackerType; path: string; files:
       if (isOuraFolder(trackerPath)) {
         hasData = true;
       } else {
-        const subfolders = fs.readdirSync(trackerPath, { withFileTypes: true });
+        let subfolders: fs.Dirent[] = [];
+        try { subfolders = fs.readdirSync(trackerPath, { withFileTypes: true }); } catch { continue; }
         for (const sub of subfolders) {
           if (sub.isDirectory() && !sub.name.startsWith('.')) {
             const subPath = path.join(trackerPath, sub.name);
@@ -215,7 +248,8 @@ function detectActiveTracker(): { trackerType: TrackerType; path: string; files:
       if (isFitbitFolder(trackerPath)) {
         hasData = true;
       } else {
-        const subfolders = fs.readdirSync(trackerPath, { withFileTypes: true });
+        let subfolders: fs.Dirent[] = [];
+        try { subfolders = fs.readdirSync(trackerPath, { withFileTypes: true }); } catch { continue; }
         for (const sub of subfolders) {
           if (sub.isDirectory() && !sub.name.startsWith('.')) {
             const subPath = path.join(trackerPath, sub.name);
@@ -232,7 +266,8 @@ function detectActiveTracker(): { trackerType: TrackerType; path: string; files:
       if (isWithingsFolder(trackerPath)) {
         hasData = true;
       } else {
-        const subfolders = fs.readdirSync(trackerPath, { withFileTypes: true });
+        let subfolders: fs.Dirent[] = [];
+        try { subfolders = fs.readdirSync(trackerPath, { withFileTypes: true }); } catch { continue; }
         for (const sub of subfolders) {
           if (sub.isDirectory() && !sub.name.startsWith('.')) {
             const subPath = path.join(trackerPath, sub.name);
@@ -249,7 +284,8 @@ function detectActiveTracker(): { trackerType: TrackerType; path: string; files:
       if (isSamsungFolder(trackerPath)) {
         hasData = true;
       } else {
-        const subfolders = fs.readdirSync(trackerPath, { withFileTypes: true });
+        let subfolders: fs.Dirent[] = [];
+        try { subfolders = fs.readdirSync(trackerPath, { withFileTypes: true }); } catch { continue; }
         for (const sub of subfolders) {
           if (sub.isDirectory() && !sub.name.startsWith('.')) {
             const subPath = path.join(trackerPath, sub.name);
@@ -266,7 +302,8 @@ function detectActiveTracker(): { trackerType: TrackerType; path: string; files:
       if (isGoogleFitFolder(trackerPath)) {
         hasData = true;
       } else {
-        const subfolders = fs.readdirSync(trackerPath, { withFileTypes: true });
+        let subfolders: fs.Dirent[] = [];
+        try { subfolders = fs.readdirSync(trackerPath, { withFileTypes: true }); } catch { continue; }
         for (const sub of subfolders) {
           if (sub.isDirectory() && !sub.name.startsWith('.')) {
             const subPath = path.join(trackerPath, sub.name);
@@ -282,7 +319,12 @@ function detectActiveTracker(): { trackerType: TrackerType; path: string; files:
 
     if (hasData) {
       const files: DataFile[] = [];
-      const stats = fs.statSync(dataPath);
+      let stats: fs.Stats;
+      try {
+        stats = fs.statSync(dataPath);
+      } catch {
+        return null;
+      }
 
       files.push({
         name: path.basename(dataPath),
@@ -322,11 +364,16 @@ function detectActiveTracker(): { trackerType: TrackerType; path: string; files:
 export function getDataFiles(): DataFile[] {
   const dataFiles: DataFile[] = [];
 
-  // Check if we have the organized folder structure
-  const hasOrganizedStructure =
-    fs.existsSync(BLOODWORK_DIR) ||
-    fs.existsSync(BODY_SCAN_DIR) ||
-    fs.existsSync(ACTIVITY_DIR);
+  // Check if we have the organized folder structure (wrapped in try-catch for EPERM)
+  let hasOrganizedStructure = false;
+  try {
+    hasOrganizedStructure =
+      fs.existsSync(BLOODWORK_DIR) ||
+      fs.existsSync(BODY_SCAN_DIR) ||
+      fs.existsSync(ACTIVITY_DIR);
+  } catch {
+    hasOrganizedStructure = false;
+  }
 
   if (hasOrganizedStructure) {
     // Scan organized folders
@@ -348,6 +395,52 @@ export function getDataFiles(): DataFile[] {
     // Fallback: scan root /data folder with old logic for backward compatibility
     dataFiles.push(...scanLegacyDataFolder());
   }
+
+  // ── Root-level extras: scan project root for 'withings data' folder and lab PDFs ──
+  // This handles the case where the user places files directly in the project root
+  // (common when data/ subdirectories are EPERM-blocked on macOS Downloads folder)
+  const ROOT_DIR = process.cwd();
+  const ROOT_WITHINGS = path.join(ROOT_DIR, 'withings data');
+  const ROOT_LABTEST = path.join(ROOT_DIR, 'labtest.pdf');
+
+  // Check for root-level Withings folder
+  try {
+    if (fs.existsSync(ROOT_WITHINGS) && isWithingsFolder(ROOT_WITHINGS)) {
+      let stats: fs.Stats | null = null;
+      try { stats = fs.statSync(ROOT_WITHINGS); } catch { /* ignore */ }
+      dataFiles.push({
+        name: 'withings data',
+        type: 'activity_folder',
+        path: ROOT_WITHINGS,
+        extension: '',
+        size: undefined,
+        lastModified: stats?.mtime.toISOString(),
+        isFolder: true,
+        trackerType: 'withings',
+      });
+    }
+  } catch { /* EPERM or other error — skip */ }
+
+  // Check for root-level lab test PDF
+  try {
+    if (fs.existsSync(ROOT_LABTEST)) {
+      let stats: fs.Stats | null = null;
+      try { stats = fs.statSync(ROOT_LABTEST); } catch { /* ignore */ }
+      // Only add if not already present
+      const alreadyAdded = dataFiles.some((f) => f.name === 'labtest.pdf');
+      if (!alreadyAdded) {
+        dataFiles.push({
+          name: 'labtest.pdf',
+          type: 'bloodwork',
+          path: ROOT_LABTEST,
+          extension: '.pdf',
+          size: stats?.size,
+          lastModified: stats?.mtime.toISOString(),
+          isFolder: false,
+        });
+      }
+    }
+  } catch { /* EPERM or other error — skip */ }
 
   console.log(
     '[Vitals.AI] Detected data sources:',
@@ -371,13 +464,23 @@ function scanLegacyDataFolder(): DataFile[] {
   }
 
   const dataFiles: DataFile[] = [];
-  const entries = fs.readdirSync(DATA_DIR, { withFileTypes: true });
+  let entries: fs.Dirent[];
+  try {
+    entries = fs.readdirSync(DATA_DIR, { withFileTypes: true });
+  } catch {
+    return dataFiles;
+  }
 
   for (const entry of entries) {
     if (entry.name.startsWith('.')) continue;
 
     const entryPath = path.join(DATA_DIR, entry.name);
-    const stats = fs.statSync(entryPath);
+    let stats: fs.Stats;
+    try {
+      stats = fs.statSync(entryPath);
+    } catch {
+      continue;
+    }
 
     if (entry.isDirectory()) {
       // Handle folders (like Whoop data exports)

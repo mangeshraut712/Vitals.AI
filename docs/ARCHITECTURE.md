@@ -272,7 +272,7 @@ interface Improvement {
 ## Security Considerations
 
 1. **API key in .env only** — Never committed, never logged
-2. **No external data transmission** — Only user-configured AI API calls (OpenRouter and optional Anthropic extraction)
+2. **No external data transmission** — Only user-configured OpenRouter AI API calls
 3. **No persistent storage** — Data re-parsed each session
 4. **User owns their data** — Files stay in /data, never uploaded
 5. **Localhost only** — Not designed for deployment

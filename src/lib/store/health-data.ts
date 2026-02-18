@@ -329,6 +329,41 @@ class HealthDataStoreClass {
               steps: activity.steps,
             } as CsvRow);
           }
+
+          // Extract body composition from Withings body measurements (most recent reading)
+          if (withingsData.bodyMeasurements.length > 0) {
+            const KG_TO_LBS = 2.20462;
+            // Sort by date descending, pick most recent
+            const sorted = [...withingsData.bodyMeasurements].sort((a, b) =>
+              b.date.localeCompare(a.date)
+            );
+            const latest = sorted[0];
+            const withingsBodyComp: import('@/lib/extractors/body-comp').BodyComposition = {};
+
+            if (latest.weight !== undefined) {
+              withingsBodyComp.totalMass = Math.round(latest.weight * KG_TO_LBS * 10) / 10;
+            }
+            if (latest.fatMassWeight !== undefined) {
+              withingsBodyComp.fatMass = Math.round(latest.fatMassWeight * KG_TO_LBS * 10) / 10;
+            }
+            if (latest.muscleMassWeight !== undefined) {
+              withingsBodyComp.leanMass = Math.round(latest.muscleMassWeight * KG_TO_LBS * 10) / 10;
+            }
+            if (latest.boneMassWeight !== undefined) {
+              withingsBodyComp.boneMineralContent = Math.round(latest.boneMassWeight * KG_TO_LBS * 10) / 10;
+            }
+            if (latest.fatRatio !== undefined) {
+              withingsBodyComp.bodyFatPercent = Math.round(latest.fatRatio * 10) / 10;
+            } else if (latest.fatMassWeight !== undefined && latest.weight !== undefined && latest.weight > 0) {
+              withingsBodyComp.bodyFatPercent = Math.round((latest.fatMassWeight / latest.weight) * 1000) / 10;
+            }
+            if (latest.date) {
+              withingsBodyComp.scanDate = latest.date;
+            }
+
+            this.data.bodyComp = mergeBodyCompData(this.data.bodyComp, withingsBodyComp);
+            console.log('[Vitals.AI] Withings body comp extracted:', withingsBodyComp);
+          }
         } else if (file.trackerType === 'samsung') {
           // Parse Samsung Health data
           const samsungData = parseSamsungExport(file.path);
@@ -365,7 +400,10 @@ class HealthDataStoreClass {
 
     // Extract biomarkers from text files (fallback when AI isn't available/complete)
     if (biomarkerText && (!usedAIExtraction || shouldRunBiomarkerRegexFallback)) {
+      console.log('[Vitals.AI] Running regex biomarker extraction on', biomarkerText.length, 'chars');
       const localBiomarkers = extractBiomarkers(biomarkerText);
+      const extractedKeys = Object.keys(localBiomarkers).filter(k => k !== 'all' && localBiomarkers[k] !== undefined);
+      console.log('[Vitals.AI] Regex extracted biomarkers:', extractedKeys.length, JSON.stringify(localBiomarkers));
       this.data.biomarkers = mergeExtractedBiomarkers(this.data.biomarkers, localBiomarkers);
     }
 

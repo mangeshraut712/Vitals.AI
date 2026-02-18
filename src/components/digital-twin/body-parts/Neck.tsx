@@ -11,6 +11,10 @@ export interface NeckProps {
   color?: string;
   /** Resolved anatomy profile */
   proportions?: BodyProportions;
+  /** Opacity override for transparent modes */
+  opacity?: number;
+  /** Whether to render in wireframe mode */
+  wireframe?: boolean;
 }
 
 /**
@@ -20,7 +24,7 @@ export interface NeckProps {
  * Bottom at Y=0.
  */
 export const Neck = forwardRef<Group, NeckProps>(function Neck(
-  { color, proportions = BODY_PROPORTIONS },
+  { color, proportions = BODY_PROPORTIONS, opacity = 1, wireframe = false },
   ref
 ) {
   // Create neck geometry using LatheGeometry
@@ -31,16 +35,21 @@ export const Neck = forwardRef<Group, NeckProps>(function Neck(
 
   // Get material properties
   const materialProps: MaterialProps = useMemo(() => {
-    return getBaseMaterialProps(color);
-  }, [color]);
+    const baseProps = getBaseMaterialProps(color);
+    return {
+      ...baseProps,
+      opacity: (baseProps.opacity ?? 1) * opacity,
+      transparent: true,
+    };
+  }, [color, opacity]);
 
   return (
     <group ref={ref}>
       <mesh
         geometry={geometry}
-        castShadow
+        castShadow={!wireframe}
       >
-        <meshStandardMaterial {...materialProps} />
+        <meshPhysicalMaterial {...materialProps} wireframe={wireframe} />
       </mesh>
     </group>
   );

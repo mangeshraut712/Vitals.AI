@@ -37,9 +37,9 @@
 
 ## 🎯 What is Vitals.AI?
 
-**Vitals.AI** (OpenHealth) is a privacy-first health dashboard that analyzes your bloodwork, body composition, and activity data — all running locally on your machine. It uses OpenRouter-powered AI chat (and optional Anthropic extraction) while ensuring your data stays under your control.
+**Vitals.AI** (OpenHealth) is a privacy-first health dashboard that analyzes your bloodwork, body composition, and activity data — all running locally on your machine. It uses OpenRouter-powered AI while ensuring your data stays under your control.
 
-> **🔒 Privacy Promise:** Your health data is processed entirely on your machine. No external servers, no data collection, no tracking. External calls happen only to user-configured AI providers (OpenRouter chat, optional Anthropic extraction), and you control when those happen.
+> **🔒 Privacy Promise:** Your health data is processed entirely on your machine. No external servers, no data collection, no tracking. External calls happen only to your user-configured OpenRouter API key, and you control when those happen.
 
 ## ✨ Features
 
@@ -90,8 +90,7 @@ Fully installable Progressive Web App (PWA) with offline support, service worker
 ### Prerequisites
 
 - **Node.js** 20+ and **npm** 10+
-- **OpenRouter API Key** (recommended for chat, [Get one here](https://openrouter.ai/keys))
-- **Anthropic API Key** (optional, used for some extraction flows, [Get one here](https://console.anthropic.com/))
+- **OpenRouter API Key** (required for AI features, [Get one here](https://openrouter.ai/keys))
 
 ### Installation
 
@@ -189,7 +188,7 @@ Notes:
 │                                                           │
 │  ┌──────────────────────────────────────────────────────┐  │
 │  │      AI Providers (External API, user-configured)      │  │
-│  │  OpenRouter Chat │ Anthropic Extraction (optional)     │  │
+│  │   OpenRouter (Chat + Extraction + Goals)               │  │
 │  └──────────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────┘
 ```
@@ -312,6 +311,12 @@ OpenHealth/
 # Run development server
 npm run dev
 
+# Run terminal/project preflight checks (permissions, stale locks, next-env)
+npm run doctor
+
+# Validate hosted env contract before Vercel deployment
+npm run deploy:check
+
 # Type checking
 npm run typecheck
 
@@ -328,21 +333,54 @@ npm run test:ui
 npm run build
 ```
 
+### Terminal Troubleshooting (macOS)
+
+If you see `EPERM`, `next-env.d.ts not found`, or `.next/dev/lock` errors:
+
+```bash
+# Fix ownership/permissions in project
+sudo chown -R "$USER":staff .
+chmod -R u+rwX .
+chflags -R nouchg,noschg .
+/usr/bin/xattr -dr com.apple.quarantine . 2>/dev/null || true
+
+# Run built-in checks
+npm run doctor
+
+# If .next/dev/lock is active, stop old Next.js dev process first
+pkill -f "next-server" || true
+```
+
+Notes:
+- The repo uses a local npm cache (`.npm-cache`) to avoid global cache permission issues.
+- Running from `~/Projects` is more reliable than `~/Downloads` on macOS sandboxed terminals.
+
 ### Quality Gates (GitHub)
 
 - CI workflow at `.github/workflows/ci.yml` runs `lint`, `typecheck`, `test`, and `build` for pushes and pull requests to `main`.
 - Dependabot at `.github/dependabot.yml` opens weekly update PRs for npm dependencies and GitHub Actions.
 - PR checklist template at `.github/pull_request_template.md` keeps validation and deployment notes consistent.
 
+### Secrets Hygiene
+
+- Keep real credentials only in `.env.local` (gitignored) or Vercel environment variables.
+- Never put API keys/tokens in committed files, screenshots, or issue comments.
+- Do not use `NEXT_PUBLIC_*` for secrets (those are exposed to the browser).
+- If a key is exposed, rotate it immediately in the provider dashboard.
+
 ## ☁️ Deploy On Vercel
 
 1. Import this repository in Vercel.
 2. Keep framework preset as **Next.js**.
 3. Configure environment variables in Vercel project settings:
-   - `OPENROUTER_API_KEY` (required for AI chat on Vercel)
+   - `OPENROUTER_API_KEY` (required for AI chat and extraction on Vercel)
    - `OPENROUTER_MODEL` (optional, default: `openrouter/free`)
    - `OPENROUTER_FALLBACK_MODELS` (optional, comma-separated model IDs)
-   - `ANTHROPIC_API_KEY` (optional)
+   - `FASTAPI_BASE_URL` (optional; if set, `/api/chat` proxies to your FastAPI backend)
+   - `FASTAPI_CHAT_PATH` (optional, default: `/chat/stream`)
+   - `FASTAPI_HEALTH_PATH` (optional, default: `/health`)
+   - `FASTAPI_API_TOKEN` (optional bearer token for FastAPI)
+   - `FASTAPI_TIMEOUT_MS` (optional, default: `15000`)
    - `NEXT_PUBLIC_SITE_URL` (recommended, e.g. `https://your-app.vercel.app`)
    - `TERRA_API_SECRET` (optional)
    - `TERRA_WEBHOOK_STRICT` (optional, defaults to `false`)
@@ -355,6 +393,7 @@ npm run build
 4. Deploy using default commands:
    - Install: `npm ci`
    - Build: `npm run build`
+   - Optional preflight: `npm run deploy:check`
 5. Keep `vercel.json` in sync with runtime behavior:
    - `sw.js` is set to `must-revalidate`
    - `manifest.json` is served as `application/manifest+json`
@@ -371,6 +410,8 @@ npm run build
 - This project is local-first. On Vercel, filesystem writes are not guaranteed durable.
 - Goals API now falls back to **memory-only storage** when persistent file writes are unavailable.
 - `/data` imports on Vercel only include files bundled at build time; use a cloud database/object storage for true multi-user production data persistence.
+- If `FASTAPI_BASE_URL` is set, chatbot traffic is routed server-to-server from Vercel to FastAPI.
+- For OpenClaw in Vercel: `OPENCLAW_HOOKS_BASE_URL=http://127.0.0.1:18789` will not work; use a publicly reachable OpenClaw gateway URL.
 
 ## 🎨 Design System
 

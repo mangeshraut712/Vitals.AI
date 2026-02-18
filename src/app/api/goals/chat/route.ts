@@ -21,8 +21,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     if (!body.message) {
       return NextResponse.json(
-        { success: false, error: 'Message is required' },
-        { status: 400 }
+        { success: false, error: 'Message is required' }
       );
     }
 

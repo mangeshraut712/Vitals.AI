@@ -272,18 +272,7 @@ function getActivitySummary(
   ];
 }
 
-function getDeltaClasses(delta: number | null): string {
-  if (delta === null) {
-    return 'text-foreground';
-  }
-  if (delta < 0) {
-    return 'text-emerald-500';
-  }
-  if (delta > 0) {
-    return 'text-rose-500';
-  }
-  return 'text-foreground';
-}
+
 
 interface CoreDataCardProps {
   title: string;
@@ -377,8 +366,7 @@ export default async function HomePage(): Promise<React.JSX.Element> {
     },
   ];
 
-  const biologicalAge = phenoAge?.phenoAge ?? null;
-  const ageDelta = phenoAge?.delta ?? null;
+
 
   return (
     <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
@@ -421,41 +409,7 @@ export default async function HomePage(): Promise<React.JSX.Element> {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <div className="rounded-xl border border-border bg-muted/30 p-4">
-                      <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">
-                        Chronological Age
-                      </p>
-                      <p className="text-2xl font-bold tabular-nums text-foreground">
-                        {chronoAge !== null ? `${chronoAge}` : '--'}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">years</p>
-                    </div>
 
-                    <div className="rounded-xl border border-border bg-muted/30 p-4">
-                      <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">
-                        Biological Age
-                      </p>
-                      <p className="text-2xl font-bold tabular-nums text-foreground">
-                        {biologicalAge !== null ? biologicalAge.toFixed(1) : '--'}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">years</p>
-                    </div>
-
-                    <div className="rounded-xl border border-border bg-muted/30 p-4">
-                      <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">
-                        Age Delta
-                      </p>
-                      <p
-                        className={`text-2xl font-bold tabular-nums ${getDeltaClasses(ageDelta)}`}
-                      >
-                        {ageDelta !== null
-                          ? `${ageDelta > 0 ? '+' : ''}${ageDelta.toFixed(1)}`
-                          : '--'}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">years vs calendar age</p>
-                    </div>
-                  </div>
                 </div>
               </div>
 
@@ -463,7 +417,7 @@ export default async function HomePage(): Promise<React.JSX.Element> {
             </header>
 
             <section className="vitals-fade-in vitals-fade-in-delay-1">
-              <AIChatWidget contextualPills={contextualPills} />
+              <AIChatWidget contextualPills={contextualPills} mode="inline" />
             </section>
 
             <section className="vitals-fade-in vitals-fade-in-delay-2">

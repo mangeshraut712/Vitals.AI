@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import type { PhenoAgeResult } from '@/lib/calculations/phenoage';
 import type { Goal } from '@/lib/analysis/goals';
+import { WithingsHealthScore } from './WithingsHealthScore';
 
 interface LifestyleMetrics {
   hrv: number | null;
@@ -95,13 +96,6 @@ function calculateHealthScore(
   return { score: Math.round(weightedSum / totalWeight), hasData: true };
 }
 
-function getScoreStatus(score: number): { label: string; color: string; bgColor: string } {
-  if (score >= 85) return { label: 'Excellent', color: 'text-emerald-500', bgColor: 'bg-emerald-500/10' };
-  if (score >= 70) return { label: 'Good', color: 'text-sky-500', bgColor: 'bg-sky-500/10' };
-  if (score >= 55) return { label: 'Fair', color: 'text-amber-500', bgColor: 'bg-amber-500/10' };
-  return { label: 'Needs Work', color: 'text-rose-500', bgColor: 'bg-rose-500/10' };
-}
-
 function getAgeDeltaColor(delta: number): { color: string; bgColor: string } {
   if (delta <= -2) return { color: 'text-emerald-500', bgColor: 'bg-emerald-500/10' };
   if (delta <= 2) return { color: 'text-sky-500', bgColor: 'bg-sky-500/10' };
@@ -164,8 +158,7 @@ export function UnifiedHealthCard({
   const delta = phenoAge?.delta ?? 0;
   const deltaColors = getAgeDeltaColor(delta);
 
-  const { score: healthScore, hasData: hasHealthData } = calculateHealthScore(lifestyleMetrics, bodyCompMetrics);
-  const scoreStatus = getScoreStatus(healthScore);
+  const { score: healthScore } = calculateHealthScore(lifestyleMetrics, bodyCompMetrics);
 
   const topGoals = goals.slice(0, 3);
 
@@ -181,82 +174,61 @@ export function UnifiedHealthCard({
     >
       <div className="grid grid-cols-1 lg:grid-cols-5">
         {/* Left: Health Metrics (3 cols) */}
-        <div className="lg:col-span-3 p-8 lg:border-r border-border">
-          <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-6">
-            Health Overview
-          </h2>
+        <div className="lg:col-span-3 p-8 lg:border-r border-border backdrop-blur-sm bg-gradient-to-b from-transparent to-muted/5">
+          <div className="flex items-center justify-between mb-8">
+            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-widest">
+              Health Overview
+            </h2>
+            {hasAgeData && (
+              <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${deltaColors.bgColor} ${deltaColors.color} border-current/20`}>
+                {delta > 0 ? '+' : ''}{delta.toFixed(1)} yrs Bio Age Gap
+              </span>
+            )}
+          </div>
 
-          <div className="grid grid-cols-2 gap-8">
-            {/* Biological Age */}
-            <div>
-              <div className="flex items-baseline gap-2 mb-1">
-                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Bio Age</span>
-                {hasAgeData && (
-                  <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${deltaColors.bgColor} ${deltaColors.color}`}>
-                    {delta > 0 ? '+' : ''}{delta.toFixed(1)} yrs
-                  </span>
-                )}
-              </div>
-
-              {hasAgeData ? (
-                <div className="flex items-baseline gap-3">
-                  <span className="text-5xl font-bold text-foreground tabular-nums tracking-tight">
-                    {phenoAge.phenoAge.toFixed(1)}
-                  </span>
-                  <div className="text-muted-foreground/60">
-                    <span className="text-sm">vs</span>
-                    <span className="text-lg font-medium text-muted-foreground ml-1">{chronologicalAge}</span>
-                    <span className="text-sm ml-1">actual</span>
-                  </div>
-                </div>
-              ) : (
-                <div className="text-muted-foreground/60">
-                  <span className="text-3xl font-medium">--</span>
-                  <p className="text-xs mt-1">Sync blood work to calculate</p>
-                </div>
-              )}
-
-              {hasAgeData && (
-                <p className="text-sm text-muted-foreground mt-3">
-                  {delta < 0
-                    ? `Your body is aging ${Math.abs(delta).toFixed(1)} years slower than average`
-                    : delta > 2
-                      ? `Your body is aging ${delta.toFixed(1)} years faster than average`
-                      : 'Your biological age matches your calendar age'
-                  }
-                </p>
-              )}
+          <div className="flex flex-col sm:flex-row items-center justify-around gap-8">
+            {/* Health Score Circle */}
+            <div className="flex-shrink-0">
+              <WithingsHealthScore score={healthScore} showStatus={true} size={200} />
             </div>
 
-            {/* Health Score */}
-            <div>
-              <div className="flex items-baseline gap-2 mb-1">
-                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Health Score</span>
-                {hasHealthData && (
-                  <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${scoreStatus.bgColor} ${scoreStatus.color}`}>
-                    {scoreStatus.label}
-                  </span>
-                )}
+            {/* Biological Age & Key Metrics */}
+            <div className="flex flex-col gap-6 w-full max-w-xs">
+              {/* Bio Age */}
+              <div className="p-4 rounded-2xl bg-muted/30 border border-white/5 hover:bg-muted/40 transition-colors">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Biological Age</p>
+                <div className="flex items-baseline gap-3">
+                  {hasAgeData ? (
+                    <>
+                      <span className="text-4xl font-bold text-foreground tabular-nums tracking-tight">
+                        {phenoAge.phenoAge.toFixed(1)}
+                      </span>
+                      <span className="text-sm text-muted-foreground font-medium">
+                        vs {chronologicalAge} actual
+                      </span>
+                    </>
+                  ) : (
+                    <span className="text-2xl font-medium text-muted-foreground">--</span>
+                  )}
+                </div>
               </div>
 
-              {hasHealthData ? (
-                <>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-5xl font-bold text-foreground tabular-nums tracking-tight">
-                      {healthScore}
-                    </span>
-                    <span className="text-xl text-muted-foreground/40">/100</span>
-                  </div>
-                  <p className="text-sm text-muted-foreground mt-3">
-                    Based on activity, sleep & body composition
+              {/* Body Comp Summary (Mini) */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-3 rounded-xl bg-muted/20 border border-white/5">
+                  <p className="text-[10px] font-semibold text-muted-foreground uppercase mb-1">Body Fat</p>
+                  <p className="text-xl font-bold text-foreground tabular-nums">
+                    {bodyCompMetrics.bodyFatPercent ? `${bodyCompMetrics.bodyFatPercent.toFixed(1)}%` : '--'}
                   </p>
-                </>
-              ) : (
-                <div className="text-muted-foreground/60">
-                  <span className="text-3xl font-medium">--</span>
-                  <p className="text-xs mt-1">Sync activity & DEXA data</p>
                 </div>
-              )}
+                <div className="p-3 rounded-xl bg-muted/20 border border-white/5">
+                  <p className="text-[10px] font-semibold text-muted-foreground uppercase mb-1">Muscle</p>
+                  <p className="text-xl font-bold text-foreground tabular-nums">
+                    {bodyCompMetrics.muscleMass ? `${bodyCompMetrics.muscleMass.toFixed(1)}` : '--'}
+                    <span className="text-xs font-normal text-muted-foreground ml-0.5">kg</span>
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </div>

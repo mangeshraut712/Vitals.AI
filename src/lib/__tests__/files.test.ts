@@ -38,6 +38,11 @@ describe('getDataFiles', () => {
         return true;
       }
 
+      // Keep unit tests deterministic even if local root-level fallback files exist.
+      if (filePath === path.join(process.cwd(), 'withings data') || filePath === path.join(process.cwd(), 'labtest.pdf')) {
+        return false;
+      }
+
       return true;
     });
 

@@ -7,14 +7,13 @@ import { AIChatWidget } from './AIChatWidget';
 export function GlobalChatWidget(): React.JSX.Element | null {
   const pathname = usePathname();
 
-  if (pathname === '/tools/agent') {
+  if (pathname === '/tools/agent' || pathname === '/dashboard') {
     return null;
   }
 
   return (
     <ChatProvider>
-      <AIChatWidget />
+      <AIChatWidget mode="floating" />
     </ChatProvider>
   );
 }
-

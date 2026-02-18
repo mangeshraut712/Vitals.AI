@@ -28,9 +28,12 @@ export const metadata: Metadata = {
   description:
     "AI-powered health dashboard with biomarker analysis, biological age tracking, and digital twin visualization. Your data never leaves your machine.",
   icons: {
-    icon: "/favicon.ico",
+    icon: [
+      { url: "/favicon.ico" },
+      { url: "/icons/vitals-logo.png", type: "image/png" },
+    ],
     shortcut: "/favicon.ico",
-    apple: "/favicon.ico",
+    apple: "/icons/vitals-logo.png",
   },
   keywords: [
     "health dashboard",

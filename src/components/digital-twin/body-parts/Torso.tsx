@@ -20,6 +20,10 @@ export interface TorsoProps {
   intensityBoost?: number;
   /** Resolved anatomy profile */
   proportions?: BodyProportions;
+  /** Opacity override for transparent modes */
+  opacity?: number;
+  /** Whether to render in wireframe mode */
+  wireframe?: boolean;
 }
 
 /**
@@ -28,14 +32,15 @@ export interface TorsoProps {
  * Centered at origin, bottom at Y=0.
  */
 export const Torso = forwardRef<Group, TorsoProps>(function Torso(
-  { color, highlight, onClick, intensityBoost, proportions = BODY_PROPORTIONS },
+  { color, highlight, onClick, intensityBoost, proportions = BODY_PROPORTIONS, opacity = 1, wireframe = false },
   ref
 ) {
   // Create torso geometry using LatheGeometry
   const geometry = useMemo(() => {
-    const { height, shoulderHalfWidth, waistHalfWidth, hipHalfWidth } = {
+    const { height, shoulderHalfWidth, chestHalfWidth, waistHalfWidth, hipHalfWidth } = {
       height: proportions.torso.height,
       shoulderHalfWidth: proportions.torso.shoulderHalfWidth,
+      chestHalfWidth: proportions.torso.chestHalfWidth,
       waistHalfWidth: proportions.torso.waistHalfWidth,
       hipHalfWidth: proportions.torso.hipHalfWidth,
     };
@@ -43,6 +48,7 @@ export const Torso = forwardRef<Group, TorsoProps>(function Torso(
     return createTorsoGeometry(
       height,
       shoulderHalfWidth,
+      chestHalfWidth,
       waistHalfWidth,
       hipHalfWidth,
       32 // 32 segments for smoothness
@@ -51,24 +57,29 @@ export const Torso = forwardRef<Group, TorsoProps>(function Torso(
 
   // Get material properties based on highlight state
   const materialProps: MaterialProps = useMemo(() => {
-    if (highlight) {
-      const intensifiedHighlight = {
-        ...highlight,
-        intensity: highlight.intensity * (intensityBoost ?? 1.0)
-      };
-      return getHighlightMaterialProps(intensifiedHighlight.color, intensifiedHighlight.intensity, color);
-    }
-    return getBaseMaterialProps(color);
-  }, [color, highlight, intensityBoost]);
+    const baseProps = highlight
+      ? getHighlightMaterialProps(
+        highlight.color,
+        highlight.intensity * (intensityBoost ?? 1.0),
+        color
+      )
+      : getBaseMaterialProps(color);
+
+    return {
+      ...baseProps,
+      opacity: (baseProps.opacity ?? 1) * opacity,
+      transparent: true,
+    };
+  }, [color, highlight, intensityBoost, opacity]);
 
   return (
     <group ref={ref}>
       <mesh
         geometry={geometry}
-        castShadow
+        castShadow={!wireframe}
         onClick={onClick}
       >
-        <meshStandardMaterial {...materialProps} />
+        <meshPhysicalMaterial {...materialProps} wireframe={wireframe} />
       </mesh>
     </group>
   );

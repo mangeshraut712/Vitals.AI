@@ -1,7 +1,8 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import dynamic from 'next/dynamic';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { InsightCard, type InsightStatus } from '@/components/insights/InsightCard';
 import { STATUS_COLORS } from '@/lib/design/tokens';
 import type { BodyComposition } from '@/lib/extractors/body-comp';
@@ -97,7 +98,48 @@ const CHART_COLORS = {
   bone: '#6366f1', // Indigo
 };
 
+const PERIOD_OPTIONS = ['Week', 'Month', 'Quarter', 'Semester', 'Year', 'All'] as const;
+
+function getPeriodRangeLabel(scanDate: string | undefined, period: (typeof PERIOD_OPTIONS)[number]): string {
+  const end = scanDate ? new Date(scanDate) : new Date();
+  const start = new Date(end);
+
+  switch (period) {
+    case 'Week':
+      start.setDate(end.getDate() - 7);
+      break;
+    case 'Month':
+      start.setMonth(end.getMonth() - 1);
+      break;
+    case 'Quarter':
+      start.setMonth(end.getMonth() - 3);
+      break;
+    case 'Semester':
+      start.setMonth(end.getMonth() - 6);
+      break;
+    case 'Year':
+      start.setFullYear(end.getFullYear() - 1);
+      break;
+    case 'All':
+      start.setFullYear(end.getFullYear() - 5);
+      break;
+    default:
+      start.setMonth(end.getMonth() - 1);
+      break;
+  }
+
+  const format = (value: Date): string =>
+    value.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+
+  return `${format(start)} - ${format(end)}`;
+}
+
 export function BodyCompClient({ bodyComp }: BodyCompClientProps): React.JSX.Element {
+  const [periodIndex, setPeriodIndex] = useState(1);
   const {
     bodyFatPercent = 0,
     leanMass = 0,
@@ -139,12 +181,52 @@ export function BodyCompClient({ bodyComp }: BodyCompClientProps): React.JSX.Ele
     { name: 'Fat', value: fatMass, color: CHART_COLORS.fat },
   ].filter((d) => d.value > 0), [leanMass, boneMineralContent, fatMass]);
 
+  const selectedPeriod = PERIOD_OPTIONS[periodIndex];
+  const selectedRangeLabel = getPeriodRangeLabel(bodyComp.scanDate, selectedPeriod);
+
   return (
     <div className="max-w-6xl mx-auto px-6 py-8 space-y-8">
       {/* Header */}
-      <header>
+      <header className="space-y-4">
         <h1 className="text-2xl font-bold text-foreground">Body Composition</h1>
         <p className="text-muted-foreground mt-1">Your DEXA scan analysis and body metrics</p>
+        <div className="rounded-3xl border border-border bg-card p-4 shadow-sm">
+          <div className="flex flex-wrap items-center gap-2">
+            {PERIOD_OPTIONS.map((period, index) => (
+              <button
+                key={period}
+                type="button"
+                onClick={() => setPeriodIndex(index)}
+                className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+                  periodIndex === index
+                    ? 'bg-indigo-600 text-white shadow'
+                    : 'bg-secondary text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                {period}
+              </button>
+            ))}
+          </div>
+          <div className="mt-3 flex items-center justify-between rounded-2xl border border-border bg-secondary/50 px-2 py-2">
+            <button
+              type="button"
+              onClick={() => setPeriodIndex((prev) => (prev - 1 + PERIOD_OPTIONS.length) % PERIOD_OPTIONS.length)}
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-border text-muted-foreground transition hover:text-foreground"
+              aria-label="Previous period"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <p className="text-base font-medium text-foreground">{selectedRangeLabel}</p>
+            <button
+              type="button"
+              onClick={() => setPeriodIndex((prev) => (prev + 1) % PERIOD_OPTIONS.length)}
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-border text-muted-foreground transition hover:text-foreground"
+              aria-label="Next period"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
       </header>
 
       {/* Insight Cards Grid */}
@@ -331,7 +413,7 @@ export function BodyCompClient({ bodyComp }: BodyCompClientProps): React.JSX.Ele
                   Withings Body Scan · DEXA
                 </span>
               </div>
-              <SegmentalBodyComposition />
+              <SegmentalBodyComposition data={bodyComp} />
             </div>
           </div>
         </>

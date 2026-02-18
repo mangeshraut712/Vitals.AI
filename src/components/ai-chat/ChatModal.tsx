@@ -18,6 +18,7 @@ interface ChatModalProps {
   inputValue: string;
   onInputChange: (value: string) => void;
   isLoading?: boolean;
+  variant?: 'inline' | 'floating';
 }
 
 /**
@@ -34,6 +35,7 @@ export function ChatModal({
   inputValue,
   onInputChange,
   isLoading = false,
+  variant = 'inline',
 }: ChatModalProps): React.JSX.Element | null {
   const modalRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -94,14 +96,16 @@ export function ChatModal({
 
   if (!isOpen) return null;
 
+  const isFloating = variant === 'floating';
+
   return (
     <div
-      className="fixed inset-0 flex items-start justify-center pt-20 z-[300]"
+      className={`fixed inset-0 z-[300] flex ${isFloating ? 'items-end justify-end p-3 sm:p-6' : 'items-start justify-center pt-20'}`}
       onClick={handleBackdropClick}
       style={{
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-        backdropFilter: 'blur(4px)',
-        WebkitBackdropFilter: 'blur(4px)',
+        backgroundColor: isFloating ? 'rgba(0, 0, 0, 0.35)' : 'rgba(0, 0, 0, 0.5)',
+        backdropFilter: 'blur(6px)',
+        WebkitBackdropFilter: 'blur(6px)',
         animation: 'fadeIn 200ms ease-out',
       }}
       role="dialog"
@@ -113,10 +117,10 @@ export function ChatModal({
         ref={modalRef}
         className="w-full flex flex-col bg-card border border-border shadow-2xl rounded-2xl"
         style={{
-          maxWidth: '600px',
-          maxHeight: '70vh',
-          margin: '0 16px',
-          animation: 'slideDown 300ms ease-out',
+          maxWidth: isFloating ? '460px' : '600px',
+          maxHeight: isFloating ? 'min(78vh, 760px)' : '70vh',
+          margin: isFloating ? '0' : '0 16px',
+          animation: isFloating ? 'slideUp 260ms ease-out' : 'slideDown 300ms ease-out',
         }}
       >
         {/* Header with close button */}

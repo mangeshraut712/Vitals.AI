@@ -1,4 +1,6 @@
-import Anthropic from '@anthropic-ai/sdk';
+import { createOpenAI } from '@ai-sdk/openai';
+import { generateText } from 'ai';
+import { getOpenRouterHeaders } from '@/lib/runtime/deployment';
 
 const GOAL_CREATION_SYSTEM_PROMPT = `You are a Goal Coach for Vitals.AI, helping users create personalized health goals grounded in their actual health data.
 
@@ -59,6 +61,54 @@ export interface GoalAgentResponse {
   content: string;
   proposal?: GoalProposal;
   error?: string;
+}
+
+const DEFAULT_OPENROUTER_MODEL = 'meta-llama/llama-3.3-70b-instruct:free';
+
+function parseModelList(value: string | undefined): string[] {
+  if (!value) return [];
+  return value
+    .split(',')
+    .map((model) => model.trim())
+    .filter(Boolean);
+}
+
+function getModelCandidates(): string[] {
+  const preferred = process.env.OPENROUTER_MODEL?.trim() || DEFAULT_OPENROUTER_MODEL;
+  const fallbackFromEnv = parseModelList(process.env.OPENROUTER_FALLBACK_MODELS);
+  return Array.from(new Set([preferred, ...fallbackFromEnv]));
+}
+
+async function queryGoalAgentWithOpenRouter(fullPrompt: string): Promise<string> {
+  const openRouterApiKey = process.env.OPENROUTER_API_KEY?.trim();
+  if (!openRouterApiKey) {
+    throw new Error('OPENROUTER_API_KEY is not configured');
+  }
+
+  const openrouter = createOpenAI({
+    baseURL: 'https://openrouter.ai/api/v1',
+    apiKey: openRouterApiKey,
+    headers: getOpenRouterHeaders(),
+  });
+
+  const modelCandidates = getModelCandidates();
+  let lastError: unknown;
+
+  for (const modelId of modelCandidates) {
+    try {
+      const { text } = await generateText({
+        model: openrouter(modelId),
+        system: GOAL_CREATION_SYSTEM_PROMPT,
+        prompt: fullPrompt,
+      });
+      return text.trim();
+    } catch (error) {
+      lastError = error;
+      console.warn(`[GoalAgent] OpenRouter model failed (${modelId}), trying fallback.`);
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error('OpenRouter goal generation failed');
 }
 
 function parseGoalProposal(content: string): GoalProposal | undefined {
@@ -189,7 +239,7 @@ export async function queryGoalAgent(
   healthContext: string,
   conversationHistory: Array<{ role: 'user' | 'assistant'; content: string }>
 ): Promise<GoalAgentResponse> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const openRouterApiKey = process.env.OPENROUTER_API_KEY?.trim();
 
   // Build conversation context
   const historyText = conversationHistory
@@ -207,7 +257,7 @@ ${message}
 
 Help the user create a meaningful health goal based on their data.`;
 
-  if (!apiKey) {
+  if (!openRouterApiKey) {
     return {
       content: buildFallbackGoalContent(message),
       proposal: buildFallbackProposal(message),
@@ -215,21 +265,7 @@ Help the user create a meaningful health goal based on their data.`;
   }
 
   try {
-    const anthropic = new Anthropic({
-      apiKey,
-    });
-
-    const response = await anthropic.messages.create({
-      model: 'claude-3-5-sonnet-latest',
-      max_tokens: 1024,
-      system: GOAL_CREATION_SYSTEM_PROMPT,
-      messages: [{ role: 'user', content: fullPrompt }],
-    });
-
-    const content = response.content
-      .map((block) => ('text' in block ? block.text : ''))
-      .join('')
-      .trim();
+    const content = await queryGoalAgentWithOpenRouter(fullPrompt);
 
     // Check if there's a goal proposal in the response
     const proposal = parseGoalProposal(content);

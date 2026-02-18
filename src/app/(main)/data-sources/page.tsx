@@ -1,5 +1,7 @@
 import { getDataFiles, type FileType } from '@/lib/files';
 import { DataSourcesClient } from './DataSourcesClient';
+import { PageHero } from '@/components/layout/PageHero';
+import { FolderSync } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
@@ -44,11 +46,13 @@ export default function DataSourcesPage(): React.JSX.Element {
   const dataSources = getDataSourcesInfo();
 
   return (
-    <div className="max-w-6xl mx-auto px-6 py-8 space-y-6">
-      <header className="vitals-fade-in">
-        <h1 className="text-2xl font-bold text-foreground">Data Sources</h1>
-        <p className="text-muted-foreground mt-1">Manage your health data files</p>
-      </header>
+    <div className="mx-auto max-w-6xl space-y-6 px-6 py-8">
+      <PageHero
+        eyebrow="Data Layer"
+        title="Data Sources"
+        description="Manage local files powering your dashboards. Imports are privacy-first and processed directly in your project runtime."
+        icon={FolderSync}
+      />
 
       <DataSourcesClient dataSources={dataSources} />
     </div>

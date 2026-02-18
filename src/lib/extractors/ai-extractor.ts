@@ -1,56 +1,9 @@
-import Anthropic from '@anthropic-ai/sdk';
+import { createOpenAI } from '@ai-sdk/openai';
+import { generateText } from 'ai';
 import { ExtractedBiomarkers, DynamicBiomarker } from './biomarkers';
+import { getOpenRouterHeaders } from '@/lib/runtime/deployment';
 
-const EXTRACTION_TOOL: Anthropic.Tool = {
-  name: 'extract_all_biomarkers',
-  description: 'Extract ALL biomarker values from a lab report',
-  input_schema: {
-    type: 'object',
-    properties: {
-      patientAge: {
-        type: 'number',
-        description: 'Patient age in years (if found)',
-      },
-      biomarkers: {
-        type: 'array',
-        description: 'Array of ALL biomarkers/lab tests found in the report',
-        items: {
-          type: 'object',
-          properties: {
-            name: {
-              type: 'string',
-              description: 'Test name exactly as shown (e.g., "ALBUMIN", "WHITE BLOOD CELL COUNT")',
-            },
-            value: {
-              type: 'number',
-              description: 'The numeric result value',
-            },
-            unit: {
-              type: 'string',
-              description: 'Unit of measurement (e.g., "g/dL", "mg/dL", "%", "K/uL")',
-            },
-            referenceRange: {
-              type: 'string',
-              description: 'Reference range as shown (e.g., "3.5-5.0", ">40", "<200")',
-            },
-            status: {
-              type: 'string',
-              enum: ['normal', 'high', 'low'],
-              description: 'Whether value is flagged as High (H) or Low (L), otherwise normal',
-            },
-            category: {
-              type: 'string',
-              description:
-                'Category if identifiable (e.g., "Complete Blood Count", "Metabolic Panel", "Lipid Panel", "Thyroid")',
-            },
-          },
-          required: ['name', 'value', 'unit'],
-        },
-      },
-    },
-    required: ['biomarkers'],
-  },
-};
+const DEFAULT_EXTRACTION_MODEL = 'meta-llama/llama-3.3-70b-instruct:free';
 
 const SYSTEM_PROMPT = `You are a lab result extraction assistant. Extract ALL biomarker/test values from lab reports.
 
@@ -299,41 +252,160 @@ interface AIExtractionResult {
   biomarkers: DynamicBiomarker[];
 }
 
+function parseModelList(value: string | undefined): string[] {
+  if (!value) return [];
+  return value
+    .split(',')
+    .map((model) => model.trim())
+    .filter(Boolean);
+}
+
+function getModelCandidates(): string[] {
+  const preferred = process.env.OPENROUTER_MODEL?.trim() || DEFAULT_EXTRACTION_MODEL;
+  const fallbackFromEnv = parseModelList(process.env.OPENROUTER_FALLBACK_MODELS);
+  return Array.from(new Set([preferred, ...fallbackFromEnv]));
+}
+
+function extractJsonObjectFromText(value: string): string | null {
+  const fencedMatch = value.match(/```json\s*([\s\S]*?)\s*```/i);
+  if (fencedMatch?.[1]) {
+    return fencedMatch[1].trim();
+  }
+
+  const firstBrace = value.indexOf('{');
+  const lastBrace = value.lastIndexOf('}');
+  if (firstBrace === -1 || lastBrace === -1 || firstBrace >= lastBrace) {
+    return null;
+  }
+
+  return value.slice(firstBrace, lastBrace + 1).trim();
+}
+
+function toDynamicBiomarker(input: unknown): DynamicBiomarker | null {
+  if (!input || typeof input !== 'object') {
+    return null;
+  }
+
+  const record = input as Record<string, unknown>;
+  const name = typeof record.name === 'string' ? record.name.trim() : '';
+  const unit = typeof record.unit === 'string' ? record.unit.trim() : '';
+  const numericValue =
+    typeof record.value === 'number'
+      ? record.value
+      : typeof record.value === 'string'
+        ? Number.parseFloat(record.value)
+        : Number.NaN;
+
+  if (!name || !unit || !Number.isFinite(numericValue)) {
+    return null;
+  }
+
+  const status =
+    record.status === 'high' || record.status === 'low' || record.status === 'normal'
+      ? record.status
+      : undefined;
+
+  return {
+    name,
+    value: numericValue,
+    unit,
+    referenceRange:
+      typeof record.referenceRange === 'string' && record.referenceRange.trim()
+        ? record.referenceRange.trim()
+        : undefined,
+    status,
+    category:
+      typeof record.category === 'string' && record.category.trim()
+        ? record.category.trim()
+        : undefined,
+  };
+}
+
+function parseAIExtractionResult(content: string): AIExtractionResult | null {
+  const jsonPayload = extractJsonObjectFromText(content);
+  if (!jsonPayload) return null;
+
+  try {
+    const parsed = JSON.parse(jsonPayload) as Record<string, unknown>;
+    const rawBiomarkers = Array.isArray(parsed.biomarkers) ? parsed.biomarkers : [];
+    const biomarkers = rawBiomarkers
+      .map((item) => toDynamicBiomarker(item))
+      .filter((item): item is DynamicBiomarker => item !== null);
+
+    if (biomarkers.length === 0) {
+      return null;
+    }
+
+    const patientAgeRaw =
+      typeof parsed.patientAge === 'number'
+        ? parsed.patientAge
+        : typeof parsed.patientAge === 'string'
+          ? Number.parseInt(parsed.patientAge, 10)
+          : undefined;
+    const patientAge = Number.isFinite(patientAgeRaw) ? patientAgeRaw : undefined;
+
+    return {
+      patientAge,
+      biomarkers,
+    };
+  } catch {
+    return null;
+  }
+}
+
 export async function extractBiomarkersWithAI(text: string): Promise<ExtractedBiomarkers> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const apiKey = process.env.OPENROUTER_API_KEY?.trim();
   if (!apiKey) {
-    console.warn('[Vitals.AI] No API key, skipping AI extraction');
+    console.warn('[Vitals.AI] No OpenRouter API key, skipping AI extraction');
     return {};
   }
 
-  try {
-    const client = new Anthropic({ apiKey });
+  const openrouter = createOpenAI({
+    baseURL: 'https://openrouter.ai/api/v1',
+    apiKey,
+    headers: getOpenRouterHeaders(),
+  });
 
-    console.log('[Vitals.AI] Extracting ALL biomarkers with AI...');
+  console.log('[Vitals.AI] Extracting ALL biomarkers with AI...');
 
-    const response = await client.messages.create({
-      model: 'claude-3-5-sonnet-latest',
-      max_tokens: 8192, // Increased for large lab reports
-      system: SYSTEM_PROMPT,
-      tools: [EXTRACTION_TOOL],
-      tool_choice: { type: 'tool', name: 'extract_all_biomarkers' },
-      messages: [
-        {
-          role: 'user',
-          content: `Extract ALL biomarkers from this lab report. Do not skip any test results:\n\n${text}`,
-        },
-      ],
-    });
+  const modelCandidates = getModelCandidates();
+  let lastError: unknown;
 
-    // Get tool use result
-    const toolUse = response.content.find((block) => block.type === 'tool_use');
-    if (toolUse && toolUse.type === 'tool_use') {
-      const result = toolUse.input as AIExtractionResult;
+  for (const modelId of modelCandidates) {
+    try {
+      const { text: responseText } = await generateText({
+        model: openrouter(modelId),
+        system: SYSTEM_PROMPT,
+        prompt: `Extract ALL biomarkers from this lab report.
+
+Return ONLY a valid JSON object in this shape:
+{
+  "patientAge": number | null,
+  "biomarkers": [
+    {
+      "name": string,
+      "value": number,
+      "unit": string,
+      "referenceRange": string | null,
+      "status": "normal" | "high" | "low",
+      "category": string | null
+    }
+  ]
+}
+
+Lab report text:
+${text}`,
+      });
+
+      const result = parseAIExtractionResult(responseText);
+      if (!result) {
+        console.warn(`[Vitals.AI] AI extraction parse failed (${modelId}), trying fallback model.`);
+        continue;
+      }
+
       const biomarkers = result.biomarkers || [];
+      console.log(`[Vitals.AI] AI extracted ${biomarkers.length} biomarkers (${modelId})`);
 
-      console.log(`[Vitals.AI] AI extracted ${biomarkers.length} biomarkers`);
-
-      // Build the ExtractedBiomarkers object
       const extracted: ExtractedBiomarkers = {
         all: biomarkers,
         patientAge: result.patientAge,
@@ -344,22 +416,21 @@ export async function extractBiomarkersWithAI(text: string): Promise<ExtractedBi
         const normalizedName = marker.name.toLowerCase().trim();
         const key = NAME_TO_KEY[normalizedName];
 
-        if (key) {
-          // Handle percentage vs absolute count disambiguation
-          if (key === 'lymphocytePercent' || key === 'neutrophilPercent' || key === 'monocytePercent') {
-            // Only use if unit contains %
-            if (marker.unit.includes('%')) {
-              (extracted as Record<string, unknown>)[key] = marker.value;
-            }
-          } else if (key === 'lymphocytes' || key === 'neutrophils' || key === 'monocytes') {
-            // Absolute counts - check unit doesn't contain %
-            if (!marker.unit.includes('%')) {
-              (extracted as Record<string, unknown>)[key] = marker.value;
-            }
-          } else {
-            // All other biomarkers
+        if (!key) {
+          continue;
+        }
+
+        // Handle percentage vs absolute count disambiguation
+        if (key === 'lymphocytePercent' || key === 'neutrophilPercent' || key === 'monocytePercent') {
+          if (marker.unit.includes('%')) {
             (extracted as Record<string, unknown>)[key] = marker.value;
           }
+        } else if (key === 'lymphocytes' || key === 'neutrophils' || key === 'monocytes') {
+          if (!marker.unit.includes('%')) {
+            (extracted as Record<string, unknown>)[key] = marker.value;
+          }
+        } else {
+          (extracted as Record<string, unknown>)[key] = marker.value;
         }
       }
 
@@ -367,12 +438,17 @@ export async function extractBiomarkersWithAI(text: string): Promise<ExtractedBi
       console.log(`[Vitals.AI] Mapped ${knownKeys.length} to known biomarker keys`);
 
       return extracted;
+    } catch (error) {
+      lastError = error;
+      console.warn(`[Vitals.AI] AI extraction model failed (${modelId}), trying fallback.`);
     }
-
-    console.warn('[Vitals.AI] No tool use in response');
-    return {};
-  } catch (error) {
-    console.error('[Vitals.AI] AI extraction error:', error);
-    return {};
   }
+
+  if (lastError) {
+    console.error('[Vitals.AI] AI extraction error:', lastError);
+  } else {
+    console.warn('[Vitals.AI] No valid AI extraction response from OpenRouter');
+  }
+
+  return {};
 }

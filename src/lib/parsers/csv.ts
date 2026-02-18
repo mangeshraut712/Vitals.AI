@@ -1,4 +1,5 @@
 import fs from 'fs';
+import path from 'path';
 import Papa from 'papaparse';
 
 export interface CsvRow {
@@ -14,8 +15,22 @@ export function parseCsv(filePath: string): CsvRow[] {
       dynamicTyping: true,
     });
 
-    if (result.errors.length > 0) {
-      console.warn('[Vitals.AI] CSV parsing warnings:', result.errors);
+    // Filter out benign errors like "TooFewFields" which often occur on trailing newlines
+    const meaningfulErrors = result.errors.filter((err) => err.code !== 'TooFewFields');
+
+    if (meaningfulErrors.length > 0) {
+      const preview = meaningfulErrors
+        .slice(0, 5)
+        .map((err) => {
+          const row = typeof err.row === 'number' ? `row ${err.row}` : 'row ?';
+          return `${row}: ${err.code}`;
+        })
+        .join(', ');
+
+      console.warn(
+        `[Vitals.AI] CSV parsing warnings in ${path.basename(filePath)}: ` +
+        `${meaningfulErrors.length} total (${preview}${meaningfulErrors.length > 5 ? ', ...' : ''})`
+      );
     }
 
     return result.data;

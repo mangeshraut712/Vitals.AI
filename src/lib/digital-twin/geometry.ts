@@ -5,7 +5,7 @@
  * All geometries are centered on the Y axis.
  */
 
-import { LatheGeometry, Vector2, BufferGeometry } from 'three';
+import { LatheGeometry, Vector2, BufferGeometry, CapsuleGeometry } from 'three';
 
 /**
  * Creates a smooth tapered capsule geometry using LatheGeometry.
@@ -25,36 +25,39 @@ export function createTaperedCapsule(
   capSegments: number = 8,
   radialSegments: number = 16
 ): BufferGeometry {
+  const safeRadiusTop = Math.max(radiusTop, length * 0.045);
+  const safeRadiusBottom = Math.max(radiusBottom, length * 0.045);
+
   // Create profile points for LatheGeometry (right side only, will be rotated)
   const points: Vector2[] = [];
 
   // Bottom cap (hemisphere)
   for (let i = 0; i <= capSegments; i++) {
     const angle = (i / capSegments) * (Math.PI / 2); // 0 to PI/2
-    const x = radiusBottom * Math.cos(angle);
-    const y = -length / 2 + radiusBottom * (1 - Math.sin(angle));
+    const x = safeRadiusBottom * Math.cos(angle);
+    const y = -length / 2 + safeRadiusBottom * (1 - Math.sin(angle));
     points.push(new Vector2(x, y));
   }
 
   // Body (tapered cylinder) - just need top and bottom points
   // The bottom point is already added from the cap
-  const bodyBottom = -length / 2 + radiusBottom;
-  const bodyTop = length / 2 - radiusTop;
+  const bodyBottom = -length / 2 + safeRadiusBottom;
+  const bodyTop = length / 2 - safeRadiusTop;
 
   // Add intermediate points for smooth taper
   const bodySteps = 4;
   for (let i = 1; i <= bodySteps; i++) {
     const t = i / bodySteps;
     const y = bodyBottom + t * (bodyTop - bodyBottom);
-    const radius = radiusBottom + t * (radiusTop - radiusBottom);
+    const radius = safeRadiusBottom + t * (safeRadiusTop - safeRadiusBottom);
     points.push(new Vector2(radius, y));
   }
 
   // Top cap (hemisphere)
   for (let i = 0; i <= capSegments; i++) {
     const angle = (i / capSegments) * (Math.PI / 2); // 0 to PI/2
-    const x = radiusTop * Math.sin(angle);
-    const y = length / 2 - radiusTop + radiusTop * Math.cos(angle);
+    const x = safeRadiusTop * Math.sin(angle);
+    const y = length / 2 - safeRadiusTop + safeRadiusTop * Math.cos(angle);
     points.push(new Vector2(x, y));
   }
 
@@ -124,6 +127,7 @@ export function createHeadGeometry(
 export function createTorsoGeometry(
   height: number,
   shoulderHalfWidth: number,
+  chestHalfWidth: number,
   waistHalfWidth: number,
   hipHalfWidth: number,
   segments: number = 32
@@ -138,9 +142,9 @@ export function createTorsoGeometry(
     { t: 0.20, width: hipHalfWidth * 0.92 }, // Upper hip
     { t: 0.35, width: waistHalfWidth * 1.05 }, // Just below waist
     { t: 0.45, width: waistHalfWidth }, // Waist (narrowest)
-    { t: 0.55, width: waistHalfWidth * 1.1 }, // Lower ribcage
-    { t: 0.70, width: shoulderHalfWidth * 0.85 }, // Mid chest
-    { t: 0.85, width: shoulderHalfWidth * 0.95 }, // Upper chest
+    { t: 0.55, width: waistHalfWidth * 1.12 }, // Lower ribcage
+    { t: 0.70, width: chestHalfWidth }, // Mid chest
+    { t: 0.85, width: chestHalfWidth * 1.03 }, // Upper chest
     { t: 0.95, width: shoulderHalfWidth }, // Shoulder level
     { t: 1.0, width: shoulderHalfWidth * 0.9 }, // Neck base
   ];
@@ -169,6 +173,45 @@ export function createTorsoGeometry(
   }
 
   const geometry = new LatheGeometry(points, segments);
+
+  // Apply front/back asymmetry so torso looks human, not rotationally perfect.
+  const positions = geometry.attributes.position;
+  const isFemaleFrame = hipHalfWidth > shoulderHalfWidth;
+
+  for (let i = 0; i < positions.count; i++) {
+    const x = positions.getX(i);
+    const y = positions.getY(i);
+    const z = positions.getZ(i);
+
+    const yNorm = Math.max(0, Math.min(1, y / height));
+    const chestBand = Math.exp(-Math.pow((yNorm - 0.73) / 0.17, 2));
+    const waistBand = Math.exp(-Math.pow((yNorm - 0.48) / 0.14, 2));
+    const hipBand = Math.exp(-Math.pow((yNorm - 0.18) / 0.12, 2));
+
+    const isFront = z >= 0;
+    const frontScale = isFront ? (isFemaleFrame ? 1.12 : 1.08) : 1;
+    const backScale = !isFront ? 0.86 : 1;
+
+    let nextZ = z * frontScale * backScale;
+    let nextX = x;
+
+    if (isFront) {
+      nextZ += (isFemaleFrame ? 0.024 : 0.018) * chestBand;
+      nextZ += (isFemaleFrame ? 0.010 : 0.006) * waistBand;
+      nextZ += (isFemaleFrame ? 0.014 : 0.008) * hipBand;
+    } else {
+      nextZ -= (isFemaleFrame ? 0.007 : 0.009) * chestBand;
+      nextZ -= (isFemaleFrame ? 0.004 : 0.006) * hipBand;
+    }
+
+    nextX *= 1 + chestBand * (isFemaleFrame ? 0.01 : 0.02);
+    nextX *= 1 - waistBand * (isFemaleFrame ? 0.05 : 0.035);
+    nextX *= 1 + hipBand * (isFemaleFrame ? 0.06 : 0.012);
+
+    positions.setXYZ(i, nextX, y, nextZ);
+  }
+
+  positions.needsUpdate = true;
   geometry.computeVertexNormals();
 
   return geometry;
@@ -227,28 +270,12 @@ export function createFootGeometry(
   height: number,
   segments: number = 16
 ): BufferGeometry {
-  // Use a custom profile for the foot - it's not radially symmetric
-  // but we can approximate with a tapered shape
-  const points: Vector2[] = [];
-
-  // Foot profile (side view, rotated around Z axis conceptually)
-  // We'll use a modified capsule shape
-  const halfWidth = width / 2;
-
-  // Bottom is flat (just a small curve for realism)
-  points.push(new Vector2(halfWidth * 0.3, 0));
-  points.push(new Vector2(halfWidth * 0.9, 0.01));
-  points.push(new Vector2(halfWidth, height * 0.15));
-  points.push(new Vector2(halfWidth * 0.95, height * 0.5));
-  points.push(new Vector2(halfWidth * 0.7, height * 0.85));
-  points.push(new Vector2(halfWidth * 0.4, height));
-  points.push(new Vector2(0, height));
-
-  const geometry = new LatheGeometry(points, segments);
+  // Soft capsule-like foot to avoid robotic hard edges.
+  const geometry = new CapsuleGeometry(0.5, 1, 6, Math.max(10, Math.floor(segments)));
+  geometry.rotateZ(Math.PI / 2);
+  geometry.scale(length / 2, height, width);
+  geometry.translate(0, -height * 0.08, length * 0.06);
   geometry.computeVertexNormals();
-
-  // Scale to match length
-  geometry.scale(length / width, 1, 1);
 
   return geometry;
 }
@@ -266,27 +293,10 @@ export function createHandGeometry(
   width: number,
   segments: number = 12
 ): BufferGeometry {
-  const points: Vector2[] = [];
-  const halfWidth = width / 2;
-  const halfLength = length / 2;
-
-  // Mitten shape profile
-  // Bottom (wrist end)
-  points.push(new Vector2(0, -halfLength));
-  points.push(new Vector2(halfWidth * 0.7, -halfLength + 0.02));
-  points.push(new Vector2(halfWidth * 0.85, -halfLength + 0.04));
-
-  // Palm
-  points.push(new Vector2(halfWidth, -halfLength * 0.3));
-  points.push(new Vector2(halfWidth * 0.95, 0));
-
-  // Fingers (tapered tip)
-  points.push(new Vector2(halfWidth * 0.85, halfLength * 0.5));
-  points.push(new Vector2(halfWidth * 0.6, halfLength * 0.8));
-  points.push(new Vector2(halfWidth * 0.3, halfLength * 0.95));
-  points.push(new Vector2(0, halfLength));
-
-  const geometry = new LatheGeometry(points, segments);
+  // Smooth palm + finger block to keep silhouette organic.
+  const geometry = new CapsuleGeometry(0.5, 1, 6, Math.max(8, Math.floor(segments)));
+  geometry.scale(width * 0.62, length * 0.52, width * 0.46);
+  geometry.translate(0, -length * 0.04, width * 0.08);
   geometry.computeVertexNormals();
 
   return geometry;

@@ -20,6 +20,10 @@ export interface HeadProps {
   intensityBoost?: number;
   /** Resolved anatomy profile */
   proportions?: BodyProportions;
+  /** Opacity override for transparent modes */
+  opacity?: number;
+  /** Whether to render in wireframe mode */
+  wireframe?: boolean;
 }
 
 /**
@@ -28,7 +32,7 @@ export interface HeadProps {
  * Centered on Y axis.
  */
 export const Head = forwardRef<Group, HeadProps>(function Head(
-  { color, highlight, onClick, intensityBoost, proportions = BODY_PROPORTIONS },
+  { color, highlight, onClick, intensityBoost, proportions = BODY_PROPORTIONS, opacity = 1, wireframe = false },
   ref
 ) {
   // Create head geometry using LatheGeometry
@@ -39,25 +43,30 @@ export const Head = forwardRef<Group, HeadProps>(function Head(
 
   // Get material properties based on highlight state
   const materialProps: MaterialProps = useMemo(() => {
-    if (highlight) {
-      const intensifiedHighlight = {
-        ...highlight,
-        intensity: highlight.intensity * (intensityBoost ?? 1.0)
-      };
-      return getHighlightMaterialProps(intensifiedHighlight.color, intensifiedHighlight.intensity, color);
-    }
-    return getBaseMaterialProps(color);
-  }, [color, highlight, intensityBoost]);
+    const baseProps = highlight
+      ? getHighlightMaterialProps(
+        highlight.color,
+        highlight.intensity * (intensityBoost ?? 1.0),
+        color
+      )
+      : getBaseMaterialProps(color);
+
+    return {
+      ...baseProps,
+      opacity: (baseProps.opacity ?? 1) * opacity,
+      transparent: true,
+    };
+  }, [color, highlight, intensityBoost, opacity]);
 
   return (
     <group ref={ref}>
       <mesh
         geometry={geometry}
         scale={[1, 1, proportions.head.depth / proportions.head.width]}
-        castShadow
+        castShadow={!wireframe}
         onClick={onClick}
       >
-        <meshStandardMaterial {...materialProps} />
+        <meshPhysicalMaterial {...materialProps} wireframe={wireframe} />
       </mesh>
     </group>
   );

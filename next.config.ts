@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 import path from "path";
 import { createRequire } from "module";
+import { homedir } from "os";
 
 // Create a require function for CommonJS modules
 const require = createRequire(import.meta.url);
@@ -152,6 +153,30 @@ if (_fs.promises && _origPromisesOpen) {
   };
 }
 
+// ── Fallback env loading (for macOS Downloads EPERM restriction) ──────────────
+// When .env.local is EPERM-blocked (common in macOS Downloads folder),
+// we read from ~/.vitals-ai.env as a fallback.
+// Create this file with: echo 'OPENROUTER_API_KEY=your_key_here' > ~/.vitals-ai.env
+const _homeEnvFile = path.join(homedir(), ".vitals-ai.env");
+try {
+  const _homeEnvContent = require("fs").readFileSync(_homeEnvFile, "utf-8");
+  for (const line of _homeEnvContent.split("\n")) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+    const eqIdx = trimmed.indexOf("=");
+    if (eqIdx > 0) {
+      const key = trimmed.slice(0, eqIdx).trim();
+      const value = trimmed.slice(eqIdx + 1).trim().replace(/^["']|["']$/g, "");
+      if (key && !process.env[key]) {
+        process.env[key] = value;
+      }
+    }
+  }
+  console.log("[Vitals.AI] Loaded env from ~/.vitals-ai.env");
+} catch {
+  // File doesn't exist or can't be read — that's OK
+}
+
 const nextConfig: NextConfig = {
   // Performance optimizations
   reactStrictMode: true,
@@ -210,10 +235,16 @@ const nextConfig: NextConfig = {
     return config;
   },
 
-  // Disable telemetry
+  // Default env vars (overridden by .env.local or ~/.vitals-ai.env)
   env: {
     NEXT_TELEMETRY_DISABLED: "1",
+    // Best free OpenRouter model for health analysis
+    OPENROUTER_MODEL: process.env.OPENROUTER_MODEL ?? "meta-llama/llama-3.3-70b-instruct:free",
+    OPENROUTER_FALLBACK_MODELS: process.env.OPENROUTER_FALLBACK_MODELS ?? "google/gemini-2.0-flash-exp:free,qwen/qwen-2.5-72b-instruct:free",
+    OPENROUTER_APP_NAME: process.env.OPENROUTER_APP_NAME ?? "Vitals.AI",
+    NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
   },
 };
 
 export default nextConfig;
+

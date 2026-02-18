@@ -28,6 +28,7 @@ export interface ProceduralHumanProps {
   position?: [number, number, number];
   bodyState?: BodyState;
   bodyType?: BodyType;
+  viewMode?: 'body' | 'muscle' | 'skeleton';
   onRegionClick?: (area: HighlightArea) => void;
 }
 
@@ -78,6 +79,7 @@ export function ProceduralHuman({
   position = [0, 0, 0],
   bodyState = DEFAULT_BODY_STATE,
   bodyType = 'male',
+  viewMode = 'body',
   onRegionClick,
 }: ProceduralHumanProps): React.JSX.Element {
   // Refs for animation
@@ -154,18 +156,24 @@ export function ProceduralHuman({
     if (neckRef.current) {
       neckRef.current.rotation.x = newPosture.neckX;
     }
+    if (leftArmRef.current) {
+      leftArmRef.current.rotation.z = newPosture.leftShoulderZ;
+    }
+    if (rightArmRef.current) {
+      rightArmRef.current.rotation.z = newPosture.rightShoulderZ;
+    }
 
     // === Idle breathing animation ===
     const breathCycle = Math.sin(timeRef.current * 1.5);
     if (torsoRef.current) {
-      const breathScale = 1.0 + breathCycle * 0.012;
+      const breathScale = 1.0 + breathCycle * 0.008;
       torsoRef.current.scale.set(breathScale, 1.0, breathScale);
     }
 
     // === Subtle weight shift / sway ===
     const swayCycle = Math.sin(timeRef.current * 0.4);
     if (bodyRef.current) {
-      bodyRef.current.rotation.y = swayCycle * 0.008;
+      bodyRef.current.rotation.y = swayCycle * 0.004;
     }
   });
 
@@ -207,10 +215,42 @@ export function ProceduralHuman({
   const hipY = torsoBottom + torso.height * 0.08;
   const hipOffsetX = limbPositions.hipOffsetX;
 
+  // View mode adjustments
+  const isSkeletonMode = viewMode === 'skeleton';
+  const isMuscleMode = viewMode === 'muscle';
+
+  // Opacity for "Ghost" effect in different modes
+  const ghostOpacity = isSkeletonMode ? 0.1 : (isMuscleMode ? 0.3 : 1.0);
+  const wireframe = isSkeletonMode;
+  const modelScale = bodyType === 'female' ? 0.96 : 1.0;
+  const normalizedPosition: [number, number, number] = [
+    position[0],
+    position[1] - 0.02,
+    position[2],
+  ];
+
   return (
-    <group ref={groupRef} position={position}>
+    <group
+      ref={groupRef}
+      position={normalizedPosition}
+      scale={modelScale}
+    >
       {/* Main body group - with sway animation */}
       <group ref={bodyRef}>
+        {/* Core Energy / Heart - visible inside */}
+        {(isSkeletonMode || isMuscleMode) && (
+          <mesh position={[0, torsoTop - proportions.torso.height * 0.25, 0]}>
+            <sphereGeometry args={[0.08, 16, 16]} />
+            <meshBasicMaterial color="#ef4444" transparent opacity={0.8} />
+            <pointLight
+              color="#ef4444"
+              intensity={2}
+              distance={0.5}
+              decay={2}
+            />
+          </mesh>
+        )}
+
         {/* Spine rotation applied to upper body */}
         <group ref={spineRef}>
           {/* Head */}
@@ -221,12 +261,19 @@ export function ProceduralHuman({
               onClick={handleHeadClick}
               intensityBoost={highlightPulse}
               proportions={proportions}
+              opacity={ghostOpacity}
+              wireframe={wireframe}
             />
           </group>
 
           {/* Neck */}
           <group ref={neckRef} position={[0, neckY, 0]}>
-            <Neck color={currentVitalityColor} proportions={proportions} />
+            <Neck
+              color={currentVitalityColor}
+              proportions={proportions}
+              opacity={ghostOpacity}
+              wireframe={wireframe}
+            />
           </group>
 
           {/* Torso - with breathing animation */}
@@ -237,6 +284,8 @@ export function ProceduralHuman({
               onClick={handleTorsoClick}
               intensityBoost={highlightPulse}
               proportions={proportions}
+              opacity={ghostOpacity}
+              wireframe={wireframe}
             />
           </group>
 
@@ -251,6 +300,8 @@ export function ProceduralHuman({
               onElbowClick={handleLeftElbowClick}
               intensityBoost={highlightPulse}
               proportions={proportions}
+              opacity={ghostOpacity}
+              wireframe={wireframe}
             />
           </group>
 
@@ -265,6 +316,8 @@ export function ProceduralHuman({
               onElbowClick={handleRightElbowClick}
               intensityBoost={highlightPulse}
               proportions={proportions}
+              opacity={ghostOpacity}
+              wireframe={wireframe}
             />
           </group>
         </group>
@@ -280,6 +333,8 @@ export function ProceduralHuman({
             onKneeClick={handleLeftKneeClick}
             intensityBoost={highlightPulse}
             proportions={proportions}
+            opacity={ghostOpacity}
+            wireframe={wireframe}
           />
         </group>
 
@@ -293,6 +348,8 @@ export function ProceduralHuman({
             onKneeClick={handleRightKneeClick}
             intensityBoost={highlightPulse}
             proportions={proportions}
+            opacity={ghostOpacity}
+            wireframe={wireframe}
           />
         </group>
       </group>

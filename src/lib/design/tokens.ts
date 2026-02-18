@@ -103,7 +103,7 @@ export const GRADIENTS = {
   medium: 'linear-gradient(135deg, #f59e0b 0%, #eab308 100%)', // Amber to yellow
   low: 'linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%)', // Blue to cyan
   success: 'linear-gradient(135deg, #10b981 0%, #34d399 100%)', // Green gradient
-  ai: 'linear-gradient(135deg, #10b981 0%, #06b6d4 50%, #8b5cf6 100%)', // Emerald to cyan to purple
+  ai: 'linear-gradient(135deg, #10b981 0%, #06b6d4 50%, #2563eb 100%)', // Emerald to cyan to blue
   vitals: 'linear-gradient(135deg, #10b981 0%, #14b8a6 50%, #0ea5e9 100%)', // Brand gradient
 } as const;
 

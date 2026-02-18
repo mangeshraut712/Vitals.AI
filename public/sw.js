@@ -7,6 +7,7 @@ const DYNAMIC_CACHE_NAME = 'vitals-ai-dynamic-v1';
 const STATIC_ASSETS = [
     '/',
     '/dashboard',
+    '/experience',
     '/biomarkers',
     '/body-comp',
     '/vitals',
@@ -140,8 +141,8 @@ self.addEventListener('push', (event) => {
     const title = data.title || 'Vitals.AI';
     const options = {
         body: data.body || 'New health update available',
-        icon: '/icons/icon-192x192.png',
-        badge: '/icons/badge-72x72.png',
+        icon: '/icons/health-icon.svg',
+        badge: '/icons/health-badge.svg',
         data: data.data || {},
         actions: data.actions || [],
     };

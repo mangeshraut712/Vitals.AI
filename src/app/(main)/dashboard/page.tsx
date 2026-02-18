@@ -149,7 +149,7 @@ export default async function DashboardPage(): Promise<React.JSX.Element> {
 
         {/* AI Chat Bar */}
         <div className="w-full">
-          <AIChatWidget contextualPills={contextualPills} />
+          <AIChatWidget contextualPills={contextualPills} mode="inline" />
         </div>
 
         {/* Unified Health Card - Bio Age + Health Score + Action Items */}

@@ -1,311 +1,320 @@
-import Anthropic from '@anthropic-ai/sdk';
+import { createOpenAI } from '@ai-sdk/openai';
+import { generateText } from 'ai';
 import { BodyComposition } from './body-comp';
+import { getOpenRouterHeaders } from '@/lib/runtime/deployment';
 
 /**
  * Extended body composition data extracted from DEXA scans
  * Supports any DEXA format (BodySpec, DexaFit, hospital scans, etc.)
  */
 export interface ExtendedBodyComposition extends BodyComposition {
-  // Basic measurements
-  totalMass?: number; // Total body weight in lbs
-  height?: number; // Height in inches
-
-  // Regional fat distribution
-  armsFatPercent?: number;
-  legsFatPercent?: number;
-  trunkFatPercent?: number;
-  androidFatPercent?: number; // Abdominal region
-  gynoidFatPercent?: number; // Hip/thigh region
-  agRatio?: number; // Android/Gynoid ratio
-
-  // Regional lean mass
-  armsLeanMass?: number;
-  legsLeanMass?: number;
-  trunkLeanMass?: number;
-
-  // Regional fat mass (lbs)
-  armsFatMass?: number;
-  legsFatMass?: number;
-  trunkFatMass?: number;
-  androidFatMass?: number;
-  gynoidFatMass?: number;
-
-  // Visceral fat (VAT)
-  vatMass?: number; // lbs
-  vatVolume?: number; // cubic inches
-
-  // Bone density
-  totalBmd?: number; // g/cm²
-  spineBmd?: number;
+  // Additional bone data not always present in baseline parser
   hipBmd?: number;
-  boneDensityZScore?: number; // Age-matched
-
-  // Metabolic
-  restingMetabolicRate?: number; // RMR in cal/day
-
-  // Muscle balance (left vs right)
-  rightArmLean?: number;
-  leftArmLean?: number;
-  rightLegLean?: number;
-  leftLegLean?: number;
-
-  // Patient info
-  sex?: 'male' | 'female';
-  scanDate?: string; // ISO date string
 }
 
-const EXTRACTION_TOOL: Anthropic.Tool = {
-  name: 'extract_body_composition',
-  description: 'Extract body composition data from a DEXA scan report',
-  input_schema: {
-    type: 'object',
-    properties: {
-      // Patient info
-      sex: {
-        type: 'string',
-        enum: ['male', 'female'],
-        description: 'Patient sex',
-      },
-      scanDate: {
-        type: 'string',
-        description: 'Date of scan in ISO format (YYYY-MM-DD)',
-      },
-      patientAge: {
-        type: 'number',
-        description: 'Patient age at time of scan',
-      },
-      height: {
-        type: 'number',
-        description: 'Height in inches',
-      },
-
-      // Total body composition
-      totalMass: {
-        type: 'number',
-        description: 'Total body mass/weight in lbs',
-      },
-      bodyFatPercent: {
-        type: 'number',
-        description: 'Total body fat percentage',
-      },
-      fatMass: {
-        type: 'number',
-        description: 'Total fat tissue mass in lbs',
-      },
-      leanMass: {
-        type: 'number',
-        description: 'Total lean tissue mass in lbs',
-      },
-      boneMineralContent: {
-        type: 'number',
-        description: 'Total bone mineral content (BMC) in lbs',
-      },
-
-      // Regional fat percentages
-      armsFatPercent: {
-        type: 'number',
-        description: 'Arms region fat percentage',
-      },
-      legsFatPercent: {
-        type: 'number',
-        description: 'Legs region fat percentage',
-      },
-      trunkFatPercent: {
-        type: 'number',
-        description: 'Trunk/torso region fat percentage',
-      },
-      androidFatPercent: {
-        type: 'number',
-        description: 'Android (abdominal) region fat percentage',
-      },
-      gynoidFatPercent: {
-        type: 'number',
-        description: 'Gynoid (hip/thigh) region fat percentage',
-      },
-      agRatio: {
-        type: 'number',
-        description: 'Android/Gynoid (A/G) ratio',
-      },
-
-      // Regional fat mass (lbs)
-      armsFatMass: {
-        type: 'number',
-        description: 'Arms fat mass in lbs',
-      },
-      legsFatMass: {
-        type: 'number',
-        description: 'Legs fat mass in lbs',
-      },
-      trunkFatMass: {
-        type: 'number',
-        description: 'Trunk fat mass in lbs',
-      },
-      androidFatMass: {
-        type: 'number',
-        description: 'Android region fat mass in lbs',
-      },
-      gynoidFatMass: {
-        type: 'number',
-        description: 'Gynoid region fat mass in lbs',
-      },
-
-      // Regional lean mass (lbs)
-      armsLeanMass: {
-        type: 'number',
-        description: 'Arms lean tissue mass in lbs',
-      },
-      legsLeanMass: {
-        type: 'number',
-        description: 'Legs lean tissue mass in lbs',
-      },
-      trunkLeanMass: {
-        type: 'number',
-        description: 'Trunk lean tissue mass in lbs',
-      },
-
-      // Visceral fat
-      vatMass: {
-        type: 'number',
-        description: 'Visceral adipose tissue (VAT) mass in lbs',
-      },
-      vatVolume: {
-        type: 'number',
-        description: 'Visceral adipose tissue volume in cubic inches',
-      },
-
-      // Bone density
-      totalBmd: {
-        type: 'number',
-        description: 'Total body bone mineral density (BMD) in g/cm²',
-      },
-      spineBmd: {
-        type: 'number',
-        description: 'Spine bone mineral density in g/cm²',
-      },
-      boneDensityTScore: {
-        type: 'number',
-        description: 'Total body T-Score for bone density',
-      },
-      boneDensityZScore: {
-        type: 'number',
-        description: 'Total body Z-Score (age-matched) for bone density',
-      },
-
-      // Metabolic
-      restingMetabolicRate: {
-        type: 'number',
-        description: 'Resting metabolic rate (RMR) in calories/day',
-      },
-
-      // Muscle balance
-      rightArmLean: {
-        type: 'number',
-        description: 'Right arm lean mass in lbs',
-      },
-      leftArmLean: {
-        type: 'number',
-        description: 'Left arm lean mass in lbs',
-      },
-      rightLegLean: {
-        type: 'number',
-        description: 'Right leg lean mass in lbs',
-      },
-      leftLegLean: {
-        type: 'number',
-        description: 'Left leg lean mass in lbs',
-      },
-    },
-    required: ['bodyFatPercent'],
-  },
-};
+const DEFAULT_EXTRACTION_MODEL = 'meta-llama/llama-3.3-70b-instruct:free';
 
 const SYSTEM_PROMPT = `You are a DEXA scan data extraction assistant. Extract body composition values from DEXA scan reports.
 
 IMPORTANT RULES:
-- Extract ALL values that are present in the report
-- Use the exact numeric values shown (don't convert units)
-- DEXA reports may come from different providers (BodySpec, DexaFit, hospitals, etc.) - adapt to the format
-- For percentages, extract just the number (e.g., 31.3 not "31.3%")
-- For regional data, look for tables with Arms, Legs, Trunk, Android, Gynoid sections
-- VAT (Visceral Adipose Tissue) is often in a separate section
-- Bone density may have T-Score and Z-Score values
-- If a value is not found, do not include it in the output
+- Extract ALL values that are present in the report.
+- Use exact numeric values from the report text. Do not do unit conversion.
+- Return only keys that exist in the report.
+- Return ONLY valid JSON.
 
-Common terms to look for:
-- Total Body Fat % / Body Fat Percentage
-- Lean Tissue / Lean Mass / Fat-Free Mass
-- Fat Tissue / Fat Mass
-- BMC / Bone Mineral Content
-- Android = abdominal/belly region
-- Gynoid = hip/thigh region
-- A/G Ratio = Android/Gynoid ratio (should be < 1.0)
-- VAT = Visceral Adipose Tissue (dangerous belly fat)
-- RMR = Resting Metabolic Rate
-- BMD = Bone Mineral Density`;
+Common terms to map:
+- Total Body Fat % / Body Fat Percentage -> bodyFatPercent
+- Lean Tissue / Lean Mass -> leanMass
+- Fat Tissue / Fat Mass -> fatMass
+- BMC / Bone Mineral Content -> boneMineralContent
+- VAT / Visceral Adipose Tissue -> vatMass
+- RMR -> restingMetabolicRate
+- Android / Gynoid / A/G Ratio -> androidFatPercent, gynoidFatPercent, agRatio`;
+
+const NUMERIC_KEYS = [
+  'bodyFatPercent',
+  'leanMass',
+  'fatMass',
+  'boneMineralContent',
+  'totalMass',
+  'height',
+  'armsFatPercent',
+  'legsFatPercent',
+  'trunkFatPercent',
+  'androidFatPercent',
+  'gynoidFatPercent',
+  'agRatio',
+  'armsLeanMass',
+  'legsLeanMass',
+  'trunkLeanMass',
+  'armsFatMass',
+  'legsFatMass',
+  'trunkFatMass',
+  'androidFatMass',
+  'gynoidFatMass',
+  'visceralFat',
+  'vatMass',
+  'vatVolume',
+  'totalBmd',
+  'spineBmd',
+  'hipBmd',
+  'boneDensityTScore',
+  'boneDensityZScore',
+  'restingMetabolicRate',
+  'almi',
+  'rightArmLean',
+  'leftArmLean',
+  'rightLegLean',
+  'leftLegLean',
+] as const satisfies ReadonlyArray<keyof ExtendedBodyComposition>;
+
+const STRING_KEYS = ['scanDate'] as const satisfies ReadonlyArray<
+  keyof ExtendedBodyComposition
+>;
+
+const KEY_ALIASES: Record<string, keyof ExtendedBodyComposition> = {
+  bodyfat: 'bodyFatPercent',
+  bodyfatpercent: 'bodyFatPercent',
+  bodyfatpercentage: 'bodyFatPercent',
+  totalleanmass: 'leanMass',
+  leanmass: 'leanMass',
+  totalfatmass: 'fatMass',
+  fatmass: 'fatMass',
+  bmc: 'boneMineralContent',
+  bonemineralcontent: 'boneMineralContent',
+  weight: 'totalMass',
+  bodyweight: 'totalMass',
+  visceralfat: 'visceralFat',
+  vat: 'vatMass',
+  vatmass: 'vatMass',
+  vatvolume: 'vatVolume',
+  totalbmd: 'totalBmd',
+  spinebmd: 'spineBmd',
+  hipbmd: 'hipBmd',
+  bonedensitytscore: 'boneDensityTScore',
+  bonedensityzscore: 'boneDensityZScore',
+  rmr: 'restingMetabolicRate',
+  restingmetabolicrate: 'restingMetabolicRate',
+  agratio: 'agRatio',
+  scandate: 'scanDate',
+};
+
+function normalizeKey(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+function createCanonicalKeyMap(): Record<string, keyof ExtendedBodyComposition> {
+  const map: Record<string, keyof ExtendedBodyComposition> = { ...KEY_ALIASES };
+  for (const key of NUMERIC_KEYS) {
+    map[normalizeKey(key)] = key;
+  }
+  for (const key of STRING_KEYS) {
+    map[normalizeKey(key)] = key;
+  }
+  map.sex = 'sex';
+  return map;
+}
+
+const CANONICAL_KEY_MAP = createCanonicalKeyMap();
+
+function parseModelList(value: string | undefined): string[] {
+  if (!value) return [];
+  return value
+    .split(',')
+    .map((model) => model.trim())
+    .filter(Boolean);
+}
+
+function getModelCandidates(): string[] {
+  const preferred = process.env.OPENROUTER_MODEL?.trim() || DEFAULT_EXTRACTION_MODEL;
+  const fallbackFromEnv = parseModelList(process.env.OPENROUTER_FALLBACK_MODELS);
+  return Array.from(new Set([preferred, ...fallbackFromEnv]));
+}
+
+function extractJsonObjectFromText(value: string): string | null {
+  const fencedMatch = value.match(/```json\s*([\s\S]*?)\s*```/i);
+  if (fencedMatch?.[1]) {
+    return fencedMatch[1].trim();
+  }
+
+  const firstBrace = value.indexOf('{');
+  const lastBrace = value.lastIndexOf('}');
+  if (firstBrace === -1 || lastBrace === -1 || firstBrace >= lastBrace) {
+    return null;
+  }
+
+  return value.slice(firstBrace, lastBrace + 1).trim();
+}
+
+function toNumber(value: unknown): number | undefined {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value;
+  }
+
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+
+  const normalized = value.replace(/,/g, '').trim();
+  const match = normalized.match(/-?\d+(\.\d+)?/);
+  if (!match) {
+    return undefined;
+  }
+
+  const parsed = Number.parseFloat(match[0]);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function toSex(value: unknown): ExtendedBodyComposition['sex'] | undefined {
+  if (typeof value !== 'string') return undefined;
+  const normalized = value.trim().toLowerCase();
+  if (normalized === 'male' || normalized === 'm') return 'male';
+  if (normalized === 'female' || normalized === 'f') return 'female';
+  return undefined;
+}
+
+function hasBodyCompValues(value: ExtendedBodyComposition): boolean {
+  return Object.values(value).some((entry) => entry !== undefined);
+}
+
+function sanitizeBodyComp(input: unknown): ExtendedBodyComposition {
+  if (!input || typeof input !== 'object') {
+    return {};
+  }
+
+  const source = input as Record<string, unknown>;
+  const result: ExtendedBodyComposition = {};
+  const numericSet = new Set<string>(NUMERIC_KEYS as readonly string[]);
+  const stringSet = new Set<string>(STRING_KEYS as readonly string[]);
+
+  for (const [rawKey, rawValue] of Object.entries(source)) {
+    const canonical = CANONICAL_KEY_MAP[normalizeKey(rawKey)];
+    if (!canonical) {
+      continue;
+    }
+
+    const key = canonical as string;
+
+    if (key === 'sex') {
+      const sex = toSex(rawValue);
+      if (sex) {
+        result.sex = sex;
+      }
+      continue;
+    }
+
+    if (stringSet.has(key) && typeof rawValue === 'string' && rawValue.trim()) {
+      const targetKey = canonical as 'scanDate';
+      result[targetKey] = rawValue.trim();
+      continue;
+    }
+
+    if (numericSet.has(key)) {
+      const numericValue = toNumber(rawValue);
+      if (numericValue !== undefined) {
+        (result as Record<string, number>)[key] = numericValue;
+      }
+    }
+  }
+
+  // Keep both aliases populated for backward compatibility.
+  if (result.vatMass !== undefined && result.visceralFat === undefined) {
+    result.visceralFat = result.vatMass;
+  }
+  if (result.visceralFat !== undefined && result.vatMass === undefined) {
+    result.vatMass = result.visceralFat;
+  }
+
+  return result;
+}
+
+function parseExtractionResult(content: string): ExtendedBodyComposition | null {
+  const jsonPayload = extractJsonObjectFromText(content);
+  if (!jsonPayload) return null;
+
+  try {
+    const parsed = JSON.parse(jsonPayload) as unknown;
+    const sanitized = sanitizeBodyComp(parsed);
+    return hasBodyCompValues(sanitized) ? sanitized : null;
+  } catch {
+    return null;
+  }
+}
 
 export async function extractBodyCompWithAI(
   text: string
 ): Promise<ExtendedBodyComposition> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const apiKey = process.env.OPENROUTER_API_KEY?.trim();
   if (!apiKey) {
-    console.warn('[Vitals.AI] No API key, skipping AI body comp extraction');
+    console.warn('[Vitals.AI] No OpenRouter API key, skipping AI body comp extraction');
     return {};
   }
 
-  try {
-    const client = new Anthropic({ apiKey });
+  const openrouter = createOpenAI({
+    baseURL: 'https://openrouter.ai/api/v1',
+    apiKey,
+    headers: getOpenRouterHeaders(),
+  });
 
-    console.log('[Vitals.AI] Extracting body composition with AI...');
+  console.log('[Vitals.AI] Extracting body composition with AI...');
 
-    const response = await client.messages.create({
-      model: 'claude-3-5-sonnet-latest',
-      max_tokens: 4096,
-      system: SYSTEM_PROMPT,
-      tools: [EXTRACTION_TOOL],
-      tool_choice: { type: 'tool', name: 'extract_body_composition' },
-      messages: [
-        {
-          role: 'user',
-          content: `Extract all body composition data from this DEXA scan report:\n\n${text}`,
-        },
-      ],
-    });
+  const modelCandidates = getModelCandidates();
+  let lastError: unknown;
 
-    // Get tool use result
-    const toolUse = response.content.find((block) => block.type === 'tool_use');
-    if (toolUse && toolUse.type === 'tool_use') {
-      const extracted = toolUse.input as ExtendedBodyComposition;
+  for (const modelId of modelCandidates) {
+    try {
+      const { text: responseText } = await generateText({
+        model: openrouter(modelId),
+        system: SYSTEM_PROMPT,
+        prompt: `Extract all available body composition metrics from this DEXA report.
 
-      // Count how many fields were extracted
-      // Map vatMass to visceralFat for backwards compatibility
-      if (extracted.vatMass !== undefined && extracted.visceralFat === undefined) {
-        extracted.visceralFat = extracted.vatMass;
+Return ONLY one valid JSON object (no markdown, no explanation).
+Use these exact keys when values are present:
+${[...NUMERIC_KEYS, 'sex', ...STRING_KEYS].join(', ')}
+
+DEXA report text:
+${text}`,
+      });
+
+      const extracted = parseExtractionResult(responseText);
+      if (!extracted) {
+        console.warn(
+          `[Vitals.AI] Body comp extraction parse failed (${modelId}), trying fallback model.`
+        );
+        continue;
       }
 
       const fieldCount = Object.keys(extracted).filter(
-        (k) => extracted[k as keyof ExtendedBodyComposition] !== undefined
+        (key) => extracted[key as keyof ExtendedBodyComposition] !== undefined
       ).length;
+      console.log(
+        `[Vitals.AI] AI extracted ${fieldCount} body composition fields (${modelId})`
+      );
 
-      console.log(`[Vitals.AI] AI extracted ${fieldCount} body composition fields`);
-
-      // Log key metrics for debugging
-      if (extracted.bodyFatPercent) {
+      if (extracted.bodyFatPercent !== undefined) {
         console.log(`[Vitals.AI] Body Fat: ${extracted.bodyFatPercent}%`);
       }
-      if (extracted.leanMass) {
+      if (extracted.leanMass !== undefined) {
         console.log(`[Vitals.AI] Lean Mass: ${extracted.leanMass} lbs`);
       }
-      if (extracted.vatMass) {
+      if (extracted.vatMass !== undefined) {
         console.log(`[Vitals.AI] VAT: ${extracted.vatMass} lbs`);
       }
 
       return extracted;
+    } catch (error) {
+      lastError = error;
+      console.warn(
+        `[Vitals.AI] Body comp extraction model failed (${modelId}), trying fallback.`
+      );
     }
-
-    console.warn('[Vitals.AI] No tool use in body comp response');
-    return {};
-  } catch (error) {
-    console.error('[Vitals.AI] AI body comp extraction error:', error);
-    return {};
   }
+
+  if (lastError) {
+    console.error('[Vitals.AI] AI body comp extraction error:', lastError);
+  } else {
+    console.warn('[Vitals.AI] No valid AI body comp response from OpenRouter');
+  }
+
+  return {};
 }

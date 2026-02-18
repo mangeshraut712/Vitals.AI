@@ -82,63 +82,63 @@ export const BODY_PROPORTIONS: BodyProportions = {
   // Head
   head: {
     height: 0.28,
-    width: 0.20,
-    depth: 0.22, // slightly deeper than wide for realistic shape
+    width: 0.188,
+    depth: 0.205, // slightly deeper than wide for realistic shape
     jawTaper: 0.86,
   },
 
   // Neck
   neck: {
     height: 0.08,
-    radiusTop: 0.055,
-    radiusBottom: 0.065, // slightly wider at base
+    radiusTop: 0.047,
+    radiusBottom: 0.056, // slightly wider at base
   },
 
   // Torso
   torso: {
     height: 0.70,
-    shoulderWidth: 0.45,
-    waistWidth: 0.30,
-    hipWidth: 0.35,
+    shoulderWidth: 0.41,
+    waistWidth: 0.27,
+    hipWidth: 0.33,
     // LatheGeometry profile widths (half-widths from center)
-    shoulderHalfWidth: 0.225,
-    chestHalfWidth: 0.20,
-    waistHalfWidth: 0.15,
-    hipHalfWidth: 0.175,
+    shoulderHalfWidth: 0.205,
+    chestHalfWidth: 0.182,
+    waistHalfWidth: 0.135,
+    hipHalfWidth: 0.165,
   },
 
   // Arms
   upperArm: {
     length: 0.36,
-    radiusTop: 0.045, // at shoulder
-    radiusBottom: 0.035, // at elbow
+    radiusTop: 0.041, // at shoulder
+    radiusBottom: 0.033, // at elbow
   },
   forearm: {
     length: 0.30,
-    radiusTop: 0.035, // at elbow
-    radiusBottom: 0.025, // at wrist
+    radiusTop: 0.033, // at elbow
+    radiusBottom: 0.027, // at wrist
   },
   hand: {
     length: 0.18,
-    width: 0.08,
+    width: 0.078,
     depth: 0.03,
   },
 
   // Legs
   thigh: {
     length: 0.50,
-    radiusTop: 0.065, // at hip
-    radiusBottom: 0.045, // at knee
+    radiusTop: 0.061, // at hip
+    radiusBottom: 0.048, // at knee
   },
   shin: {
     length: 0.48,
     radiusTop: 0.045, // at knee
-    radiusBottom: 0.030, // at ankle
+    radiusBottom: 0.034, // at ankle
   },
   foot: {
     length: 0.25,
-    width: 0.09,
-    height: 0.06,
+    width: 0.086,
+    height: 0.058,
   },
 
   // Joint overlaps (for hiding seams)
@@ -228,7 +228,7 @@ export const LIMB_POSITIONS: LimbPositions = {
   shoulderOffsetX: BODY_PROPORTIONS.torso.shoulderWidth / 2, // 0.225
 
   // Legs positioned at hip width (feet hip-width apart)
-  hipOffsetX: 0.125, // ~0.25 units between feet centers
+  hipOffsetX: 0.116, // ~0.23 units between feet centers
 
   // Feet angle outward
   footRotationY: Math.PI / 12, // 15 degrees
@@ -254,36 +254,36 @@ const BODY_TYPE_FACTORS: Record<
   }
 > = {
   male: {
-    headWidth: 1.03,
-    headDepth: 1.04,
-    jawTaper: 0.92,
-    neckRadius: 1.08,
-    shoulderWidth: 1.12,
-    chestWidth: 1.12,
-    waistWidth: 1.03,
-    hipWidth: 0.95,
-    upperArmRadius: 1.08,
-    forearmRadius: 1.06,
-    handWidth: 1.05,
+    headWidth: 1.05,
+    headDepth: 1.05,
+    jawTaper: 0.95,
+    neckRadius: 1.12,
+    shoulderWidth: 1.2,
+    chestWidth: 1.18,
+    waistWidth: 1.08,
+    hipWidth: 0.92,
+    upperArmRadius: 1.12,
+    forearmRadius: 1.08,
+    handWidth: 1.02,
     thighRadius: 1.03,
-    shinRadius: 1.02,
-    footWidth: 1.04,
+    shinRadius: 1.0,
+    footWidth: 1.05,
   },
   female: {
     headWidth: 0.97,
     headDepth: 0.98,
-    jawTaper: 0.82,
-    neckRadius: 0.94,
-    shoulderWidth: 0.94,
-    chestWidth: 0.98,
-    waistWidth: 0.88,
-    hipWidth: 1.12,
-    upperArmRadius: 0.92,
-    forearmRadius: 0.9,
-    handWidth: 0.92,
-    thighRadius: 1.05,
+    jawTaper: 0.78,
+    neckRadius: 0.9,
+    shoulderWidth: 0.82,
+    chestWidth: 0.92,
+    waistWidth: 0.77,
+    hipWidth: 1.28,
+    upperArmRadius: 0.84,
+    forearmRadius: 0.82,
+    handWidth: 0.88,
+    thighRadius: 1.14,
     shinRadius: 0.97,
-    footWidth: 0.92,
+    footWidth: 0.88,
   },
 };
 

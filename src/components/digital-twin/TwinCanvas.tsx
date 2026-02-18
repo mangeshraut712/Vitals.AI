@@ -3,6 +3,7 @@
 import { Suspense } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, ContactShadows, Environment, Float } from '@react-three/drei';
+import { EffectComposer, Bloom, Vignette, Noise } from '@react-three/postprocessing';
 import type { ReactNode } from 'react';
 
 interface TwinCanvasProps {
@@ -12,27 +13,30 @@ interface TwinCanvasProps {
 function Lighting(): React.JSX.Element {
   return (
     <>
-      <ambientLight intensity={0.52} />
-      <spotLight
-        position={[6, 12, 8]}
-        angle={0.28}
-        penumbra={0.9}
-        intensity={1.35}
-        castShadow
-        shadow-mapSize={[1024, 1024]}
+      <hemisphereLight
+        intensity={0.68}
+        color="#e4ebf5"
+        groundColor="#0a0f16"
       />
-      <pointLight position={[-6, 4, -4]} intensity={0.45} color="#fff3e9" />
+
+      <directionalLight
+        position={[1.8, 4.6, 3.2]}
+        intensity={1.25}
+        color="#f3f6fb"
+        castShadow
+        shadow-bias={-0.00012}
+      />
+
+      <directionalLight
+        position={[-2.4, 2.1, 1.4]}
+        intensity={0.45}
+        color="#cad6e8"
+      />
+
+      <pointLight position={[0, 2.4, -3]} intensity={0.28} color="#96a6be" />
+      <ambientLight intensity={0.3} color="#d6deeb" />
       <Environment preset="studio" />
     </>
-  );
-}
-
-function TestBox(): React.JSX.Element {
-  return (
-    <mesh position={[0, 0.5, 0]}>
-      <boxGeometry args={[1, 1, 1]} />
-      <meshStandardMaterial color="#f5f5f5" />
-    </mesh>
   );
 }
 
@@ -40,31 +44,41 @@ function LoadingFallback(): React.JSX.Element {
   return (
     <mesh position={[0, 1, 0]}>
       <sphereGeometry args={[0.2, 16, 16]} />
-      <meshStandardMaterial color="#e0e0e0" transparent opacity={0.5} />
+      <meshPhysicalMaterial
+        color="#64748b"
+        transparent
+        opacity={0.5}
+        roughness={0}
+        transmission={1}
+        thickness={1}
+      />
     </mesh>
   );
 }
 
 export function TwinCanvas({ children }: TwinCanvasProps): React.JSX.Element {
   return (
-    <div className="relative w-full h-full bg-slate-100 rounded-xl overflow-hidden shadow-inner">
-      {/* Soft studio backdrop */}
+    <div className="relative w-full h-full bg-[#090b10] rounded-xl overflow-hidden shadow-2xl border border-white/5">
+      {/* Soft neutral background */}
       <div
-        className="absolute inset-0 opacity-40 pointer-events-none"
+        className="absolute inset-0 pointer-events-none"
         style={{
-          background: 'radial-gradient(circle at 50% 30%, #f8fafc 0%, #dbe4f1 70%, #c7d2e3 100%)'
+          background:
+            'radial-gradient(circle at 50% 35%, rgba(24,31,43,0.62) 0%, rgba(9,11,16,0.94) 56%, rgba(4,6,11,1) 100%)',
         }}
       />
 
       <Canvas
         shadows
         dpr={[1, 2]}
-        camera={{ position: [0, 1.2, 4], fov: 45 }}
+        camera={{ position: [0, 1.08, 2.95], fov: 24 }}
         style={{ position: 'absolute', inset: 0 }}
         gl={{
           antialias: true,
           powerPreference: 'high-performance',
-          alpha: true,
+          alpha: false,
+          stencil: false,
+          depth: true,
         }}
       >
         <Suspense fallback={<LoadingFallback />}>
@@ -72,35 +86,50 @@ export function TwinCanvas({ children }: TwinCanvasProps): React.JSX.Element {
 
           <ContactShadows
             position={[0, 0, 0]}
-            opacity={0.42}
-            scale={8}
-            blur={2}
-            far={10}
-            color="#1f2937"
+            opacity={0.32}
+            scale={6.8}
+            blur={2.2}
+            far={3.4}
+            color="#000000"
           />
 
           <Float
-            speed={1.5}
-            rotationIntensity={0.2}
-            floatIntensity={0.5}
-            floatingRange={[-0.05, 0.05]}
+            speed={0.44}
+            rotationIntensity={0.015}
+            floatIntensity={0.035}
+            floatingRange={[-0.005, 0.01]}
           >
-            {children ?? <TestBox />}
+            {children}
           </Float>
 
           <OrbitControls
             enablePan={false}
-            enableZoom={true}
-            minDistance={3}
-            maxDistance={8}
-            minPolarAngle={Math.PI / 4}
-            maxPolarAngle={Math.PI / 1.8}
-            autoRotate
-            autoRotateSpeed={0.35}
-            target={[0, 1.2, 0]}
+            enableZoom={false}
+            minDistance={2.95}
+            maxDistance={2.95}
+            minPolarAngle={Math.PI / 2.5}
+            maxPolarAngle={Math.PI / 1.82}
+            minAzimuthAngle={-Math.PI / 8}
+            maxAzimuthAngle={Math.PI / 8}
+            autoRotate={false}
+            target={[0, 1.02, 0.05]}
           />
+
+          <EffectComposer multisampling={0}>
+            <Bloom
+              luminanceThreshold={0.75}
+              luminanceSmoothing={0.95}
+              height={300}
+              intensity={0.22}
+            />
+            <Vignette eskil={false} offset={0.3} darkness={0.34} />
+            <Noise opacity={0.008} />
+          </EffectComposer>
         </Suspense>
       </Canvas>
+
+      {/* Subtle bottom fade */}
+      <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black/50 to-transparent pointer-events-none" />
     </div>
   );
 }

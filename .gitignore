@@ -26,6 +26,9 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 dev.log
+.npm-cache/
+.npmrc
+npm-cache/
 
 # Environment variables
 .env*
@@ -44,6 +47,9 @@ Thumbs.db
 
 # Testing
 coverage/
+test-results/
+playwright-report/
+server.pid
 
 # Vercel
 .vercel
@@ -51,6 +57,7 @@ coverage/
 # Prisma local database
 prisma/dev.db
 prisma/dev.db-*
+user-goals.json
 
 # Personal health data (NEVER commit actual data files)
 /data/**/*
@@ -84,4 +91,5 @@ prompt.md
 data/Activity/
 data/Bloodwork/
 data/Body\ Scan/
-npm-cache/
+labtest.pdf
+withings data/

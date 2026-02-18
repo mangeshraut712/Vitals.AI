@@ -28,36 +28,36 @@ function formatDate(isoString: string): string {
 }
 
 function getFileTypeIcon(type: FileType): React.JSX.Element {
-  const baseClasses = "w-10 h-10 rounded-lg flex items-center justify-center";
+  const baseClasses = 'w-10 h-10 rounded-lg flex items-center justify-center';
 
   switch (type) {
     case 'bloodwork':
       return (
-        <div className={baseClasses} style={{ backgroundColor: '#fef2f2' }}>
-          <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className={`${baseClasses} bg-rose-500/10`}>
+          <svg className="w-5 h-5 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
           </svg>
         </div>
       );
     case 'dexa':
       return (
-        <div className={baseClasses} style={{ backgroundColor: '#f0fdf4' }}>
-          <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className={`${baseClasses} bg-emerald-500/10`}>
+          <svg className="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
           </svg>
         </div>
       );
     case 'activity':
       return (
-        <div className={baseClasses} style={{ backgroundColor: '#eff6ff' }}>
-          <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className={`${baseClasses} bg-cyan-500/10`}>
+          <svg className="w-5 h-5 text-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
           </svg>
         </div>
       );
     default:
       return (
-        <div className={baseClasses} style={{ backgroundColor: '#f1f5f9' }}>
+        <div className={`${baseClasses} bg-muted`}>
           <svg className="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
           </svg>
@@ -133,10 +133,10 @@ export function DataSourcesClient({ dataSources }: DataSourcesClientProps): Reac
   return (
     <div className="space-y-6">
       {/* Instructions card */}
-      <div className={`${CARD_CLASSES.base} ${CARD_CLASSES.padding}`} style={{ backgroundColor: '#f8fafc' }}>
+      <div className={`${CARD_CLASSES.base} ${CARD_CLASSES.padding} bg-secondary/20`}>
         <h3 className="font-medium text-foreground mb-2">Adding New Data</h3>
         <p className="text-sm text-muted-foreground mb-3">
-          To add new health data, place files in the <code className="bg-slate-200 px-1.5 py-0.5 rounded text-xs">/data</code> folder in the project directory.
+          To add new health data, place files in the <code className="bg-muted px-1.5 py-0.5 rounded text-xs">/data</code> folder in the project directory.
         </p>
         <div className="text-sm text-muted-foreground space-y-1">
           <p><strong>Supported formats:</strong> .txt, .csv, .xlsx</p>
@@ -152,7 +152,7 @@ export function DataSourcesClient({ dataSources }: DataSourcesClientProps): Reac
           </svg>
           <h3 className="text-lg font-medium text-foreground mb-2">No data files found</h3>
           <p className="text-muted-foreground">
-            Add .txt, .csv, or .xlsx files to the <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">/data</code> folder to get started.
+            Add .txt, .csv, or .xlsx files to the <code className="bg-muted px-1.5 py-0.5 rounded text-xs">/data</code> folder to get started.
           </p>
         </div>
       ) : (
@@ -182,8 +182,7 @@ export function DataSourcesClient({ dataSources }: DataSourcesClientProps): Reac
                       {source.extractedData.map((data, index) => (
                         <span
                           key={index}
-                          className="inline-flex items-center px-2 py-0.5 rounded text-xs"
-                          style={{ backgroundColor: '#f1f5f9', color: '#475569' }}
+                          className="inline-flex items-center rounded px-2 py-0.5 text-xs bg-muted text-muted-foreground"
                         >
                           {data}
                         </span>
@@ -201,11 +200,11 @@ export function DataSourcesClient({ dataSources }: DataSourcesClientProps): Reac
       <div className="flex items-center justify-between">
         {syncResult && (
           <div
-            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm"
-            style={{
-              backgroundColor: syncResult.success ? '#f0fdf4' : '#fef2f2',
-              color: syncResult.success ? '#166534' : '#dc2626',
-            }}
+            className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm ${
+              syncResult.success
+                ? 'bg-emerald-500/10 text-emerald-500'
+                : 'bg-rose-500/10 text-rose-500'
+            }`}
           >
             {syncResult.success ? (
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -222,8 +221,7 @@ export function DataSourcesClient({ dataSources }: DataSourcesClientProps): Reac
         <button
           onClick={handleSync}
           disabled={isSyncing}
-          className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors disabled:opacity-50"
-          style={{ backgroundColor: STATUS_COLORS.optimal.base }}
+          className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white rounded-lg transition hover:opacity-90 disabled:opacity-50 vitals-gradient-bg"
         >
           <svg
             className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`}

@@ -49,19 +49,28 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         if (secret && !verifySignature(signature, rawBody, secret)) {
             console.error('[Terra Webhook] Invalid signature');
             if (strictSignatureMode) {
-                return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
+                return NextResponse.json({
+                    status: 'ignored',
+                    reason: 'invalid_signature',
+                    httpStatus: 401,
+                });
             }
 
             // Non-strict mode: avoid hard failures in local/dev environments.
-            return NextResponse.json(
-                { status: 'ignored', reason: 'invalid_signature' },
-                { status: 202 }
-            );
+            return NextResponse.json({
+                status: 'ignored',
+                reason: 'invalid_signature',
+                httpStatus: 202,
+            });
         }
 
         const payload = JSON.parse(rawBody) as TerraWebhookPayload;
         if (!payload?.type || !payload?.user?.provider || !Array.isArray(payload.data)) {
-            return NextResponse.json({ error: 'Invalid payload structure' }, { status: 400 });
+            return NextResponse.json({
+                status: 'ignored',
+                reason: 'invalid_payload_structure',
+                httpStatus: 400,
+            });
         }
 
         const type = payload.type;
@@ -102,7 +111,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     } catch (error) {
         console.error('[Terra Webhook] Processing failed:', error);
         if (error instanceof SyntaxError) {
-            return NextResponse.json({ error: 'Invalid JSON payload' }, { status: 400 });
+            return NextResponse.json({
+                status: 'ignored',
+                reason: 'invalid_json_payload',
+                httpStatus: 400,
+            });
         }
 
         return NextResponse.json({

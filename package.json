@@ -26,25 +26,28 @@
     "node": ">=20.0.0"
   },
   "scripts": {
-    "dev": "next dev --webpack",
+    "dev": "node scripts/preflight.mjs && next dev --webpack",
     "postinstall": "prisma generate",
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint",
-    "typecheck": "node -e \"const fs=require('fs'); fs.rmSync('.next/types',{recursive:true,force:true}); fs.rmSync('.next/dev/types',{recursive:true,force:true});\" && next typegen && tsc --noEmit",
+    "typecheck": "node scripts/preflight.mjs --typecheck && node -e \"const fs=require('fs'); fs.rmSync('.next/types',{recursive:true,force:true}); fs.rmSync('.next/dev/types',{recursive:true,force:true});\" && next typegen && tsc --noEmit",
     "test": "vitest",
-    "test:ui": "vitest --ui"
+    "test:ui": "vitest --ui",
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed",
+    "doctor": "node scripts/preflight.mjs --doctor",
+    "deploy:check": "node scripts/preflight.mjs --deploy-check"
   },
   "dependencies": {
     "@ai-sdk/openai": "^3.0.29",
-    "@anthropic-ai/claude-agent-sdk": "^0.2.5",
-    "@anthropic-ai/sdk": "^0.71.2",
     "@json-render/core": "^0.2.0",
     "@json-render/react": "^0.2.0",
     "@prisma/client": "^5.22.0",
     "@radix-ui/react-slot": "^1.2.4",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.5.0",
+    "@react-three/postprocessing": "^3.0.4",
     "@types/papaparse": "^5.5.2",
     "ai": "^6.0.90",
     "class-variance-authority": "^0.7.1",
@@ -57,6 +60,7 @@
     "next-themes": "^0.4.6",
     "papaparse": "^5.5.3",
     "pdf-parse": "^1.1.1",
+    "postprocessing": "^6.38.2",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "recharts": "^3.6.0",
@@ -67,6 +71,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/pdf-parse": "^1.1.5",

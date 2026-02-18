@@ -22,6 +22,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     '/goals',
     '/data-sources',
     '/future',
+    '/experience',
     '/tools/agent',
     '/tools/guides',
     '/tools/disclaimers',

@@ -52,6 +52,8 @@ function describeOpenClawResult(result: OpenClawDispatchResult): string {
       return 'OpenClaw is disabled. Set OPENCLAW_ENABLED=true to enable dispatch.';
     case 'missing_hooks_token':
       return 'Missing OPENCLAW_HOOKS_TOKEN in environment configuration.';
+    case 'invalid_hooks_base_url':
+      return 'OPENCLAW_HOOKS_BASE_URL must be a public URL in hosted deployments.';
     case 'no_matching_events':
       return 'No events matched the configured severity filter.';
     case 'dry_run':

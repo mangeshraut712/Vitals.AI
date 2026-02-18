@@ -42,7 +42,7 @@ function statusForResult(result: OpenClawDispatchResult): number {
   if (result.delivered) return 200;
   if (!result.enabled) return 200;
   if (result.reason === 'no_matching_events' || result.reason === 'dry_run') return 200;
-  if (result.reason === 'missing_hooks_token') return 400;
+  if (result.reason === 'missing_hooks_token' || result.reason === 'invalid_hooks_base_url') return 400;
   if (result.reason === 'http_error' || result.reason === 'network_error' || result.reason === 'timeout') {
     return 502;
   }
@@ -72,21 +72,21 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json(
       {
         success,
+        httpStatus: status,
         result,
         message: result.delivered
           ? 'OpenClaw dispatch succeeded.'
           : 'OpenClaw dispatch did not send a payload.',
-      },
-      { status }
+      }
     );
   } catch (error) {
     console.error('[OpenClaw Dispatch] Route error:', error);
     return NextResponse.json(
       {
         success: false,
+        httpStatus: 500,
         error: error instanceof Error ? error.message : 'Unknown error',
-      },
-      { status: 500 }
+      }
     );
   }
 }

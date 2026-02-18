@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
 import { useTheme } from 'next-themes';
@@ -24,6 +25,7 @@ import {
   Sun,
   Moon,
   Zap,
+  Sparkles,
   Menu,
   X,
   type LucideIcon,
@@ -38,6 +40,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { name: 'Home', href: '/', icon: Home },
+  { name: 'Experience', href: '/experience', icon: Sparkles },
   {
     name: 'Data',
     icon: Database,
@@ -289,12 +292,34 @@ export function TopNav(): React.JSX.Element {
   const navY = useTransform(scrollY, [0, 60], [0, 0]);
   const pillPadding = useTransform(scrollY, [0, 60], [6, 4]);
 
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(min-width: 1024px)');
+    const handleDesktopSwitch = (event: MediaQueryListEvent | MediaQueryList): void => {
+      if (event.matches) {
+        setIsMobileMenuOpen(false);
+      }
+    };
+
+    handleDesktopSwitch(mediaQuery);
+    mediaQuery.addEventListener('change', handleDesktopSwitch);
+
+    return () => {
+      mediaQuery.removeEventListener('change', handleDesktopSwitch);
+    };
+  }, []);
+
   const handleToggle = (name: string): void => {
+    setIsMobileMenuOpen(false);
     setOpenDropdown(openDropdown === name ? null : name);
   };
 
   const handleClose = (): void => {
     setOpenDropdown(null);
+  };
+
+  const handleMobileToggle = (): void => {
+    setOpenDropdown(null);
+    setIsMobileMenuOpen((prev) => !prev);
   };
 
   const handleMobileClose = (): void => {
@@ -313,27 +338,23 @@ export function TopNav(): React.JSX.Element {
         >
           <motion.div style={{ opacity: logoOpacity, scale: logoScale }} className="origin-left">
             <Link href="/" className="flex items-center gap-2 pl-2 pr-3">
-              <div className="w-8 h-8 rounded-xl vitals-gradient-bg flex items-center justify-center shadow-sm">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-4.5 w-4.5 text-white"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z"
-                    clipRule="evenodd"
-                  />
-                </svg>
+              <div className="w-8 h-8 rounded-xl overflow-hidden shadow-sm">
+                <Image
+                  src="/icons/vitals-logo.png"
+                  alt="Vitals.AI Logo"
+                  width={32}
+                  height={32}
+                  className="w-full h-full object-cover"
+                  priority
+                />
               </div>
               <span className="text-sm font-semibold text-foreground">Vitals.AI</span>
             </Link>
           </motion.div>
 
-          <motion.div style={{ opacity: logoOpacity }} className="w-px h-6 bg-border hidden md:block" />
+          <motion.div style={{ opacity: logoOpacity }} className="w-px h-6 bg-border hidden lg:block" />
 
-          <div className="hidden md:flex items-center gap-0.5 px-1">
+          <div className="hidden lg:flex items-center gap-0.5 px-1">
             {navItems.map((item) =>
               item.children ? (
                 <NavDropdown
@@ -351,8 +372,8 @@ export function TopNav(): React.JSX.Element {
 
           <button
             type="button"
-            onClick={() => setIsMobileMenuOpen((prev) => !prev)}
-            className="md:hidden p-2 rounded-full text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-all duration-200"
+            onClick={handleMobileToggle}
+            className="lg:hidden p-2 rounded-full text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-all duration-200"
             aria-label={isMobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
             aria-expanded={isMobileMenuOpen}
             aria-controls="mobile-navigation-menu"
@@ -378,7 +399,7 @@ export function TopNav(): React.JSX.Element {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.15 }}
-              className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm md:hidden"
+              className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm lg:hidden"
               onClick={handleMobileClose}
               aria-label="Close mobile navigation backdrop"
             />
@@ -388,7 +409,7 @@ export function TopNav(): React.JSX.Element {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -8, scale: 0.98 }}
               transition={{ duration: 0.18, ease: 'easeOut' }}
-              className="fixed top-20 left-4 right-4 z-50 md:hidden vitals-card p-4 max-h-[70vh] overflow-y-auto"
+              className="fixed top-20 left-4 right-4 z-50 lg:hidden vitals-card p-4 max-h-[70vh] overflow-y-auto"
             >
               <MobileNavPanel onNavigate={handleMobileClose} />
             </motion.div>

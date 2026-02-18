@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { GoalCard } from '@/components/goals/GoalCard';
 import { CreateGoalPanel } from '@/components/goals/CreateGoalPanel';
 import { Button } from '@/components/ui/button';
+import { Plus, Target } from 'lucide-react';
 import type { Goal } from '@/lib/analysis/goals';
 import type { UserGoal } from '@/app/api/goals/route';
 
@@ -72,30 +73,31 @@ export function GoalsClient({ autoGoals }: GoalsClientProps): React.JSX.Element 
   return (
     <div className="max-w-6xl mx-auto px-6 py-8 space-y-6">
       {/* Header with +Create button */}
-      <header className="flex items-start justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Goals</h1>
-          <p className="text-muted-foreground mt-1">Your personalized health improvement goals</p>
-        </div>
-        <Button
-          onClick={() => setIsPanelOpen(true)}
-          className="bg-emerald-600 hover:bg-emerald-700 text-white"
-        >
-          <svg
-            className="w-4 h-4 mr-2"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
+      <header className="relative overflow-hidden rounded-3xl border border-border bg-card p-6 shadow-sm">
+        <div className="pointer-events-none absolute -right-16 -top-16 h-52 w-52 rounded-full bg-cyan-500/10 blur-3xl" />
+        <div className="relative z-10 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <div className="mb-2 flex items-center gap-2">
+              <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-secondary">
+                <Target className="h-4.5 w-4.5 text-foreground" />
+              </span>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                Plan Center
+              </p>
+            </div>
+            <h1 className="text-3xl font-semibold tracking-tight text-foreground">Goals</h1>
+            <p className="text-muted-foreground mt-1">
+              Personalized priorities generated from biomarkers, body composition, and recovery.
+            </p>
+          </div>
+          <Button
+            onClick={() => setIsPanelOpen(true)}
+            className="vitals-gradient-bg text-white hover:opacity-90"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M12 4v16m8-8H4"
-            />
-          </svg>
-          Create Goal
-        </Button>
+            <Plus className="h-4 w-4" />
+            Create Goal
+          </Button>
+        </div>
       </header>
 
       {/* Empty state */}

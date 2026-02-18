@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, forwardRef } from 'react';
-import { Group, SphereGeometry } from 'three';
+import { Group } from 'three';
 import { createTaperedCapsule, createHandGeometry } from '@/lib/digital-twin/geometry';
 import { BODY_PROPORTIONS, type BodyProportions } from '@/lib/digital-twin/proportions';
 import { getBaseMaterialProps, getHighlightMaterialProps, MaterialProps } from '@/lib/digital-twin/materials';
@@ -25,125 +25,125 @@ export interface ArmProps {
   intensityBoost?: number;
   /** Resolved anatomy profile */
   proportions?: BodyProportions;
+  /** Opacity override for transparent modes */
+  opacity?: number;
+  /** Whether to render in wireframe mode */
+  wireframe?: boolean;
 }
 
 /**
- * Arm component with smooth shoulder connection.
- * Consists of: shoulder sphere, upper arm, elbow joint, forearm, hand.
+ * Arm component with blended limb transitions.
+ * Consists of: upper arm, forearm, hand.
  * Uses tapered capsule geometry for organic limb shapes.
  *
- * Hierarchy: shoulder → upperArm → forearm → hand as nested groups.
+ * Hierarchy: upperArm → forearm → hand as nested groups.
  */
 export const Arm = forwardRef<Group, ArmProps>(function Arm(
-  { side, color, highlights, onShoulderClick, onElbowClick, intensityBoost, proportions = BODY_PROPORTIONS },
+  { side, color, highlights, onShoulderClick, onElbowClick, intensityBoost, proportions = BODY_PROPORTIONS, opacity = 1, wireframe = false },
   ref
 ) {
   const xSign = side === 'left' ? -1 : 1;
 
-  // Natural resting angle: 5-8 degrees away from body
-  const restingAngle = xSign * 0.12; // ~7 degrees in radians
+  // Natural resting angle + slight backward sweep for a softer silhouette.
+  const restingAngle = xSign * 0.055;
 
   // Create geometries
-  const shoulderGeometry = useMemo(() => {
-    // Shoulder is a sphere that overlaps into torso edge
-    return new SphereGeometry(proportions.upperArm.radiusTop * 1.1, 16, 16);
-  }, [proportions]);
-
   const upperArmGeometry = useMemo(() => {
     const { length, radiusTop, radiusBottom } = proportions.upperArm;
-    return createTaperedCapsule(length, radiusTop, radiusBottom, 8, 16);
-  }, [proportions]);
-
-  const elbowGeometry = useMemo(() => {
-    // Small sphere at elbow for smooth joint
-    const elbowRadius = (proportions.upperArm.radiusBottom + proportions.forearm.radiusTop) / 2;
-    return new SphereGeometry(elbowRadius, 12, 12);
+    return createTaperedCapsule(length, radiusTop * 0.96, radiusBottom * 0.94, 10, 22);
   }, [proportions]);
 
   const forearmGeometry = useMemo(() => {
     const { length, radiusTop, radiusBottom } = proportions.forearm;
-    return createTaperedCapsule(length, radiusTop, radiusBottom, 8, 16);
+    return createTaperedCapsule(length, radiusTop * 0.96, radiusBottom * 0.92, 10, 20);
   }, [proportions]);
 
   const handGeometry = useMemo(() => {
     const { length, width } = proportions.hand;
-    return createHandGeometry(length, width, 12);
+    return createHandGeometry(length * 0.92, width * 0.92, 10);
   }, [proportions]);
 
   // Material properties
-  const baseMaterialProps: MaterialProps = useMemo(() => getBaseMaterialProps(color), [color]);
+  const baseMaterialProps: MaterialProps = useMemo(() => {
+    const props = getBaseMaterialProps(color);
+    return {
+      ...props,
+      opacity: (props.opacity ?? 1) * opacity,
+      transparent: true,
+    };
+  }, [color, opacity]);
+
   const shoulderHighlight = highlights?.shoulder;
   const elbowHighlight = highlights?.elbow;
 
-  const shoulderMaterialProps: MaterialProps = useMemo(() => {
+  const upperArmMaterialProps: MaterialProps = useMemo(() => {
     if (shoulderHighlight) {
-      return getHighlightMaterialProps(shoulderHighlight.color, shoulderHighlight.intensity * (intensityBoost ?? 1.0), color);
+      const props = getHighlightMaterialProps(shoulderHighlight.color, shoulderHighlight.intensity * (intensityBoost ?? 1.0), color);
+      return {
+        ...props,
+        opacity: (props.opacity ?? 1) * opacity,
+        transparent: true,
+      };
     }
     return baseMaterialProps;
-  }, [shoulderHighlight, intensityBoost, color, baseMaterialProps]);
+  }, [shoulderHighlight, intensityBoost, color, baseMaterialProps, opacity]);
 
-  const elbowMaterialProps: MaterialProps = useMemo(() => {
+  const forearmMaterialProps: MaterialProps = useMemo(() => {
     if (elbowHighlight) {
-      return getHighlightMaterialProps(elbowHighlight.color, elbowHighlight.intensity * (intensityBoost ?? 1.0), color);
+      const props = getHighlightMaterialProps(elbowHighlight.color, elbowHighlight.intensity * (intensityBoost ?? 1.0), color);
+      return {
+        ...props,
+        opacity: (props.opacity ?? 1) * opacity,
+        transparent: true,
+      };
     }
     return baseMaterialProps;
-  }, [elbowHighlight, intensityBoost, color, baseMaterialProps]);
+  }, [elbowHighlight, intensityBoost, color, baseMaterialProps, opacity]);
 
   // Positions
   const upperArmLength = proportions.upperArm.length;
   const forearmLength = proportions.forearm.length;
   const handLength = proportions.hand.length;
+  const handDepth = proportions.hand.depth;
+  const elbowJointOverlap = proportions.overlap.elbowOverlap * 1.25;
 
   return (
     <group ref={ref}>
-      {/* Shoulder joint - overlaps into torso */}
-      <mesh
-        geometry={shoulderGeometry}
-        castShadow
-        onClick={onShoulderClick}
-      >
-        <meshStandardMaterial {...shoulderMaterialProps} />
-      </mesh>
-
       {/* Upper arm group - rotates from shoulder */}
-      <group rotation={[0, 0, restingAngle]}>
+      <group rotation={[0.01, 0, restingAngle]}>
         {/* Upper arm */}
         <mesh
           geometry={upperArmGeometry}
-          position={[0, -upperArmLength / 2, 0]}
-          castShadow
+          position={[0, -upperArmLength / 2, -0.004]}
+          castShadow={!wireframe}
+          onClick={onShoulderClick}
         >
-          <meshStandardMaterial {...baseMaterialProps} />
+          <meshPhysicalMaterial {...upperArmMaterialProps} wireframe={wireframe} />
         </mesh>
 
         {/* Elbow group - at end of upper arm */}
-        <group position={[0, -upperArmLength, 0]}>
-          {/* Elbow joint */}
-          <mesh
-            geometry={elbowGeometry}
-            castShadow
-            onClick={onElbowClick}
-          >
-            <meshStandardMaterial {...elbowMaterialProps} />
-          </mesh>
-
+        <group position={[0, -upperArmLength + elbowJointOverlap, -0.006]} rotation={[0.018, 0, 0]}>
           {/* Forearm */}
           <mesh
             geometry={forearmGeometry}
-            position={[0, -forearmLength / 2, 0]}
-            castShadow
+            position={[0, -forearmLength / 2, -0.003]}
+            castShadow={!wireframe}
+            onClick={onElbowClick}
           >
-            <meshStandardMaterial {...baseMaterialProps} />
+            <meshPhysicalMaterial {...forearmMaterialProps} wireframe={wireframe} />
           </mesh>
 
           {/* Hand group - at end of forearm */}
-          <group position={[0, -forearmLength, 0]}>
+          <group
+            position={[0, -forearmLength + proportions.overlap.elbowOverlap * 0.5, -0.006]}
+            rotation={[0.05, xSign * 0.018, 0]}
+          >
             <mesh
               geometry={handGeometry}
-              position={[0, -handLength / 2, 0]}
-              castShadow
+              position={[0, -handLength * 0.28, handDepth * 0.13]}
+              castShadow={!wireframe}
             >
-              <meshStandardMaterial {...baseMaterialProps} />
+              <meshPhysicalMaterial {...baseMaterialProps} wireframe={wireframe} />
             </mesh>
           </group>
         </group>

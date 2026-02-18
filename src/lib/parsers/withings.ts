@@ -105,15 +105,16 @@ function extractDate(dateStr: string): string {
 function parseBodyMeasurements(rows: CsvRow[]): WithingsBodyMeasurement[] {
     return rows.map((row) => ({
         date: extractDate(String(row['Date'] ?? row['date'] ?? '')),
-        weight: parseNum(row['Weight (kg)'] ?? row['weight']),
-        fatRatio: parseNum(row['Fat ratio (%)'] ?? row['fat_ratio']),
-        fatMassWeight: parseNum(row['Fat mass weight (kg)'] ?? row['fat_mass_weight']),
-        fatFreeMassWeight: parseNum(row['Fat free mass weight (kg)'] ?? row['fat_free_mass_weight']),
-        muscleMassWeight: parseNum(row['Muscle mass (kg)'] ?? row['muscle_mass']),
-        boneMassWeight: parseNum(row['Bone mass (kg)'] ?? row['bone_mass']),
-        hydration: parseNum(row['Hydration (%)'] ?? row['hydration']),
+        // Actual Withings column names from export
+        weight: parseNum(row['Weight (kg)'] ?? row['weight'] ?? row['Weight']),
+        fatRatio: parseNum(row['Fat ratio (%)'] ?? row['fat_ratio'] ?? row['Fat ratio']),
+        fatMassWeight: parseNum(row['Fat mass (kg)'] ?? row['Fat mass weight (kg)'] ?? row['fat_mass_weight']),
+        fatFreeMassWeight: parseNum(row['Fat free mass (kg)'] ?? row['Fat free mass weight (kg)'] ?? row['fat_free_mass_weight']),
+        muscleMassWeight: parseNum(row['Muscle mass (kg)'] ?? row['Muscle mass'] ?? row['muscle_mass']),
+        boneMassWeight: parseNum(row['Bone mass (kg)'] ?? row['Bone mass'] ?? row['bone_mass']),
+        hydration: parseNum(row['Hydration (kg)'] ?? row['Hydration (%)'] ?? row['hydration']),
         pulseWaveVelocity: parseNum(row['Pulse Wave Velocity (m/s)'] ?? row['pulse_wave_velocity']),
-        heartRate: parseNum(row['Heart rate (bpm)'] ?? row['heart_rate']),
+        heartRate: parseNum(row['Heart rate'] ?? row['Heart rate (bpm)'] ?? row['heart_rate']),
         visceralFatIndex: parseNum(row['Visceral fat index'] ?? row['visceral_fat_index']),
     })).filter((r) => r.date);
 }
@@ -177,12 +178,19 @@ export function parseWithingsExport(folderPath: string): WithingsData {
         dateRange: { start: null, end: null },
     };
 
-    if (!fs.existsSync(folderPath)) {
+    let folderExists = false;
+    try { folderExists = fs.existsSync(folderPath); } catch { return result; }
+    if (!folderExists) {
         console.warn(`[Withings] Folder not found: ${folderPath}`);
         return result;
     }
 
-    const files = fs.readdirSync(folderPath);
+    let files: string[] = [];
+    try { files = fs.readdirSync(folderPath); } catch { return result; }
+
+    // Track steps by date from aggregates_steps.csv
+    const stepsByDate = new Map<string, number>();
+    const caloriesByDate = new Map<string, number>();
 
     for (const file of files) {
         const filePath = path.join(folderPath, file);
@@ -193,19 +201,57 @@ export function parseWithingsExport(folderPath: string): WithingsData {
         try {
             const rows = parseCsv(filePath);
 
-            if (lowerFile.includes('weight') || lowerFile.includes('body')) {
+            if (lowerFile.includes('weight') || (lowerFile.includes('body') && !lowerFile.includes('blood'))) {
                 result.bodyMeasurements = parseBodyMeasurements(rows);
                 console.log(`[Withings] Parsed ${result.bodyMeasurements.length} body measurements`);
-            } else if (lowerFile.includes('sleep')) {
+            } else if (lowerFile.includes('sleep') && !lowerFile.startsWith('raw_')) {
                 result.sleepRecords = parseSleepRecords(rows);
                 console.log(`[Withings] Parsed ${result.sleepRecords.length} sleep records`);
-            } else if (lowerFile.includes('activity') || lowerFile.includes('steps')) {
+            } else if (lowerFile === 'activities.csv' || (lowerFile.includes('activity') && !lowerFile.startsWith('raw_'))) {
                 result.activityRecords = parseActivityRecords(rows);
                 console.log(`[Withings] Parsed ${result.activityRecords.length} activity records`);
+            } else if (lowerFile === 'aggregates_steps.csv') {
+                // Format: date,value
+                for (const row of rows) {
+                    const d = extractDate(String(row['date'] ?? row['Date'] ?? ''));
+                    const v = parseNum(row['value'] ?? row['Value']);
+                    if (d && v !== undefined) stepsByDate.set(d, v);
+                }
+                console.log(`[Withings] Parsed ${stepsByDate.size} step records`);
+            } else if (lowerFile === 'aggregates_calories_passive.csv' || lowerFile === 'aggregates_calories_earned.csv') {
+                for (const row of rows) {
+                    const d = extractDate(String(row['date'] ?? row['Date'] ?? ''));
+                    const v = parseNum(row['value'] ?? row['Value']);
+                    if (d && v !== undefined) {
+                        caloriesByDate.set(d, (caloriesByDate.get(d) ?? 0) + v);
+                    }
+                }
             }
         } catch (error) {
             console.error(`[Withings] Error parsing ${file}:`, error);
         }
+    }
+
+    // Merge steps/calories into activity records
+    if (stepsByDate.size > 0) {
+        const dateSet = new Set([...stepsByDate.keys(), ...caloriesByDate.keys()]);
+        const existingDates = new Set(result.activityRecords.map((r) => r.date));
+        for (const date of dateSet) {
+            if (!existingDates.has(date)) {
+                result.activityRecords.push({
+                    date,
+                    steps: stepsByDate.get(date),
+                    totalCalories: caloriesByDate.get(date),
+                });
+            } else {
+                const rec = result.activityRecords.find((r) => r.date === date);
+                if (rec) {
+                    if (!rec.steps) rec.steps = stepsByDate.get(date);
+                    if (!rec.totalCalories) rec.totalCalories = caloriesByDate.get(date);
+                }
+            }
+        }
+        result.activityRecords.sort((a, b) => a.date.localeCompare(b.date));
     }
 
     // Calculate date range
@@ -283,15 +329,21 @@ export function convertWithingsToActivity(withingsData: WithingsData): ActivityD
  * Check if a folder contains Withings export data
  */
 export function isWithingsFolder(folderPath: string): boolean {
-    if (!fs.existsSync(folderPath) || !fs.statSync(folderPath).isDirectory()) {
+    try {
+        if (!fs.existsSync(folderPath) || !fs.statSync(folderPath).isDirectory()) {
+            return false;
+        }
+        const files = fs.readdirSync(folderPath);
+        return files.some(
+            (f) =>
+                f.toLowerCase().includes('withings') ||
+                f.toLowerCase().includes('weight') ||
+                f.toLowerCase() === 'bp.csv' ||
+                f.toLowerCase() === 'aggregates_steps.csv' ||
+                (f.toLowerCase().includes('sleep') && f.toLowerCase().endsWith('.csv')) ||
+                f.toLowerCase().includes('body_composition')
+        );
+    } catch {
         return false;
     }
-    const files = fs.readdirSync(folderPath);
-    return files.some(
-        (f) =>
-            f.toLowerCase().includes('withings') ||
-            f.toLowerCase().includes('weight') ||
-            (f.toLowerCase().includes('sleep') && f.toLowerCase().endsWith('.csv')) ||
-            f.toLowerCase().includes('body_composition')
-    );
 }

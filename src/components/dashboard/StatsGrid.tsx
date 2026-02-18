@@ -1,27 +1,18 @@
 'use client';
 
-import { useEffect, useState, memo } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { type StatusType, STATUS_COLORS } from '@/lib/design/tokens';
 import type { BiomarkerStatus } from '@/lib/types/health';
 
-interface StatItemProps {
-  label: string;
-  value: string | number;
-  unit?: string;
-  status?: StatusType;
-  delay?: number;
-}
+import { WithingsCard } from './WithingsCard';
+import { Sparkline } from '@/components/charts/Sparkline';
 
-function getStatusStyles(status: StatusType): { bg: string; text: string; dot: string } {
-  switch (status) {
-    case 'optimal':
-      return { bg: 'bg-emerald-500/10', text: 'text-emerald-500', dot: 'bg-emerald-500' };
-    case 'outOfRange':
-      return { bg: 'bg-rose-500/10', text: 'text-rose-500', dot: 'bg-rose-500' };
-    default:
-      return { bg: 'bg-amber-500/10', text: 'text-amber-500', dot: 'bg-amber-500' };
-  }
+export interface TopMarker {
+  name: string;
+  value: number;
+  unit: string;
+  status: BiomarkerStatus;
 }
 
 function getMarkerStatusColor(status: BiomarkerStatus): string {
@@ -38,49 +29,14 @@ function getMarkerStatusColor(status: BiomarkerStatus): string {
   }
 }
 
-const StatItemComponent = ({ label, value, unit, status = 'optimal', delay = 0 }: StatItemProps): React.JSX.Element => {
-  const [mounted, setMounted] = useState(false);
-  const styles = getStatusStyles(status);
-
-  useEffect(() => {
-    const timer = setTimeout(() => setMounted(true), delay);
-    return () => clearTimeout(timer);
-  }, [delay]);
-
-  return (
-    <div
-      className={`vitals-card p-5 transition-all duration-500 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
-        }`}
-    >
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{label}</span>
-        <span className={`w-2 h-2 rounded-full ${styles.dot}`} />
-      </div>
-
-      <div className="flex items-baseline gap-1.5">
-        <span className="text-2xl font-bold text-foreground tabular-nums">{value}</span>
-        {unit && <span className="text-sm text-muted-foreground">{unit}</span>}
-      </div>
-    </div>
-  );
-};
-
-// Memoize StatItem to prevent unnecessary re-renders
-const StatItem = memo(StatItemComponent);
-
-export interface TopMarker {
-  name: string;
-  value: number;
-  unit: string;
-  status: BiomarkerStatus;
-}
-
 interface StatsGridProps {
   stats: Array<{
     label: string;
     value: string | number;
     unit?: string;
     status?: StatusType;
+    trend?: 'up' | 'down' | 'stable';
+    history?: number[]; // Add history for sparklines
   }>;
   biomarkerCounts: {
     optimal: number;
@@ -118,14 +74,20 @@ export function StatsGrid({ stats, biomarkerCounts, topMarkers }: StatsGridProps
       {/* Stats grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map((stat, index) => (
-          <StatItem
+          <WithingsCard
             key={stat.label}
-            label={stat.label}
+            title={stat.label}
             value={stat.value}
             unit={stat.unit}
-            status={stat.status}
-            delay={index * 100}
-          />
+            status={stat.status === 'optimal' ? 'Good' : stat.status === 'normal' ? 'Normal' : 'Check'}
+            statusColor={stat.status === 'optimal' ? 'text-emerald-400' : stat.status === 'outOfRange' ? 'text-rose-400' : 'text-amber-400'}
+            trend={stat.trend || 'stable'}
+            className={`delay-[${index * 100}ms]`}
+          >
+            {stat.history && (
+              <Sparkline data={stat.history} status={stat.status || 'normal'} width={120} height={40} />
+            )}
+          </WithingsCard>
         ))}
       </div>
 

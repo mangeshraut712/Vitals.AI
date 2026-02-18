@@ -1,4 +1,5 @@
 import type { HealthEvent, HealthEventSeverity } from '@/lib/types/health-events';
+import { isLoopbackUrl, isVercelRuntime } from '@/lib/runtime/deployment';
 
 export type OpenClawHookMode = 'wake' | 'agent';
 type OpenClawWakeMode = 'now' | 'next-heartbeat';
@@ -6,6 +7,7 @@ type OpenClawWakeMode = 'now' | 'next-heartbeat';
 type OpenClawDispatchReason =
   | 'disabled'
   | 'missing_hooks_token'
+  | 'invalid_hooks_base_url'
   | 'no_matching_events'
   | 'dry_run'
   | 'timeout'
@@ -191,6 +193,9 @@ function validateConfig(config: OpenClawConfig): OpenClawConfigIssue {
   }
   if (!config.hooksToken) {
     return { reason: 'missing_hooks_token' };
+  }
+  if (isVercelRuntime() && isLoopbackUrl(config.hooksBaseUrl)) {
+    return { reason: 'invalid_hooks_base_url' };
   }
   return {};
 }

@@ -51,7 +51,7 @@ export function ChatBar({
       tabIndex={0}
       onClick={handleBarClick}
       onKeyDown={handleKeyDown}
-      className="w-full cursor-pointer transition-all duration-200 hover:scale-[1.01] vitals-card px-5 py-3"
+      className="w-full cursor-pointer transition-all duration-200 hover:scale-[1.005] rounded-2xl border border-border bg-card/90 px-5 py-3 shadow-sm backdrop-blur-xl"
       aria-label="Open AI chat"
     >
       <div className="flex items-center gap-4">
@@ -71,7 +71,7 @@ export function ChatBar({
             <button
               key={pill.id}
               onClick={(e) => handlePillClick(e, pill.label)}
-              className="hidden sm:inline-flex items-center px-3 py-1.5 text-xs font-medium transition-all duration-150 hover:scale-105 bg-muted text-muted-foreground rounded-full border border-border hover:text-foreground hover:bg-accent"
+              className="hidden sm:inline-flex items-center px-3 py-1.5 text-xs font-medium transition-all duration-150 hover:scale-105 bg-secondary text-muted-foreground rounded-full border border-border hover:text-foreground hover:bg-accent"
               type="button"
             >
               {pill.label}
