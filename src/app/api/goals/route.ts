@@ -2,6 +2,8 @@ import { NextResponse, NextRequest } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 import type { GoalPriority } from '@/lib/analysis/goals';
+import { loggers } from '@/lib/logger';
+import { validateGoalCreateRequest } from '@/lib/validation';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -20,14 +22,6 @@ export interface UserGoal {
   actionItems: string[];
   source: 'user';
   createdAt: string;
-}
-
-interface GoalCreateRequest {
-  title: string;
-  description: string;
-  priority: GoalPriority;
-  category: string;
-  actionItems: string[];
 }
 
 interface WriteUserGoalsResult {
@@ -49,7 +43,7 @@ function readUserGoals(): UserGoal[] {
     const content = fs.readFileSync(USER_GOALS_FILE, 'utf-8');
     return JSON.parse(content) as UserGoal[];
   } catch (error) {
-    console.error('[Goals API] Failed to read user goals:', error);
+    loggers.api.error('Goals API failed to read user goals', error);
     return globalForGoals.inMemoryGoals ?? [];
   }
 }
@@ -67,11 +61,11 @@ function writeUserGoals(goals: UserGoal[]): WriteUserGoalsResult {
   } catch (error) {
     if (isReadOnlyFsError(error)) {
       globalForGoals.inMemoryGoals = goals;
-      console.warn('[Goals API] Read-only filesystem detected, using in-memory goals fallback');
+      loggers.api.warn('Goals API read-only filesystem detected, using in-memory fallback');
       return { success: true, persisted: false };
     }
 
-    console.error('[Goals API] Failed to write user goals:', error);
+    loggers.api.error('Goals API failed to write user goals', error);
     return { success: false, persisted: false };
   }
 }
@@ -81,7 +75,7 @@ export async function GET(): Promise<NextResponse> {
     const goals = readUserGoals();
     return NextResponse.json({ success: true, goals });
   } catch (error) {
-    console.error('[Goals API] GET error:', error);
+    loggers.api.error('Goals API GET error', error);
     return NextResponse.json(
       {
         success: true,
@@ -95,23 +89,14 @@ export async function GET(): Promise<NextResponse> {
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
-    const body = (await request.json()) as GoalCreateRequest;
-
-    // Validate required fields
-    if (!body.title || !body.description || !body.priority || !body.actionItems) {
+    const parsed = validateGoalCreateRequest(await request.json());
+    if (!parsed.success) {
       return NextResponse.json(
-        { success: false, error: 'Missing required fields' },
+        { success: false, error: 'Invalid goal payload' },
         { status: 400 }
       );
     }
-
-    // Validate priority
-    if (!['high', 'medium', 'low'].includes(body.priority)) {
-      return NextResponse.json(
-        { success: false, error: 'Invalid priority value' },
-        { status: 400 }
-      );
-    }
+    const body = parsed.data;
 
     // Create new goal
     const newGoal: UserGoal = {
@@ -138,7 +123,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    console.log('[Goals API] Created new user goal:', newGoal.id);
+    loggers.api.info('Goals API created goal', newGoal.id);
 
     return NextResponse.json({
       success: true,
@@ -147,7 +132,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       warning: result.persisted ? undefined : 'goals-memory-only',
     });
   } catch (error) {
-    console.error('[Goals API] POST error:', error);
+    loggers.api.error('Goals API POST error', error);
     return NextResponse.json(
       { success: false, error: 'Failed to create goal' }
     );
@@ -183,7 +168,7 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    console.log('[Goals API] Deleted user goal:', goalId);
+    loggers.api.info('Goals API deleted goal', goalId);
 
     return NextResponse.json({
       success: true,
@@ -192,7 +177,7 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
       warning: result.persisted ? undefined : 'goals-memory-only',
     });
   } catch (error) {
-    console.error('[Goals API] DELETE error:', error);
+    loggers.api.error('Goals API DELETE error', error);
     return NextResponse.json(
       { success: false, error: 'Failed to delete goal' }
     );

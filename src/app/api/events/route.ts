@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { HealthDataStore } from '@/lib/store/health-data';
+import { loggers } from '@/lib/logger';
+import { validateNumber } from '@/lib/security';
 import type {
   HealthEventDomain,
   HealthEventQuery,
@@ -31,13 +33,13 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
     const params = request.nextUrl.searchParams;
     const rawLimit = params.get('limit');
-    const parsedLimit = rawLimit ? Number.parseInt(rawLimit, 10) : 50;
+    const parsedLimit = validateNumber(rawLimit ?? 50, 1, 200) ?? 50;
 
     const domains = params.getAll('domain').filter(isHealthEventDomain);
     const severities = params.getAll('severity').filter(isHealthEventSeverity);
 
     const query: HealthEventQuery = {
-      limit: Number.isFinite(parsedLimit) ? parsedLimit : 50,
+      limit: parsedLimit,
       domains: domains.length > 0 ? domains : undefined,
       severities: severities.length > 0 ? severities : undefined,
     };
@@ -50,7 +52,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       events,
     });
   } catch (error) {
-    console.error('[Events API] Error loading health events:', error);
+    loggers.api.error('Events API error loading health events', error);
     return NextResponse.json(
       {
         success: true,

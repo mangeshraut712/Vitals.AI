@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, memo } from 'react';
 import { STATUS_COLORS, type StatusType } from '@/lib/design/tokens';
 
 interface SparklineProps {
@@ -12,13 +12,13 @@ interface SparklineProps {
   height?: number;
 }
 
-export function Sparkline({
+const SparklineComponent = ({
   data,
   status,
   optimalRange,
   width = 120,
   height = 40,
-}: SparklineProps): React.JSX.Element {
+}: SparklineProps): React.JSX.Element => {
   const { path, points, rangeY } = useMemo(() => {
     if (data.length === 0) {
       return { path: '', points: [], rangeY: null };
@@ -120,4 +120,7 @@ export function Sparkline({
       )}
     </svg>
   );
-}
+};
+
+// Memoize the component to prevent unnecessary re-renders
+export const Sparkline = memo(SparklineComponent);

@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { queryHealthAgentStream } from '@/lib/agent/health-agent';
 import { HealthDataStore } from '@/lib/store/health-data';
+import { loggers } from '@/lib/logger';
+import { checkRateLimit } from '@/lib/security';
+import { validateChatPromptRequest } from '@/lib/validation';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -8,12 +11,25 @@ export const maxDuration = 60;
 
 export async function POST(request: NextRequest): Promise<Response> {
   try {
-    const body = await request.json();
-    const message = body.message;
-
-    if (!message || typeof message !== 'string') {
-      return NextResponse.json({ error: 'Message is required' }, { status: 400 });
+    const clientIp = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
+    const rateLimit = checkRateLimit(`chat:${clientIp}`, 40, 60_000);
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please try again in a minute.' },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': '60',
+          },
+        }
+      );
     }
+
+    const parsed = validateChatPromptRequest(await request.json());
+    if (!parsed.success) {
+      return NextResponse.json({ error: 'Invalid request payload' }, { status: 400 });
+    }
+    const message = parsed.data.message;
 
     const healthContext = await HealthDataStore.getHealthSummary();
 
@@ -47,7 +63,7 @@ export async function POST(request: NextRequest): Promise<Response> {
       },
     });
   } catch (error) {
-    console.error('[Vitals.AI] Chat API error:', error);
+    loggers.api.error('Chat API error', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

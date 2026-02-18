@@ -18,6 +18,7 @@
 
 <p align="center">
   <a href="#features"><img src="https://img.shields.io/badge/Features-11%2B-10b981?style=flat-square" alt="Features"></a>
+  <a href="https://github.com/mangeshraut712/Vitals.AI/actions/workflows/ci.yml"><img src="https://github.com/mangeshraut712/Vitals.AI/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="#tech-stack"><img src="https://img.shields.io/badge/Next.js-16-black?style=flat-square&logo=next.js" alt="Next.js"></a>
   <a href="#tech-stack"><img src="https://img.shields.io/badge/React-19-61dafb?style=flat-square&logo=react" alt="React"></a>
   <a href="#tech-stack"><img src="https://img.shields.io/badge/TypeScript-5.9-3178c6?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript"></a>
@@ -75,7 +76,16 @@ Initial support for a database-backed architecture using **Prisma + SQLite**, fe
 ### 🛰️ OpenClaw Automation (Optional)
 Forward warning/critical health events to OpenClaw hooks with redacted payloads for external alerting and workflow triage.
 
-## 🚀 Quick Start
+### 🧠 Advanced Health Analytics
+Predictive trend analysis using linear regression, metabolic & cardiovascular risk scoring, and automated anomaly detection for early warning signs.
+
+### �️ Enterprise-Grade Security
+Built-in input sanitization, Content Security Policy (CSP), rate limiting, and CSRF protection to ensure data integrity and safety.
+
+### 📱 PWA & Offline Support
+Fully installable Progressive Web App (PWA) with offline support, service workers, and background sync capabilities for reliable access anywhere.
+
+## �🚀 Quick Start
 
 ### Prerequisites
 
@@ -91,7 +101,7 @@ git clone https://github.com/mangeshraut712/Vitals.AI.git
 cd Vitals.AI
 
 # Install dependencies
-npm install
+npm ci
 
 # Set up your API key
 cp .env.example .env.local
@@ -218,7 +228,10 @@ Vitals.AI takes your privacy seriously:
 | **AI** | OpenRouter + Vercel AI SDK (`ai`, `@ai-sdk/openai`) |
 | **3D** | React Three Fiber + Drei |
 | **Charts** | Recharts |
+| **Validation** | Zod |
 | **Testing** | Vitest |
+| **Security** | DOMPurify, Rate Limiting, CSP |
+| **PWA** | Service Workers, Manifest, Background Sync |
 | **Data Parsing** | Papa Parse (CSV), pdf-parse (PDF), fast-xml-parser (XML) |
 
 ## 📁 Project Structure
@@ -267,6 +280,7 @@ OpenHealth/
 │   │   └── ui/
 │   ├── features/
 │   │   └── sync/
+│   ├── hooks/
 │   ├── lib/                            # Business logic + parsing + integrations
 │   │   ├── agent/
 │   │   ├── ai-chat/
@@ -280,14 +294,16 @@ OpenHealth/
 │   │   ├── integrations/
 │   │   ├── lifestyle/
 │   │   ├── parsers/
+│   │   ├── security/
 │   │   ├── store/
 │   │   ├── terra/
-│   │   └── types/
+│   │   ├── types/
+│   │   └── validation/
 │   └── types/
 ├── docs/                               # Architecture, roadmap, integrations
 ├── data/                               # Local user files (gitignored content)
 ├── prisma/                             # Prisma schema + local DB artifacts
-└── public/
+└── public/                             # Static assets (manifest + service worker)
 ```
 
 ## 🧪 Development
@@ -312,6 +328,12 @@ npm run test:ui
 npm run build
 ```
 
+### Quality Gates (GitHub)
+
+- CI workflow at `.github/workflows/ci.yml` runs `lint`, `typecheck`, `test`, and `build` for pushes and pull requests to `main`.
+- Dependabot at `.github/dependabot.yml` opens weekly update PRs for npm dependencies and GitHub Actions.
+- PR checklist template at `.github/pull_request_template.md` keeps validation and deployment notes consistent.
+
 ## ☁️ Deploy On Vercel
 
 1. Import this repository in Vercel.
@@ -327,11 +349,22 @@ npm run build
    - `OPENCLAW_ENABLED` (optional, defaults to `false`)
    - `OPENCLAW_HOOKS_TOKEN` (required only when OpenClaw integration is enabled)
    - `OPENCLAW_HOOKS_BASE_URL` (optional, defaults to `http://127.0.0.1:18789`)
+   - `OPENCLAW_HOOKS_PATH` (optional, defaults to `/hooks`)
    - `OPENCLAW_HOOK_MODE` (optional: `wake` or `agent`)
    - `OPENCLAW_AUTO_DISPATCH_ON_SYNC` (optional, defaults to `false`)
 4. Deploy using default commands:
-   - Install: `npm install`
+   - Install: `npm ci`
    - Build: `npm run build`
+5. Keep `vercel.json` in sync with runtime behavior:
+   - `sw.js` is set to `must-revalidate`
+   - `manifest.json` is served as `application/manifest+json`
+
+### GitHub + Vercel Recommended Setup
+
+1. Enable branch protection on `main` and require the `CI / validate` check.
+2. Keep Vercel project connected to this GitHub repo for automatic preview and production deploys.
+3. Set all required env vars in Vercel for **Production** and **Preview** environments.
+4. Use pull requests for all changes so CI and Vercel preview pass before merge.
 
 ### Hosted Mode Notes
 

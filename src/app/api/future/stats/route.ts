@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/db';
+import { calculateTrend, type DataPoint } from '@/lib/analysis/advanced-analytics';
+import { loggers } from '@/lib/logger';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -97,8 +99,15 @@ export async function GET() {
             }
         }
     } catch (e) {
-        console.warn("FutureStats API: DB fetch failed, serving fallback data.", e);
+        loggers.api.warn('FutureStats API DB fetch failed, serving fallback data', e);
     }
+
+    const glucosePoints: DataPoint[] = stats.glucose.history.map((value, index) => ({
+        timestamp: new Date(Date.now() - (stats.glucose.history.length - 1 - index) * 24 * 60 * 60 * 1000),
+        value,
+    }));
+    const glucoseTrend = calculateTrend(glucosePoints);
+    stats.glucose.trend = glucoseTrend.direction === 'stable' ? 'stable' : 'variable';
 
     return NextResponse.json(stats);
 }

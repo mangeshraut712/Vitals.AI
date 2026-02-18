@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Heart,
@@ -182,6 +182,14 @@ function VitalCard({
 
 function VitalDetailChart({ metric, chartsReady }: { metric: VitalMetric; chartsReady: boolean }) {
     const [min, max] = metric.optimalRange;
+    const summaryStats = useMemo(() => ([
+        { label: '24h Min', value: Math.min(...metric.history.map(h => h.value)) },
+        {
+            label: '24h Avg',
+            value: Math.round((metric.history.reduce((acc, point) => acc + point.value, 0) / metric.history.length) * 10) / 10,
+        },
+        { label: '24h Max', value: Math.max(...metric.history.map(h => h.value)) },
+    ]), [metric.history]);
 
     return (
         <motion.div
@@ -252,11 +260,7 @@ function VitalDetailChart({ metric, chartsReady }: { metric: VitalMetric; charts
 
             {/* Status indicators */}
             <div className="mt-4 grid grid-cols-3 gap-3">
-                {[
-                    { label: '24h Min', value: Math.min(...metric.history.map(h => h.value)) },
-                    { label: '24h Avg', value: Math.round(metric.history.reduce((a, b) => a + b.value, 0) / metric.history.length * 10) / 10 },
-                    { label: '24h Max', value: Math.max(...metric.history.map(h => h.value)) },
-                ].map(stat => (
+                {summaryStats.map(stat => (
                     <div key={stat.label} className="bg-white/4 rounded-xl p-3 text-center">
                         <div className="text-lg font-bold text-white tabular-nums">{stat.value}</div>
                         <div className="text-xs text-white/40 mt-0.5">{stat.label}</div>
@@ -275,30 +279,43 @@ function DataUploadPanel() {
     const [analyzing, setAnalyzing] = useState(false);
     const [analysisResult, setAnalysisResult] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const analysisTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    useEffect(() => {
+        return () => {
+            if (analysisTimeoutRef.current) {
+                clearTimeout(analysisTimeoutRef.current);
+            }
+        };
+    }, []);
 
     const handleDrop = (e: React.DragEvent) => {
         e.preventDefault();
         setIsDragging(false);
         const files = Array.from(e.dataTransfer.files);
         const names = files.map(f => f.name);
-        setUploadedFiles(prev => [...prev, ...names]);
+        setUploadedFiles(prev => Array.from(new Set([...prev, ...names])));
     };
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = Array.from(e.target.files ?? []);
-        setUploadedFiles(prev => [...prev, ...files.map(f => f.name)]);
+        setUploadedFiles(prev => Array.from(new Set([...prev, ...files.map(f => f.name)])));
     };
 
     const handleAnalyze = () => {
         if (uploadedFiles.length === 0) return;
         setAnalyzing(true);
         setAnalysisResult(null);
+        if (analysisTimeoutRef.current) {
+            clearTimeout(analysisTimeoutRef.current);
+        }
         // Simulate AI analysis
-        setTimeout(() => {
+        analysisTimeoutRef.current = setTimeout(() => {
             setAnalyzing(false);
             setAnalysisResult(
                 `Analysis complete for ${uploadedFiles.length} file(s). Your HRV trend shows a 12% improvement over the last 30 days. Resting heart rate is within optimal range (58 bpm). Sleep consistency score: 78/100. Recommendation: Increase recovery days to maintain HRV gains.`
             );
+            analysisTimeoutRef.current = null;
         }, 2500);
     };
 
@@ -394,7 +411,7 @@ export default function VitalsMonitorClient() {
     const [selectedMetricId, setSelectedMetricId] = useState('heart_rate');
     const [chartsReady, setChartsReady] = useState(false);
 
-    const metrics: VitalMetric[] = [
+    const metrics = useMemo<VitalMetric[]>(() => [
         {
             id: 'heart_rate',
             label: 'Heart Rate',
@@ -507,9 +524,12 @@ export default function VitalsMonitorClient() {
             optimalRange: [50, 120],
             description: 'Heart rate variability — primary recovery biomarker',
         },
-    ];
+    ], []);
 
-    const selectedMetric = metrics.find(m => m.id === selectedMetricId) ?? metrics[0];
+    const selectedMetric = useMemo(
+        () => metrics.find(m => m.id === selectedMetricId) ?? metrics[0],
+        [metrics, selectedMetricId]
+    );
 
     // Scroll to top on mount
     useEffect(() => {
@@ -518,8 +538,15 @@ export default function VitalsMonitorClient() {
         return () => window.cancelAnimationFrame(frameId);
     }, []);
 
-    const criticalCount = metrics.filter(m => m.status === 'critical').length;
-    const warningCount = metrics.filter(m => m.status === 'warning').length;
+    const { criticalCount, warningCount } = useMemo(() => {
+        let critical = 0;
+        let warning = 0;
+        for (const metric of metrics) {
+            if (metric.status === 'critical') critical += 1;
+            if (metric.status === 'warning') warning += 1;
+        }
+        return { criticalCount: critical, warningCount: warning };
+    }, [metrics]);
 
     return (
         <div className="min-h-screen bg-black text-white">

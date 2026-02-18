@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     RadarChart,
@@ -382,24 +382,27 @@ export default function SegmentalBodyComposition({ data: _data }: SegmentalBodyC
     const [gender, setGender] = useState<Gender>('male');
     const [selectedSegment, setSelectedSegment] = useState<string | null>('Trunk');
 
-    const compositionData = getDemoData(gender);
-    const selectedSeg = compositionData.segments.find(s => s.segment === selectedSegment);
+    const compositionData = useMemo(() => getDemoData(gender), [gender]);
+    const selectedSeg = useMemo(
+        () => compositionData.segments.find(s => s.segment === selectedSegment),
+        [compositionData.segments, selectedSegment]
+    );
 
     // Radar data
-    const radarData = compositionData.segments.map(seg => ({
+    const radarData = useMemo(() => compositionData.segments.map(seg => ({
         segment: seg.segment.replace(' ', '\n'),
         fat: seg.fatPercent,
         muscle: seg.musclePercent,
-    }));
+    })), [compositionData.segments]);
 
-    const overallMetrics = [
+    const overallMetrics = useMemo(() => ([
         { label: 'Total Body Fat', value: `${compositionData.totalBodyFat}%`, color: '#f59e0b' },
         { label: 'Muscle Mass', value: `${compositionData.totalMuscleMass} kg`, color: '#60a5fa' },
         { label: 'Bone Mass', value: `${compositionData.boneMass} kg`, color: '#a78bfa' },
         { label: 'Body Water', value: `${compositionData.waterPercent}%`, color: '#06b6d4' },
         { label: 'Visceral Fat', value: `Level ${compositionData.visceralFatLevel}`, color: '#ef4444' },
         { label: 'BMR', value: `${compositionData.basalMetabolicRate} kcal`, color: '#10b981' },
-    ];
+    ]), [compositionData]);
 
     return (
         <div className="space-y-6">

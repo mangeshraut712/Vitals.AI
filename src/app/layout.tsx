@@ -24,8 +24,14 @@ export const metadata: Metadata = {
     default: "Vitals.AI — Privacy-First Health Dashboard",
     template: "%s | Vitals.AI",
   },
+  manifest: "/manifest.json",
   description:
     "AI-powered health dashboard with biomarker analysis, biological age tracking, and digital twin visualization. Your data never leaves your machine.",
+  icons: {
+    icon: "/favicon.ico",
+    shortcut: "/favicon.ico",
+    apple: "/favicon.ico",
+  },
   keywords: [
     "health dashboard",
     "biomarkers",

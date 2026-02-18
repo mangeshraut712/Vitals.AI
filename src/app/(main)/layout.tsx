@@ -1,5 +1,6 @@
 import { TopNav } from '@/components/layout/TopNav';
 import { GlobalChatWidget } from '@/components/ai-chat/GlobalChatWidget';
+import { PwaBootstrap } from '@/components/layout/PwaBootstrap';
 
 export default function MainLayout({
   children,
@@ -12,6 +13,7 @@ export default function MainLayout({
       {/* Main content with top padding for floating nav */}
       <main className="pt-20 pb-12">{children}</main>
       <GlobalChatWidget />
+      <PwaBootstrap />
       {/* Subtle gradient background accent */}
       <div
         className="fixed inset-0 -z-10 pointer-events-none"

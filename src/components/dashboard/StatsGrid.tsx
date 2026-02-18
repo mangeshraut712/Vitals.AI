@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, memo } from 'react';
 import Link from 'next/link';
 import { type StatusType, STATUS_COLORS } from '@/lib/design/tokens';
 import type { BiomarkerStatus } from '@/lib/types/health';
@@ -38,7 +38,7 @@ function getMarkerStatusColor(status: BiomarkerStatus): string {
   }
 }
 
-function StatItem({ label, value, unit, status = 'optimal', delay = 0 }: StatItemProps): React.JSX.Element {
+const StatItemComponent = ({ label, value, unit, status = 'optimal', delay = 0 }: StatItemProps): React.JSX.Element => {
   const [mounted, setMounted] = useState(false);
   const styles = getStatusStyles(status);
 
@@ -63,7 +63,10 @@ function StatItem({ label, value, unit, status = 'optimal', delay = 0 }: StatIte
       </div>
     </div>
   );
-}
+};
+
+// Memoize StatItem to prevent unnecessary re-renders
+const StatItem = memo(StatItemComponent);
 
 export interface TopMarker {
   name: string;

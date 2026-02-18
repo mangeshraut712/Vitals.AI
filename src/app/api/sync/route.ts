@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { clearAllCache } from '@/lib/cache';
 import { HealthDataStore } from '@/lib/store/health-data';
 import { dispatchHealthEventsToOpenClaw } from '@/lib/integrations/openclaw';
+import { loggers } from '@/lib/logger';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -17,7 +18,7 @@ function isTrue(value: string | undefined): boolean {
 
 export async function POST(): Promise<NextResponse> {
   try {
-    console.log('[Sync] Starting data sync...');
+    loggers.sync.info('Starting data sync');
 
     // Clear the cache to force re-extraction
     clearAllCache();
@@ -47,7 +48,7 @@ export async function POST(): Promise<NextResponse> {
           forwardedCount: result.forwardedCount,
         };
       } catch (error) {
-        console.error('[Sync] OpenClaw auto-dispatch failed:', error);
+        loggers.sync.error('OpenClaw auto-dispatch failed', error);
         openclawDispatch = {
           attempted: true,
           delivered: false,
@@ -56,7 +57,7 @@ export async function POST(): Promise<NextResponse> {
       }
     }
 
-    console.log('[Sync] Cache cleared, data will be re-extracted on next page load');
+    loggers.sync.info('Cache cleared; data will be re-extracted on next page load');
 
     return NextResponse.json({
       success: true,
@@ -64,7 +65,7 @@ export async function POST(): Promise<NextResponse> {
       openclawDispatch,
     });
   } catch (error) {
-    console.error('[Sync] Error:', error);
+    loggers.sync.error('Sync API error', error);
     return NextResponse.json(
       {
         success: false,

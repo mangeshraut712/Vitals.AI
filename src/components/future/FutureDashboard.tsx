@@ -38,27 +38,38 @@ export default function FutureDashboard(): React.JSX.Element {
     type DeviceType = DashboardStats['devices'][number]['type'];
 
     useEffect(() => {
+        const controller = new AbortController();
+
         async function fetchStats() {
             try {
-                const res = await fetch('/api/future/stats');
+                const res = await fetch('/api/future/stats', { signal: controller.signal });
                 if (res.ok) {
                     const data = await res.json();
-                    setStats(data);
+                    if (!controller.signal.aborted) {
+                        setStats(data);
+                    }
                 }
             } catch (error) {
-                console.error('Failed to fetch dashboard stats', error);
+                if (!controller.signal.aborted) {
+                    console.error('Failed to fetch dashboard stats', error);
+                }
             } finally {
-                setLoading(false);
+                if (!controller.signal.aborted) {
+                    setLoading(false);
+                }
             }
         }
 
         fetchStats();
+
+        return () => controller.abort();
     }, []);
 
     const handleConnectDevice = (name: string, type: string) => {
         if (!stats) return;
         setStats(prev => {
             if (!prev) return null;
+            if (prev.devices.some(device => device.name === name)) return prev;
             return {
                 ...prev,
                 devices: [
