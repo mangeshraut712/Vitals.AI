@@ -45,6 +45,8 @@ const navItems: NavItem[] = [
       { name: 'Body Comp', href: '/body-comp', icon: Activity },
       { name: 'Biomarkers', href: '/biomarkers', icon: Beaker },
       { name: 'Lifestyle', href: '/lifestyle', icon: Heart },
+      { name: 'Vitals Monitor', href: '/vitals', icon: Activity },
+      { name: 'Device Hub', href: '/devices', icon: Zap },
       { name: 'Sources', href: '/data-sources', icon: FolderOpen },
     ],
   },
@@ -113,10 +115,9 @@ function NavDropdown({ item, isOpen, onToggle, onClose }: DropdownProps): React.
         className={`
           flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-medium
           transition-all duration-200
-          ${
-            isActive || isOpen
-              ? 'text-foreground bg-accent'
-              : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
+          ${isActive || isOpen
+            ? 'text-foreground bg-accent'
+            : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
           }
         `}
       >
@@ -152,10 +153,9 @@ function NavDropdown({ item, isOpen, onToggle, onClose }: DropdownProps): React.
                   className={`
                     flex items-center gap-2.5 px-3 py-2 mx-1.5 rounded-lg text-sm
                     transition-all duration-150
-                    ${
-                      isChildActive
-                        ? 'text-primary bg-primary/10'
-                        : 'text-muted-foreground hover:text-foreground hover:bg-accent'
+                    ${isChildActive
+                      ? 'text-primary bg-primary/10'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-accent'
                     }
                   `}
                 >
@@ -181,10 +181,9 @@ function NavLink({ item }: { item: NavItem }): React.JSX.Element {
       className={`
         px-3 py-2 rounded-full text-sm font-medium
         transition-all duration-200
-        ${
-          isActive
-            ? 'text-foreground bg-accent'
-            : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
+        ${isActive
+          ? 'text-foreground bg-accent'
+          : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
         }
       `}
     >

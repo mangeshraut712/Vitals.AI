@@ -78,3 +78,9 @@ Ralph_Agent_Use.md
 prompt.md
 /scripts/ralph/
 /rules/
+
+# Health data directories (local only, OS-restricted)
+data/Activity/
+data/Bloodwork/
+data/Body\ Scan/
+npm-cache/

@@ -59,6 +59,12 @@ Ask Claude AI questions about your health data. The assistant has full context o
 ### ⚡ Performance & Optimization
 Optimized for speed with dynamic imports, lazy-loaded charts, and skeleton loaders. Reduces initial bundle size by ~40% for asset-heavy pages.
 
+### 📈 Vitals Monitor
+Real-time dashboard for monitoring key health metrics like Heart Rate, HRV, and Glucose with live updates.
+
+### 🔌 Device Hub
+Centralized management interface for connecting and syncing health devices (Oura, Whoop, Apple Watch).
+
 ### 🏠 Vitals 2.0 (Prototype)
 Initial support for a database-backed architecture using **Prisma + SQLite**, featuring real-time device management and live health scoring.
 
@@ -186,6 +192,9 @@ src/
 ├── app/                        # Next.js App Router pages
 │   ├── (main)/                 # Main layout group
 │   │   ├── dashboard/          # Health dashboard
+│   │   ├── vitals/             # Real-time vitals monitoring
+│   │   ├── devices/            # Device management
+│   │   ├── future/             # Vitals 2.0 (Prototype)
 │   │   ├── biomarkers/         # Biomarker analysis
 │   │   ├── lifestyle/          # Activity & sleep tracking
 │   │   ├── body-comp/          # Body composition

@@ -7,6 +7,9 @@ import { parseWhoopFolder, WhoopData } from '@/lib/parsers/whoop';
 import { parseAppleHealthExport, convertAppleHealthToActivity } from '@/lib/parsers/apple-health';
 import { parseOuraExport, convertOuraToActivity } from '@/lib/parsers/oura';
 import { parseFitbitExport, convertFitbitToActivity } from '@/lib/parsers/fitbit';
+import { parseWithingsExport, convertWithingsToActivity } from '@/lib/parsers/withings';
+import { parseSamsungExport, convertSamsungToActivity } from '@/lib/parsers/samsung-health';
+import { parseGoogleFitExport, convertGoogleFitToActivity } from '@/lib/parsers/google-fit';
 import { extractBiomarkers, ExtractedBiomarkers } from '@/lib/extractors/biomarkers';
 import { extractBiomarkersWithAI } from '@/lib/extractors/ai-extractor';
 import { extractBodyComposition, BodyComposition } from '@/lib/extractors/body-comp';
@@ -69,6 +72,9 @@ const TRACKER_DISPLAY_NAMES: Record<TrackerType, string> = {
   apple: 'Apple Health',
   oura: 'Oura Ring',
   fitbit: 'Fitbit',
+  withings: 'Withings',
+  samsung: 'Samsung Health',
+  google_fit: 'Google Fit',
   unknown: 'Unknown',
 };
 
@@ -299,6 +305,51 @@ class HealthDataStoreClass {
 
           // Convert to CsvRow format for consistency
           for (const activity of fitbitActivity) {
+            activityRows.push({
+              date: activity.date,
+              hrv_ms: activity.hrv,
+              rhr_bpm: activity.rhr,
+              sleep_hours: activity.sleepHours,
+              sleep_score: activity.sleepScore,
+              steps: activity.steps,
+            } as CsvRow);
+          }
+        } else if (file.trackerType === 'withings') {
+          // Parse Withings data
+          const withingsData = parseWithingsExport(file.path);
+          const withingsActivity = convertWithingsToActivity(withingsData);
+
+          for (const activity of withingsActivity) {
+            activityRows.push({
+              date: activity.date,
+              hrv_ms: activity.hrv,
+              rhr_bpm: activity.rhr,
+              sleep_hours: activity.sleepHours,
+              sleep_score: activity.sleepScore,
+              steps: activity.steps,
+            } as CsvRow);
+          }
+        } else if (file.trackerType === 'samsung') {
+          // Parse Samsung Health data
+          const samsungData = parseSamsungExport(file.path);
+          const samsungActivity = convertSamsungToActivity(samsungData);
+
+          for (const activity of samsungActivity) {
+            activityRows.push({
+              date: activity.date,
+              hrv_ms: activity.hrv,
+              rhr_bpm: activity.rhr,
+              sleep_hours: activity.sleepHours,
+              sleep_score: activity.sleepScore,
+              steps: activity.steps,
+            } as CsvRow);
+          }
+        } else if (file.trackerType === 'google_fit') {
+          // Parse Google Fit data
+          const googleFitData = parseGoogleFitExport(file.path);
+          const googleFitActivity = convertGoogleFitToActivity(googleFitData);
+
+          for (const activity of googleFitActivity) {
             activityRows.push({
               date: activity.date,
               hrv_ms: activity.hrv,
@@ -578,39 +629,39 @@ class HealthDataStoreClass {
       criticalThreshold?: number;
       direction?: 'higher_is_risk' | 'lower_is_risk';
     }> = [
-      {
-        key: 'bodyFatPercent',
-        label: 'Body Fat',
-        unit: '%',
-        warningThreshold: 20,
-        criticalThreshold: 25,
-        direction: 'higher_is_risk',
-      },
-      {
-        key: 'vatMass',
-        label: 'Visceral Fat',
-        unit: 'lbs',
-        warningThreshold: 1.0,
-        criticalThreshold: 1.5,
-        direction: 'higher_is_risk',
-      },
-      {
-        key: 'leanMass',
-        label: 'Lean Mass',
-        unit: 'lbs',
-        warningThreshold: 120,
-        criticalThreshold: 100,
-        direction: 'lower_is_risk',
-      },
-      {
-        key: 'boneDensityTScore',
-        label: 'Bone Density T-Score',
-        unit: '',
-        warningThreshold: -1,
-        criticalThreshold: -2.5,
-        direction: 'lower_is_risk',
-      },
-    ];
+        {
+          key: 'bodyFatPercent',
+          label: 'Body Fat',
+          unit: '%',
+          warningThreshold: 20,
+          criticalThreshold: 25,
+          direction: 'higher_is_risk',
+        },
+        {
+          key: 'vatMass',
+          label: 'Visceral Fat',
+          unit: 'lbs',
+          warningThreshold: 1.0,
+          criticalThreshold: 1.5,
+          direction: 'higher_is_risk',
+        },
+        {
+          key: 'leanMass',
+          label: 'Lean Mass',
+          unit: 'lbs',
+          warningThreshold: 120,
+          criticalThreshold: 100,
+          direction: 'lower_is_risk',
+        },
+        {
+          key: 'boneDensityTScore',
+          label: 'Bone Density T-Score',
+          unit: '',
+          warningThreshold: -1,
+          criticalThreshold: -2.5,
+          direction: 'lower_is_risk',
+        },
+      ];
 
     bodyCompMetrics.forEach((metric, index) => {
       const value = this.data.bodyComp[metric.key];
@@ -933,10 +984,18 @@ function mergeBodyCompData(primary: BodyComposition, secondary: BodyComposition)
 }
 
 function toHealthEventSource(source: TrackerType): HealthEventSource {
-  if (source === 'whoop' || source === 'apple' || source === 'oura' || source === 'fitbit') {
+  if (
+    source === 'whoop' ||
+    source === 'apple' ||
+    source === 'oura' ||
+    source === 'fitbit' ||
+    source === 'withings' ||
+    source === 'samsung' ||
+    source === 'google_fit'
+  ) {
     return source;
   }
-  return source === 'unknown' ? 'activity' : source;
+  return 'activity';
 }
 
 function biomarkerStatusToSeverity(

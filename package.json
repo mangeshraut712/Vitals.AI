@@ -26,9 +26,9 @@
     "node": ">=20.0.0"
   },
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --webpack",
     "postinstall": "prisma generate",
-    "build": "next build",
+    "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
@@ -36,15 +36,17 @@
     "test:ui": "vitest --ui"
   },
   "dependencies": {
-    "@prisma/client": "^5.22.0",
+    "@ai-sdk/openai": "^3.0.29",
     "@anthropic-ai/claude-agent-sdk": "^0.2.5",
     "@anthropic-ai/sdk": "^0.71.2",
     "@json-render/core": "^0.2.0",
     "@json-render/react": "^0.2.0",
+    "@prisma/client": "^5.22.0",
     "@radix-ui/react-slot": "^1.2.4",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.5.0",
     "@types/papaparse": "^5.5.2",
+    "ai": "^6.0.90",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",

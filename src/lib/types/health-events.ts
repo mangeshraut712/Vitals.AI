@@ -15,6 +15,9 @@ export type HealthEventSource =
   | 'apple'
   | 'oura'
   | 'fitbit'
+  | 'withings'
+  | 'samsung'
+  | 'google_fit'
   | 'unknown'
   | 'system';
 

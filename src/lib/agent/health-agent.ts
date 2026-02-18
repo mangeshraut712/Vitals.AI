@@ -1,4 +1,5 @@
-import Anthropic from '@anthropic-ai/sdk';
+import { createOpenAI } from '@ai-sdk/openai';
+import { streamText, generateText } from 'ai';
 
 const VERIFIED_SOURCE_DOMAINS = [
   'pubmed.ncbi.nlm.nih.gov',
@@ -91,21 +92,27 @@ function sanitizeUnverifiedSourceUrls(content: string): { content: string; remov
   return { content: sanitized, removedCount };
 }
 
+// Initialize OpenRouter client via OpenAI SDK
+const openrouter = createOpenAI({
+  baseURL: 'https://openrouter.ai/api/v1',
+  apiKey: process.env.OPENROUTER_API_KEY,
+});
+
+// Configure the model - using Google Gemini 2.0 Flash (Preview) via OpenRouter as default "best free model"
+// Fallback to OpenAI or others if needed, but sticking to requested free model.
+const MODEL = 'google/gemini-2.0-flash-lite-preview-02-05:free';
+
 export async function queryHealthAgent(
   message: string,
   healthContext: string
 ): Promise<HealthAgentResponse> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const apiKey = process.env.OPENROUTER_API_KEY;
 
   if (!apiKey) {
     return {
-      content: "I'm ready to help! Please set your `ANTHROPIC_API_KEY` in the `.env.local` file to connect me to the intelligence engine.",
+      content: "I'm ready to help! Please set your `OPENROUTER_API_KEY` in the `.env.local` file (or Vercel Dashboard) to connect me to the intelligence engine.",
     };
   }
-
-  const anthropic = new Anthropic({
-    apiKey: apiKey,
-  });
 
   const fullPrompt = `## User's Health Data Context
 ${healthContext}
@@ -114,17 +121,13 @@ ${healthContext}
 ${message}`;
 
   try {
-    const response = await anthropic.messages.create({
-      model: "claude-3-5-sonnet-latest",
-      max_tokens: 1024,
+    const { text } = await generateText({
+      model: openrouter(MODEL),
       system: HEALTH_SYSTEM_PROMPT,
-      messages: [
-        { role: "user", content: fullPrompt }
-      ],
+      prompt: fullPrompt,
     });
 
-    const content = response.content.map(block => block.type === 'text' ? block.text : '').join('');
-    const { content: sanitizedContent, removedCount } = sanitizeUnverifiedSourceUrls(content);
+    const { content: sanitizedContent, removedCount } = sanitizeUnverifiedSourceUrls(text);
 
     const finalContent = removedCount > 0
       ? `${sanitizedContent}\n\n*Note: unverified links were removed.*`
@@ -133,7 +136,7 @@ ${message}`;
     return { content: finalContent };
 
   } catch (error) {
-    console.error('[Vitals.AI] Anthropic API Error:', error);
+    console.error('[Vitals.AI] OpenRouter API Error:', error);
     return {
       content: "I'm having trouble connecting to my knowledge base right now.",
       error: error instanceof Error ? error.message : 'Unknown error'
@@ -146,17 +149,18 @@ export async function queryHealthAgentStream(
   healthContext: string,
   onChunk: (text: string) => void
 ): Promise<HealthAgentResponse> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const apiKey = process.env.OPENROUTER_API_KEY;
 
-  if (!apiKey) {
-    return {
-      content: "I'm ready to help! Please set your `ANTHROPIC_API_KEY` in the `.env.local` file to connect me to the intelligence engine.",
-    };
+  // Fallback check for Anthropic key if OpenRouter missing (backward compatibility)
+  if (!apiKey && !process.env.ANTHROPIC_API_KEY) {
+    const msg = "I'm ready to help! Please set your `OPENROUTER_API_KEY` in the `.env.local` file to connect me to the intelligence engine.";
+    onChunk(msg);
+    return { content: msg };
   }
 
-  const anthropic = new Anthropic({
-    apiKey: apiKey,
-  });
+  // Use OpenRouter provider
+  const provider = openrouter;
+  const modelId = MODEL;
 
   const fullPrompt = `## User's Health Data Context
 ${healthContext}
@@ -166,27 +170,17 @@ ${message}`;
 
   try {
     let fullContent = '';
-    const stream = await anthropic.messages.create({
-      model: "claude-3-5-sonnet-latest",
-      max_tokens: 1024,
+
+    const result = await streamText({
+      model: provider(modelId),
       system: HEALTH_SYSTEM_PROMPT,
-      messages: [
-        { role: "user", content: fullPrompt }
-      ],
-      stream: true,
+      prompt: fullPrompt,
     });
 
-    for await (const chunk of stream) {
-      if (chunk.type === 'content_block_delta') {
-        const delta = chunk.delta;
-        const text =
-          delta && typeof delta === 'object' && 'text' in delta && typeof delta.text === 'string'
-            ? delta.text
-            : '';
-        if (text) {
-          fullContent += text;
-          onChunk(text);
-        }
+    for await (const textPart of result.textStream) {
+      if (textPart) {
+        fullContent += textPart;
+        onChunk(textPart);
       }
     }
 
@@ -199,7 +193,7 @@ ${message}`;
     return { content: finalContent };
 
   } catch (error) {
-    console.error('[Vitals.AI] Anthropic API Streaming Error:', error);
+    console.error('[Vitals.AI] OpenRouter API Streaming Error:', error);
     return {
       content: "I'm having trouble connecting to my knowledge base right now.",
       error: error instanceof Error ? error.message : 'Unknown error'

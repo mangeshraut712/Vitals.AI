@@ -17,6 +17,14 @@ const FatDistributionChart = dynamic(() => import('@/components/charts/FatDistri
   loading: () => <div className="h-64 bg-muted/20 animate-pulse rounded-xl" />,
 });
 
+const SegmentalBodyComposition = dynamic(
+  () => import('@/components/body-comp/SegmentalBodyComposition'),
+  {
+    ssr: false,
+    loading: () => <div className="h-80 bg-muted/20 animate-pulse rounded-2xl" />,
+  }
+);
+
 interface BodyCompClientProps {
   bodyComp: BodyComposition;
 }
@@ -311,6 +319,21 @@ export function BodyCompClient({ bodyComp }: BodyCompClientProps): React.JSX.Ele
               </div>
             </div>
           )}
+          {/* Segmental Body Composition — Withings Body Scan / DEXA */}
+          <div className="mt-6">
+            <div className="bg-card rounded-2xl border border-border shadow-sm p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h3 className="text-lg font-semibold text-foreground">Segmental Body Composition</h3>
+                  <p className="text-sm text-muted-foreground mt-0.5">Gender-specific arm, trunk &amp; leg fat/muscle analysis</p>
+                </div>
+                <span className="text-xs px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                  Withings Body Scan · DEXA
+                </span>
+              </div>
+              <SegmentalBodyComposition />
+            </div>
+          </div>
         </>
       ) : (
         <div className="bg-card rounded-xl border border-border shadow-sm p-6 text-center py-12">

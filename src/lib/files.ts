@@ -1,9 +1,12 @@
 import fs from 'fs';
 import path from 'path';
 import { isWhoopFolder } from './parsers/whoop';
+import { isWithingsFolder } from './parsers/withings';
+import { isSamsungFolder } from './parsers/samsung-health';
+import { isGoogleFitFolder } from './parsers/google-fit';
 
 export type FileType = 'bloodwork' | 'dexa' | 'activity' | 'activity_folder' | 'unknown';
-export type TrackerType = 'whoop' | 'apple' | 'oura' | 'fitbit' | 'unknown';
+export type TrackerType = 'whoop' | 'apple' | 'oura' | 'fitbit' | 'withings' | 'samsung' | 'google_fit' | 'unknown';
 
 export interface DataFile {
   name: string;
@@ -29,6 +32,9 @@ const TRACKER_FOLDERS: { name: string; type: TrackerType }[] = [
   { name: 'Apple Health', type: 'apple' },
   { name: 'Oura', type: 'oura' },
   { name: 'Fitbit', type: 'fitbit' },
+  { name: 'Withings', type: 'withings' },
+  { name: 'Samsung Health', type: 'samsung' },
+  { name: 'Google Fit', type: 'google_fit' },
 ];
 
 const SUPPORTED_EXTENSIONS = ['.txt', '.csv', '.xlsx', '.pdf', '.xml', '.json', '.zip'];
@@ -214,6 +220,57 @@ function detectActiveTracker(): { trackerType: TrackerType; path: string; files:
           if (sub.isDirectory() && !sub.name.startsWith('.')) {
             const subPath = path.join(trackerPath, sub.name);
             if (isFitbitFolder(subPath)) {
+              hasData = true;
+              dataPath = subPath;
+              break;
+            }
+          }
+        }
+      }
+    } else if (tracker.type === 'withings') {
+      // Withings: look for weight/sleep/activity CSVs
+      if (isWithingsFolder(trackerPath)) {
+        hasData = true;
+      } else {
+        const subfolders = fs.readdirSync(trackerPath, { withFileTypes: true });
+        for (const sub of subfolders) {
+          if (sub.isDirectory() && !sub.name.startsWith('.')) {
+            const subPath = path.join(trackerPath, sub.name);
+            if (isWithingsFolder(subPath)) {
+              hasData = true;
+              dataPath = subPath;
+              break;
+            }
+          }
+        }
+      }
+    } else if (tracker.type === 'samsung') {
+      // Samsung Health: nested CSV structure
+      if (isSamsungFolder(trackerPath)) {
+        hasData = true;
+      } else {
+        const subfolders = fs.readdirSync(trackerPath, { withFileTypes: true });
+        for (const sub of subfolders) {
+          if (sub.isDirectory() && !sub.name.startsWith('.')) {
+            const subPath = path.join(trackerPath, sub.name);
+            if (isSamsungFolder(subPath)) {
+              hasData = true;
+              dataPath = subPath;
+              break;
+            }
+          }
+        }
+      }
+    } else if (tracker.type === 'google_fit') {
+      // Google Fit: Google Takeout CSV structure
+      if (isGoogleFitFolder(trackerPath)) {
+        hasData = true;
+      } else {
+        const subfolders = fs.readdirSync(trackerPath, { withFileTypes: true });
+        for (const sub of subfolders) {
+          if (sub.isDirectory() && !sub.name.startsWith('.')) {
+            const subPath = path.join(trackerPath, sub.name);
+            if (isGoogleFitFolder(subPath)) {
               hasData = true;
               dataPath = subPath;
               break;

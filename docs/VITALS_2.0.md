@@ -40,5 +40,4 @@ This documentation covers the new "Vitals 2.0" features, located at `/future`. T
 
 ## Next Steps
 - Implement `POST` endpoints for real device webhooks (Terra API).
-- Connect the **Vitals AI Coach** to a real LLM (Anthropic/OpenAI) via the database context.
 - Migrate the legacy `HealthDataStore` to read from Prisma.
