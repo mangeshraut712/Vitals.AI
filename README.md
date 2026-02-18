@@ -236,9 +236,9 @@ OpenHealth/
 │   │   │   ├── devices/
 │   │   │   ├── data-sources/
 │   │   │   ├── goals/
+│   │   │   ├── future/
 │   │   │   ├── plans/
 │   │   │   └── tools/
-│   │   ├── future/                     # /future route that reuses (main) layout
 │   │   ├── api/                        # Server routes
 │   │   │   ├── chat/
 │   │   │   ├── goals/
