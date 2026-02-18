@@ -17,11 +17,27 @@ export function SyncButton() {
         method: 'POST',
       });
 
-      const data = (await response.json()) as { success: boolean; message?: string; error?: string };
+      const data = (await response.json()) as {
+        success: boolean;
+        message?: string;
+        error?: string;
+        openclawDispatch?: {
+          attempted: boolean;
+          delivered: boolean;
+          reason?: string;
+          forwardedCount?: number;
+        };
+      };
 
       if (data.success) {
+        const openclawStatus = data.openclawDispatch
+          ? data.openclawDispatch.delivered
+            ? ` OpenClaw notified (${data.openclawDispatch.forwardedCount ?? 0} events).`
+            : ` OpenClaw dispatch skipped (${data.openclawDispatch.reason ?? 'no reason'}).`
+          : '';
+
         toast.success('Data synced successfully', {
-          description: 'Your health data has been refreshed from the /data folder.',
+          description: `Your health data has been refreshed from the /data folder.${openclawStatus}`,
         });
         router.refresh();
       } else {

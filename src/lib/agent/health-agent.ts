@@ -10,6 +10,8 @@ const VERIFIED_SOURCE_DOMAINS = [
   'doi.org',
 ];
 
+const DEFAULT_OPENROUTER_MODEL = 'openrouter/free';
+
 const HEALTH_SYSTEM_PROMPT = `You are Vitals.AI, a knowledgeable health assistant that helps users understand their health data and make informed decisions about their wellness.
 
 ## Your Role
@@ -66,6 +68,38 @@ export interface HealthAgentResponse {
   error?: string;
 }
 
+function parseModelList(value: string | undefined): string[] {
+  if (!value) return [];
+  return value
+    .split(',')
+    .map((model) => model.trim())
+    .filter(Boolean);
+}
+
+function getModelCandidates(): string[] {
+  const preferred = process.env.OPENROUTER_MODEL?.trim() || DEFAULT_OPENROUTER_MODEL;
+  const fallbackFromEnv = parseModelList(process.env.OPENROUTER_FALLBACK_MODELS);
+
+  return Array.from(new Set([preferred, ...fallbackFromEnv]));
+}
+
+function getOpenRouterHeaders(): Record<string, string> {
+  const headers: Record<string, string> = {
+    'X-Title': process.env.OPENROUTER_APP_NAME?.trim() || 'OpenHealth (Vitals.AI)',
+  };
+
+  const referer = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+  if (referer) {
+    headers['HTTP-Referer'] = referer;
+  }
+
+  return headers;
+}
+
+function getMissingKeyMessage(): string {
+  return "I'm ready to help! Please set your `OPENROUTER_API_KEY` in Vercel environment variables (or `.env.local`) to enable chat.";
+}
+
 function isVerifiedSourceUrl(url: string): boolean {
   try {
     const hostname = new URL(url).hostname.toLowerCase();
@@ -96,11 +130,8 @@ function sanitizeUnverifiedSourceUrls(content: string): { content: string; remov
 const openrouter = createOpenAI({
   baseURL: 'https://openrouter.ai/api/v1',
   apiKey: process.env.OPENROUTER_API_KEY,
+  headers: getOpenRouterHeaders(),
 });
-
-// Configure the model - using Google Gemini 2.0 Flash (Preview) via OpenRouter as default "best free model"
-// Fallback to OpenAI or others if needed, but sticking to requested free model.
-const MODEL = 'google/gemini-2.0-flash-lite-preview-02-05:free';
 
 export async function queryHealthAgent(
   message: string,
@@ -110,7 +141,7 @@ export async function queryHealthAgent(
 
   if (!apiKey) {
     return {
-      content: "I'm ready to help! Please set your `OPENROUTER_API_KEY` in the `.env.local` file (or Vercel Dashboard) to connect me to the intelligence engine.",
+      content: getMissingKeyMessage(),
     };
   }
 
@@ -120,28 +151,82 @@ ${healthContext}
 ## User Question
 ${message}`;
 
-  try {
-    const { text } = await generateText({
-      model: openrouter(MODEL),
-      system: HEALTH_SYSTEM_PROMPT,
-      prompt: fullPrompt,
-    });
+  const modelCandidates = getModelCandidates();
+  let lastError: unknown;
 
-    const { content: sanitizedContent, removedCount } = sanitizeUnverifiedSourceUrls(text);
+  for (const modelId of modelCandidates) {
+    try {
+      const { text } = await generateText({
+        model: openrouter(modelId),
+        system: HEALTH_SYSTEM_PROMPT,
+        prompt: fullPrompt,
+      });
 
-    const finalContent = removedCount > 0
-      ? `${sanitizedContent}\n\n*Note: unverified links were removed.*`
-      : sanitizedContent;
+      const { content: sanitizedContent, removedCount } = sanitizeUnverifiedSourceUrls(text);
 
-    return { content: finalContent };
+      const finalContent = removedCount > 0
+        ? `${sanitizedContent}\n\n*Note: unverified links were removed.*`
+        : sanitizedContent;
 
-  } catch (error) {
-    console.error('[Vitals.AI] OpenRouter API Error:', error);
-    return {
-      content: "I'm having trouble connecting to my knowledge base right now.",
-      error: error instanceof Error ? error.message : 'Unknown error'
-    };
+      return { content: finalContent };
+    } catch (error) {
+      lastError = error;
+      console.warn(`[Vitals.AI] OpenRouter model failed (${modelId}), trying next fallback.`);
+    }
   }
+
+  console.error('[Vitals.AI] OpenRouter API Error:', lastError);
+  return {
+    content: "I'm having trouble connecting to my knowledge base right now.",
+    error: lastError instanceof Error ? lastError.message : 'Unknown error',
+  };
+}
+
+function formatStreamResult(content: string): HealthAgentResponse {
+  const { content: sanitizedContent, removedCount } = sanitizeUnverifiedSourceUrls(content);
+  const finalContent = removedCount > 0
+    ? `${sanitizedContent}\n\n*Note: unverified links were removed.*`
+    : sanitizedContent;
+
+  return { content: finalContent };
+}
+
+async function streamWithFallback(
+  prompt: string,
+  onChunk: (text: string) => void
+): Promise<HealthAgentResponse> {
+  const modelCandidates = getModelCandidates();
+  let lastError: unknown;
+
+  for (const modelId of modelCandidates) {
+    let candidateContent = '';
+    try {
+      const result = await streamText({
+        model: openrouter(modelId),
+        system: HEALTH_SYSTEM_PROMPT,
+        prompt,
+      });
+
+      for await (const textPart of result.textStream) {
+        if (!textPart) continue;
+        candidateContent += textPart;
+        onChunk(textPart);
+      }
+
+      return formatStreamResult(candidateContent);
+    } catch (error) {
+      lastError = error;
+
+      // If partial output already streamed, don't switch models mid-response.
+      if (candidateContent.length > 0) {
+        throw error;
+      }
+
+      console.warn(`[Vitals.AI] OpenRouter stream model failed (${modelId}), trying next fallback.`);
+    }
+  }
+
+  throw lastError ?? new Error('No OpenRouter model candidates available');
 }
 
 export async function queryHealthAgentStream(
@@ -151,16 +236,11 @@ export async function queryHealthAgentStream(
 ): Promise<HealthAgentResponse> {
   const apiKey = process.env.OPENROUTER_API_KEY;
 
-  // Fallback check for Anthropic key if OpenRouter missing (backward compatibility)
-  if (!apiKey && !process.env.ANTHROPIC_API_KEY) {
-    const msg = "I'm ready to help! Please set your `OPENROUTER_API_KEY` in the `.env.local` file to connect me to the intelligence engine.";
+  if (!apiKey) {
+    const msg = getMissingKeyMessage();
     onChunk(msg);
     return { content: msg };
   }
-
-  // Use OpenRouter provider
-  const provider = openrouter;
-  const modelId = MODEL;
 
   const fullPrompt = `## User's Health Data Context
 ${healthContext}
@@ -169,34 +249,12 @@ ${healthContext}
 ${message}`;
 
   try {
-    let fullContent = '';
-
-    const result = await streamText({
-      model: provider(modelId),
-      system: HEALTH_SYSTEM_PROMPT,
-      prompt: fullPrompt,
-    });
-
-    for await (const textPart of result.textStream) {
-      if (textPart) {
-        fullContent += textPart;
-        onChunk(textPart);
-      }
-    }
-
-    const { content: sanitizedContent, removedCount } = sanitizeUnverifiedSourceUrls(fullContent);
-
-    const finalContent = removedCount > 0
-      ? `${sanitizedContent}\n\n*Note: unverified links were removed.*`
-      : sanitizedContent;
-
-    return { content: finalContent };
-
+    return await streamWithFallback(fullPrompt, onChunk);
   } catch (error) {
     console.error('[Vitals.AI] OpenRouter API Streaming Error:', error);
     return {
       content: "I'm having trouble connecting to my knowledge base right now.",
-      error: error instanceof Error ? error.message : 'Unknown error'
+      error: error instanceof Error ? error.message : 'Unknown error',
     };
   }
 }

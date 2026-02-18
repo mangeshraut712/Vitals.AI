@@ -1,8 +1,8 @@
 /**
  * Chat with AI - Client-side function to send messages to the health AI
  *
- * Sends message to /api/chat endpoint which calls Anthropic Claude API
- * with the user's biomarker data as context.
+ * Sends message to /api/chat endpoint which calls OpenRouter
+ * through Vercel AI SDK with the user's health data context.
  */
 
 export interface ChatResponse {
@@ -18,28 +18,11 @@ export interface ChatResponse {
  */
 export async function chatWithAI(message: string): Promise<ChatResponse> {
   try {
-    const response = await fetch('/api/chat', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ message }),
-    });
-
-    if (!response.ok) {
-      const errorData = (await response.json().catch(() => ({}))) as {
-        error?: string;
-      };
-      return {
-        response: '',
-        error:
-          errorData.error ||
-          `Request failed with status ${response.status}`,
-      };
+    let fullResponse = '';
+    for await (const chunk of streamChatWithAI(message)) {
+      fullResponse += chunk;
     }
-
-    const data = (await response.json()) as { response: string };
-    return { response: data.response };
+    return { response: fullResponse };
   } catch (error) {
     // Network or parsing error
     const errorMessage =
@@ -54,8 +37,7 @@ export async function chatWithAI(message: string): Promise<ChatResponse> {
 /**
  * Stream a chat response from the AI
  *
- * Note: Current API doesn't support streaming, but this is here
- * for future implementation when streaming is added to the API.
+ * API returns Server-Sent Events (SSE).
  */
 export async function* streamChatWithAI(
   message: string
@@ -68,7 +50,8 @@ export async function* streamChatWithAI(
     });
 
     if (!response.ok) {
-      yield 'Sorry, I encountered an error. Please try again.';
+      const errorData = (await response.json().catch(() => ({}))) as { error?: string };
+      yield errorData.error ?? 'Sorry, I encountered an error. Please try again.';
       return;
     }
 

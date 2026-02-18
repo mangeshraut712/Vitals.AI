@@ -377,6 +377,7 @@ interface SegmentalBodyCompositionProps {
     data?: Partial<BodyCompositionData>;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export default function SegmentalBodyComposition({ data: _data }: SegmentalBodyCompositionProps) {
     const [gender, setGender] = useState<Gender>('male');
     const [selectedSegment, setSelectedSegment] = useState<string | null>('Trunk');

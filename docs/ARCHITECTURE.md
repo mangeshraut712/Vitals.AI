@@ -22,7 +22,7 @@ Vitals.AI is a localhost-only health dashboard with an AI chat agent. All data s
 │  │             │    │  │  Dashboard  │    │    Chat    │   │   │
 │  │  .env       │    │  │  (React)    │    │   (React)  │   │   │
 │  │             │    │  └─────────────┘    └─────┬──────┘   │   │
-│  │ ANTHROPIC_  │    │                           │          │   │
+│  │ OPENROUTER_ │    │                           │          │   │
 │  │ API_KEY     │    │                           ▼          │   │
 │  │             │    │                    ┌────────────┐    │   │
 │  └──────┬──────┘    │                    │  /api/chat │    │   │
@@ -30,22 +30,21 @@ Vitals.AI is a localhost-only health dashboard with an AI chat agent. All data s
 │         │           └──────────────────────────┼───────────┘   │
 │         │                                      │               │
 │         │           ┌──────────────────────────▼───────────┐   │
-│         └──────────▶│         Claude Agent SDK             │   │
+│         └──────────▶│   OpenRouter via Vercel AI SDK      │   │
 │                     │                                      │   │
-│                     │  Tools: Read, Bash, WebSearch,       │   │
-│                     │         WebFetch                     │   │
+│                     │  Streaming chat completion           │   │
+│                     │  + source URL sanitization           │   │
 │                     └──────────────────┬───────────────────┘   │
 │                                        │                       │
 └────────────────────────────────────────┼───────────────────────┘
                                          │
                                          ▼
                               ┌─────────────────────┐
-                              │   Anthropic API     │
+                              │   OpenRouter API    │
                               │   (External)        │
                               │                     │
-                              │   + WebSearch:      │
-                              │   - NIH/PubMed      │
-                              │   - Blueprint       │
+                              │   (Free model route │
+                              │    + model fallback)│
                               └─────────────────────┘
 ```
 
@@ -116,13 +115,13 @@ User types message
             │
             ▼
 ┌─────────────────────────┐
-│ Claude Agent SDK        │
+│ OpenRouter chat stack   │
 │ query()                 │
 │                         │
-│ Agent may:              │
-│ - Read files            │
-│ - WebSearch NIH/PubMed  │
-│ - Calculate values      │
+│ Agent behavior:         │
+│ - Uses health context   │
+│ - Uses system prompt    │
+│ - Streams response      │
 └───────────┬─────────────┘
             │
             ▼
@@ -182,18 +181,19 @@ Methods:
 
 | File | Purpose |
 |------|---------|
-| `health-agent.ts` | Claude Agent SDK configuration |
+| `health-agent.ts` | OpenRouter + Vercel AI SDK chat configuration |
 
 Configuration:
 - System prompt with health expertise
-- Allowed tools: Read, Bash, WebSearch, WebFetch
-- Verified source list for WebSearch
+- OpenRouter model routing (`OPENROUTER_MODEL`, fallback list)
+- Verified source-domain sanitization in responses
 
 ### API Routes (`app/api/`)
 
 | Route | Method | Purpose |
 |-------|--------|---------|
 | `/api/chat` | POST | Send message to health agent, get response |
+| `/api/integrations/openclaw/dispatch` | POST | Forward redacted health event digest to OpenClaw hooks |
 
 ### Components (`components/`)
 
@@ -272,7 +272,7 @@ interface Improvement {
 ## Security Considerations
 
 1. **API key in .env only** — Never committed, never logged
-2. **No external data transmission** — Only Anthropic API calls
+2. **No external data transmission** — Only user-configured AI API calls (OpenRouter and optional Anthropic extraction)
 3. **No persistent storage** — Data re-parsed each session
 4. **User owns their data** — Files stay in /data, never uploaded
 5. **Localhost only** — Not designed for deployment

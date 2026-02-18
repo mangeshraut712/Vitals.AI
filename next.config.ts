@@ -1,11 +1,17 @@
 import type { NextConfig } from "next";
 import path from "path";
+import { createRequire } from "module";
+
+// Create a require function for CommonJS modules
+const require = createRequire(import.meta.url);
 
 // Patch Node's fs module to handle EPERM errors on macOS-restricted files/dirs
 // This is needed because:
 // 1. data/Activity, data/Bloodwork, data/Body Scan are OS-restricted (health data)
 // 2. next-env.d.ts has macOS quarantine restrictions
-const _fs = require("fs");
+// Using any to bypass strict typing for fs patching
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const _fs: any = require("fs");
 
 const _origReaddir = _fs.readdir;
 const _origReaddirSync = _fs.readdirSync;
@@ -24,13 +30,20 @@ _fs.readdir = function (p: string, options: unknown, callback?: unknown) {
       (cb as (err: NodeJS.ErrnoException | null, files: string[]) => void)(err, files);
     }
   };
-  opts !== undefined ? _origReaddir(p, opts, wrappedCb) : _origReaddir(p, wrappedCb);
+  if (opts !== undefined) {
+    _origReaddir(p, opts, wrappedCb);
+  } else {
+    _origReaddir(p, wrappedCb);
+  }
 };
 
 // Patch sync readdir
 _fs.readdirSync = function (p: string, options?: unknown) {
   try {
-    return options !== undefined ? _origReaddirSync(p, options) : _origReaddirSync(p);
+    if (options !== undefined) {
+      return _origReaddirSync(p, options);
+    }
+    return _origReaddirSync(p);
   } catch (e: unknown) {
     if (e && typeof e === "object" && "code" in e && (e as NodeJS.ErrnoException).code === "EPERM") {
       return [];
@@ -50,13 +63,20 @@ _fs.writeFile = function (p: string, data: unknown, options: unknown, callback?:
       (cb as (err: NodeJS.ErrnoException | null) => void)(err);
     }
   };
-  opts !== undefined ? _origWriteFile(p, data, opts, wrappedCb) : _origWriteFile(p, data, wrappedCb);
+  if (opts !== undefined) {
+    _origWriteFile(p, data, opts, wrappedCb);
+  } else {
+    _origWriteFile(p, data, wrappedCb);
+  }
 };
 
 // Patch sync writeFile
 _fs.writeFileSync = function (p: string, data: unknown, options?: unknown) {
   try {
-    return options !== undefined ? _origWriteFileSync(p, data, options) : _origWriteFileSync(p, data);
+    if (options !== undefined) {
+      return _origWriteFileSync(p, data, options);
+    }
+    return _origWriteFileSync(p, data);
   } catch (e: unknown) {
     if (e && typeof e === "object" && "code" in e && (e as NodeJS.ErrnoException).code === "EPERM" && String(p).includes("next-env")) {
       return; // silently ignore

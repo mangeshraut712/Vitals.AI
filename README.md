@@ -12,7 +12,8 @@
 <p align="center">
   <a href="https://github.com/mangeshraut712/Vitals.AI">GitHub Repo</a> •
   <a href="https://github.com/mangeshraut712/Vitals.AI/issues">Issues</a> •
-  <a href="docs/VITALS_2.0.md">Vitals 2.0 Roadmap</a>
+  <a href="docs/VITALS_2.0.md">Vitals 2.0 Roadmap</a> •
+  <a href="docs/OPENCLAW_INTEGRATION.md">OpenClaw Integration</a>
 </p>
 
 <p align="center">
@@ -35,9 +36,9 @@
 
 ## 🎯 What is Vitals.AI?
 
-**Vitals.AI** (OpenHealth) is a privacy-first health dashboard that analyzes your bloodwork, body composition, and activity data — all running locally on your machine. It uses Claude AI for intelligent health analysis while ensuring your data never leaves your control.
+**Vitals.AI** (OpenHealth) is a privacy-first health dashboard that analyzes your bloodwork, body composition, and activity data — all running locally on your machine. It uses OpenRouter-powered AI chat (and optional Anthropic extraction) while ensuring your data stays under your control.
 
-> **🔒 Privacy Promise:** Your health data is processed entirely on your machine. No external servers, no data collection, no tracking. The only network calls are to Claude AI for analysis, and you control when those happen.
+> **🔒 Privacy Promise:** Your health data is processed entirely on your machine. No external servers, no data collection, no tracking. External calls happen only to user-configured AI providers (OpenRouter chat, optional Anthropic extraction), and you control when those happen.
 
 ## ✨ Features
 
@@ -54,7 +55,7 @@ Analyze DEXA scan results with detailed body fat %, lean mass, bone density, and
 Import data from **Whoop**, **Apple Health**, **Oura**, and **Fitbit** to track HRV, sleep quality, recovery scores, steps, and workout data.
 
 ### 🤖 AI Health Assistant
-Ask Claude AI questions about your health data. The assistant has full context of your biomarkers, body composition, and activity data to provide personalized insights.
+Ask OpenRouter-powered AI questions about your health data. The assistant has full context of your biomarkers, body composition, and activity data to provide personalized insights.
 
 ### ⚡ Performance & Optimization
 Optimized for speed with dynamic imports, lazy-loaded charts, and skeleton loaders. Reduces initial bundle size by ~40% for asset-heavy pages.
@@ -71,12 +72,16 @@ Initial support for a database-backed architecture using **Prisma + SQLite**, fe
 ### 👤 Digital Twin
 3D visualization of your body composition data with real-time health metrics overlay.
 
+### 🛰️ OpenClaw Automation (Optional)
+Forward warning/critical health events to OpenClaw hooks with redacted payloads for external alerting and workflow triage.
+
 ## 🚀 Quick Start
 
 ### Prerequisites
 
 - **Node.js** 20+ and **npm** 10+
-- **Anthropic API Key** ([Get one here](https://console.anthropic.com/))
+- **OpenRouter API Key** (recommended for chat, [Get one here](https://openrouter.ai/keys))
+- **Anthropic API Key** (optional, used for some extraction flows, [Get one here](https://console.anthropic.com/))
 
 ### Installation
 
@@ -90,7 +95,8 @@ npm install
 
 # Set up your API key
 cp .env.example .env.local
-# Edit .env.local and add your ANTHROPIC_API_KEY
+# Edit .env.local and add your OPENROUTER_API_KEY
+# Optional: OPENROUTER_MODEL=openrouter/free
 
 # Start the development server
 npm run dev
@@ -117,6 +123,36 @@ data/
 
 After adding files, click **"Sync Data"** in the top-right corner to process them.
 
+### OpenClaw Integration (Optional)
+
+OpenHealth can push a redacted event digest to OpenClaw when you click **"Send to OpenClaw"** in the **Health Event Feed**.
+
+1. Configure `.env.local`:
+
+```bash
+OPENCLAW_ENABLED=true
+OPENCLAW_HOOKS_BASE_URL=http://127.0.0.1:18789
+OPENCLAW_HOOKS_PATH=/hooks
+OPENCLAW_HOOKS_TOKEN=your-openclaw-hooks-token
+OPENCLAW_HOOK_MODE=wake
+OPENCLAW_EVENT_SEVERITIES=warning,critical
+OPENCLAW_INCLUDE_SUMMARY=false
+OPENCLAW_AUTO_DISPATCH_ON_SYNC=false
+```
+
+2. Trigger dispatch manually from UI, or call:
+
+```bash
+curl -X POST http://localhost:3000/api/integrations/openclaw/dispatch \
+  -H "Content-Type: application/json" \
+  -d '{"severities":["warning","critical"],"limit":20}'
+```
+
+Notes:
+- Event values are excluded by default from OpenClaw payloads.
+- `OPENCLAW_HOOK_MODE=agent` is supported for agent-based triage in OpenClaw.
+- Set `OPENCLAW_AUTO_DISPATCH_ON_SYNC=true` to automatically notify OpenClaw after each data sync.
+
 ## 🏗️ Architecture
 
 ```
@@ -142,8 +178,8 @@ After adding files, click **"Sync Data"** in the top-right corner to process the
 │  └──────────────────────────────────────────────────────┘  │
 │                                                           │
 │  ┌──────────────────────────────────────────────────────┐  │
-│  │           Claude AI (External API)                    │  │
-│  │  Biomarker Extraction │ Health Q&A │ Web Search       │  │
+│  │      AI Providers (External API, user-configured)      │  │
+│  │  OpenRouter Chat │ Anthropic Extraction (optional)     │  │
 │  └──────────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────┘
 ```
@@ -153,7 +189,7 @@ After adding files, click **"Sync Data"** in the top-right corner to process the
 | Decision | Rationale |
 |----------|-----------|
 | **Server-side rendering** | Health data is parsed on the server, keeping the client lean |
-| **AI extraction with fallback** | Claude extracts biomarkers from PDFs, with regex fallback |
+| **AI extraction with fallback** | AI extracts biomarkers from PDFs, with regex fallback |
 | **File-based caching** | Avoids re-processing unchanged files on every page load |
 | **Performance Optimization** | Lazy loading and dynamic imports for heavy 3D and chart components |
 | **Skeleton Loaders** | Enhances perceived performance during asynchronous component loading |
@@ -168,7 +204,7 @@ Vitals.AI takes your privacy seriously:
 - ✅ **No database** — No persistent storage beyond file-based cache
 - ✅ **No tracking** — Zero analytics, telemetry, or third-party scripts
 - ✅ **No accounts** — No login, no user data collection
-- ✅ **Transparent AI** — Only Claude API calls are made externally, and you control when
+- ✅ **Transparent AI** — Only user-configured AI API calls are made externally, and you control when
 - ✅ **Security headers** — X-Content-Type-Options, X-Frame-Options, strict Referrer-Policy
 
 ## 🛠️ Tech Stack
@@ -179,7 +215,7 @@ Vitals.AI takes your privacy seriously:
 | **Language** | TypeScript 5.9 |
 | **UI** | React 19, Tailwind CSS 4 |
 | **Styling** | Dark mode (next-themes), Glassmorphism, Framer Motion |
-| **AI** | Anthropic Claude Agent SDK |
+| **AI** | OpenRouter + Vercel AI SDK (`ai`, `@ai-sdk/openai`) |
 | **3D** | React Three Fiber + Drei |
 | **Charts** | Recharts |
 | **Testing** | Vitest |
@@ -216,7 +252,7 @@ src/
 │   ├── layout/                 # TopNav with theme toggle
 │   └── ui/                     # Base UI components
 ├── lib/
-│   ├── agent/                  # Claude agent configuration
+│   ├── agent/                  # OpenRouter-based agent configuration
 │   ├── ai-chat/                # Chat context & pill generation
 │   ├── analysis/               # Goal generation & analysis
 │   ├── biomarkers/             # Biomarker references & status
@@ -258,10 +294,18 @@ npm run build
 1. Import this repository in Vercel.
 2. Keep framework preset as **Next.js**.
 3. Configure environment variables in Vercel project settings:
-   - `ANTHROPIC_API_KEY` (required for AI chat)
+   - `OPENROUTER_API_KEY` (required for AI chat on Vercel)
+   - `OPENROUTER_MODEL` (optional, default: `openrouter/free`)
+   - `OPENROUTER_FALLBACK_MODELS` (optional, comma-separated model IDs)
+   - `ANTHROPIC_API_KEY` (optional)
    - `NEXT_PUBLIC_SITE_URL` (recommended, e.g. `https://your-app.vercel.app`)
    - `TERRA_API_SECRET` (optional)
    - `TERRA_WEBHOOK_STRICT` (optional, defaults to `false`)
+   - `OPENCLAW_ENABLED` (optional, defaults to `false`)
+   - `OPENCLAW_HOOKS_TOKEN` (required only when OpenClaw integration is enabled)
+   - `OPENCLAW_HOOKS_BASE_URL` (optional, defaults to `http://127.0.0.1:18789`)
+   - `OPENCLAW_HOOK_MODE` (optional: `wake` or `agent`)
+   - `OPENCLAW_AUTO_DISPATCH_ON_SYNC` (optional, defaults to `false`)
 4. Deploy using default commands:
    - Install: `npm install`
    - Build: `npm run build`

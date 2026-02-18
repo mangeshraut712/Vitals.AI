@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { streamChatWithAI } from '@/lib/ai-chat/chatWithAI';
 
 export default function AgentPage(): React.JSX.Element {
   const [input, setInput] = useState('');
@@ -17,21 +18,39 @@ export default function AgentPage(): React.JSX.Element {
     setIsLoading(true);
 
     try {
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: userMessage }),
-      });
+      setMessages((prev) => [...prev, { role: 'assistant', content: '' }]);
 
-      if (!response.ok) {
-        throw new Error('Failed to get response');
+      let assistantContent = '';
+      let receivedAnyChunk = false;
+
+      for await (const chunk of streamChatWithAI(userMessage)) {
+        receivedAnyChunk = true;
+        assistantContent += chunk;
+
+        setMessages((prev) => {
+          const next = [...prev];
+          if (next.length > 0 && next[next.length - 1]?.role === 'assistant') {
+            next[next.length - 1] = { role: 'assistant', content: assistantContent };
+          }
+          return next;
+        });
       }
 
-      const data = await response.json();
-      setMessages((prev) => [...prev, { role: 'assistant', content: data.response }]);
+      if (!receivedAnyChunk) {
+        setMessages((prev) => {
+          const next = [...prev];
+          if (next.length > 0 && next[next.length - 1]?.role === 'assistant') {
+            next[next.length - 1] = {
+              role: 'assistant',
+              content: 'Sorry, I could not generate a response. Please try again.',
+            };
+          }
+          return next;
+        });
+      }
     } catch {
       setMessages((prev) => [
-        ...prev,
+        ...prev.slice(0, -1),
         { role: 'assistant', content: 'Sorry, I encountered an error. Please try again.' },
       ]);
     } finally {
