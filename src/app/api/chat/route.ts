@@ -21,9 +21,17 @@ export async function POST(request: NextRequest): Promise<Response> {
     const stream = new ReadableStream({
       async start(controller) {
         try {
-          await queryHealthAgentStream(message, healthContext, (chunk) => {
+          let sentChunk = false;
+          const result = await queryHealthAgentStream(message, healthContext, (chunk) => {
+            sentChunk = true;
             controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: chunk })}\n\n`));
           });
+
+          // If no chunks were streamed (e.g. provider error), send the final fallback message.
+          if (!sentChunk && result.content) {
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: result.content })}\n\n`));
+          }
+
           controller.close();
         } catch (error) {
           controller.error(error);
