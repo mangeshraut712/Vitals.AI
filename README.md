@@ -481,3 +481,20 @@ If you discover a security issue, follow [SECURITY.md](SECURITY.md) and avoid po
 <p align="center">
   <sub>Built with ❤️ for health-conscious developers</sub>
 </p>
+
+---
+
+<!-- codex:project-diagram:start -->
+
+## Project Diagram
+
+```mermaid
+flowchart LR
+    A["Browser"] --> B["Frontend App"]
+    B --> C["API / Serverless"]
+    C --> D["Deploy"]
+```
+
+_High-level flow of the deployed web experience and supporting services._
+
+<!-- codex:project-diagram:end -->
