@@ -33,6 +33,23 @@
   <a href="#-contributing">Contributing</a>
 </p>
 
+## Table of Contents
+
+- [Overview](#what-is-vitalsai)
+- [Features](#features)
+- [Quick Start](#quick-start)
+- [Architecture](#architecture)
+- [Privacy](#privacy)
+- [Tech Stack](#tech-stack)
+- [Project Structure](#project-structure)
+- [Scripts](#scripts)
+- [Deployment](#deployment)
+- [Design System](#design-system)
+- [Contributing](#contributing)
+- [License](#license)
+- [Security](#security)
+- [Contact](#contact)
+
 ---
 
 ## 🎯 What is Vitals.AI?
@@ -316,7 +333,7 @@ OpenHealth/
 └── public/                             # Static assets (manifest + service worker)
 ```
 
-## 🧪 Development
+## Scripts
 
 ```bash
 # Run development server
@@ -379,7 +396,7 @@ Notes:
 - Do not use `NEXT_PUBLIC_*` for secrets (those are exposed to the browser).
 - If a key is exposed, rotate it immediately in the provider dashboard.
 
-## ☁️ Deploy On Vercel
+## Deployment
 
 1. Import this repository in Vercel.
 2. Keep framework preset as **Next.js**.
@@ -475,6 +492,12 @@ This project is open-source under the [MIT License](LICENSE).
 ## 🔐 Security
 
 If you discover a security issue, follow [SECURITY.md](SECURITY.md) and avoid posting sensitive details in public issues.
+
+## Contact
+
+- GitHub issues: https://github.com/mangeshraut712/Vitals.AI/issues
+- Roadmap: [docs/VITALS_2.0.md](docs/VITALS_2.0.md)
+- OpenClaw integration: [docs/OPENCLAW_INTEGRATION.md](docs/OPENCLAW_INTEGRATION.md)
 
 ---
 
