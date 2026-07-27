@@ -23,7 +23,7 @@
     "privacy"
   ],
   "engines": {
-    "node": ">=20.0.0"
+    "node": ">=22.0.0 <27"
   },
   "scripts": {
     "dev": "node scripts/preflight.mjs && next dev --webpack",
