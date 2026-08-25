@@ -369,7 +369,7 @@ Notes:
 ### Quality Gates (GitHub)
 
 - CI workflow at `.github/workflows/ci.yml` runs `lint`, `typecheck`, `test`, and `build` for pushes and pull requests to `main`.
-- Dependabot at `.github/dependabot.yml` opens weekly update PRs for npm dependencies and GitHub Actions.
+- Dependency versions are reviewed and updated manually; Dependabot is not used.
 - PR checklist template at `.github/pull_request_template.md` keeps validation and deployment notes consistent.
 
 ### Secrets Hygiene
