@@ -264,6 +264,7 @@ export default function AgentPage(): React.JSX.Element {
                       key={prompt.label}
                       type="button"
                       onClick={() => void sendMessage(prompt.query)}
+                      data-testid={`agent-prompt-${prompt.label.toLowerCase().replace(/\s+/g, '-')}`}
                       className="rounded-full border border-border bg-background px-3 py-1.5 text-foreground transition hover:bg-accent"
                     >
                       {prompt.label}

@@ -13,12 +13,12 @@ test('homepage and health agent smoke', async ({ page }) => {
   expect(agent?.ok(), 'agent page non-2xx').toBeTruthy();
 
   await expect(page.getByTestId('agent-page')).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Health Agent' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Health Agent', exact: true })).toBeVisible();
   await expect(page.getByTestId('agent-empty-state')).toBeVisible();
   await expect(page.getByTestId('agent-tool-catalog')).toContainText('Biomarker lookup');
   await expect(page.getByTestId('agent-input')).toBeVisible();
 
-  await page.getByRole('button', { name: 'CRP lookup' }).click();
+  await page.getByTestId('agent-prompt-crp-lookup').click();
   await expect(page.getByTestId('agent-tool-result').first()).toBeVisible({ timeout: 15_000 });
   await expect(page.getByTestId('agent-empty-state')).toHaveCount(0);
 });
