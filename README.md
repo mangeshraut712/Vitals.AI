@@ -9,6 +9,14 @@ Privacy-first health analytics dashboard with a tool-calling health agent.
 [![CI](https://github.com/mangeshraut712/Vitals.AI/actions/workflows/ci.yml/badge.svg)](https://github.com/mangeshraut712/Vitals.AI/actions/workflows/ci.yml)
 [![GitHub Pages](https://github.com/mangeshraut712/Vitals.AI/actions/workflows/pages.yml/badge.svg)](https://github.com/mangeshraut712/Vitals.AI/actions/workflows/pages.yml)
 
+**Dashboard** — health overview, biomarkers, and digital twin on the live Pages demo (September 2026).
+
+![Vitals.AI dashboard](docs/screenshots/01-dashboard.png)
+
+**Health agent** — AI SDK tools with streamed answers and json-render cards (`lookupBiomarker` for CRP on the public sample panel).
+
+![Health agent with CRP tool result](docs/screenshots/02-agent-tools.png)
+
 ## What this is
 
 Vitals.AI parses local lab PDFs, DEXA scans, and wearable exports, then renders biomarkers, PhenoAge, body composition, and a 3D digital twin. The **health agent** is the September 2026 showcase surface: AI SDK tool calling, streamed answers, and json-render cards for tool results.
