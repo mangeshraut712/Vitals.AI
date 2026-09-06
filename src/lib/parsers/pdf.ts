@@ -14,7 +14,30 @@ function loadPdfParse(): PdfParseFn {
     return pdfParseOverride;
   }
   // eslint-disable-next-line @typescript-eslint/no-require-imports
-  return require('pdf-parse/lib/pdf-parse.js') as PdfParseFn;
+  const loaded = require('pdf-parse') as
+    | PdfParseFn
+    | {
+        default?: PdfParseFn;
+        PDFParse?: new (opts: { data: Buffer }) => { getText: () => Promise<PdfParseResult> };
+      };
+
+  if (typeof loaded === 'function') {
+    return loaded;
+  }
+
+  if (typeof loaded.default === 'function') {
+    return loaded.default;
+  }
+
+  if (loaded.PDFParse) {
+    const Parser = loaded.PDFParse;
+    return async (data: Buffer) => {
+      const parser = new Parser({ data });
+      return parser.getText();
+    };
+  }
+
+  throw new Error('pdf-parse export is not a parser function');
 }
 
 /**

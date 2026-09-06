@@ -2,8 +2,10 @@
  * Chat with AI - Client-side function to send messages to the health AI
  *
  * Sends message to /api/chat endpoint which calls OpenRouter
- * through Vercel AI SDK with the user's health data context.
+ * through the AI SDK with the user's health data context.
  */
+
+import { withBasePath } from '@/lib/runtime/paths';
 
 export interface ChatResponse {
   response: string;
@@ -43,7 +45,7 @@ export async function* streamChatWithAI(
   message: string
 ): AsyncGenerator<string, void, unknown> {
   try {
-    const response = await fetch('/api/chat', {
+    const response = await fetch(withBasePath('/api/chat'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ message }),

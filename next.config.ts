@@ -177,40 +177,59 @@ try {
   // File doesn't exist or can't be read — that's OK
 }
 
+const isGitHubPages = process.env.GITHUB_PAGES === "1";
+const githubPagesBasePath = "/Vitals.AI";
+const githubPagesSiteUrl = "https://mangeshraut712.github.io/Vitals.AI";
+
 const nextConfig: NextConfig = {
   // Performance optimizations
   reactStrictMode: true,
+
+  // GitHub Pages project site (static HTML in out/)
+  ...(isGitHubPages
+    ? {
+        output: "export" as const,
+        trailingSlash: true,
+        basePath: githubPagesBasePath,
+        assetPrefix: githubPagesBasePath,
+      }
+    : {}),
 
   // Skip type checking during build (run separately via tsc)
   typescript: {
     ignoreBuildErrors: true,
   },
 
-  // Improved image optimization
+  // Improved image optimization (unoptimized required for static export)
   images: {
+    unoptimized: isGitHubPages,
     formats: ["image/avif", "image/webp"],
     deviceSizes: [640, 750, 828, 1080, 1200],
   },
 
-  // Security headers
-  headers: async () => [
-    {
-      source: "/(.*)",
-      headers: [
-        { key: "X-Content-Type-Options", value: "nosniff" },
-        { key: "X-Frame-Options", value: "DENY" },
-        { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-        {
-          key: "Strict-Transport-Security",
-          value: "max-age=63072000; includeSubDomains; preload",
-        },
-        {
-          key: "Permissions-Policy",
-          value: "camera=(), microphone=(), geolocation=()",
-        },
-      ],
-    },
-  ],
+  // Security headers (not supported with output: 'export')
+  ...(!isGitHubPages
+    ? {
+        headers: async () => [
+          {
+            source: "/(.*)",
+            headers: [
+              { key: "X-Content-Type-Options", value: "nosniff" },
+              { key: "X-Frame-Options", value: "DENY" },
+              { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+              {
+                key: "Strict-Transport-Security",
+                value: "max-age=63072000; includeSubDomains; preload",
+              },
+              {
+                key: "Permissions-Policy",
+                value: "camera=(), microphone=(), geolocation=()",
+              },
+            ],
+          },
+        ],
+      }
+    : {}),
 
   // Experimental optimizations
   experimental: {
@@ -232,6 +251,16 @@ const nextConfig: NextConfig = {
         path.resolve(__dirname, "node_modules"),
       ],
     };
+    if (isGitHubPages) {
+      const pdfParseStub = path.resolve(__dirname, "src/lib/parsers/pdf-parse-stub.cjs");
+      config.resolve.alias = {
+        ...(typeof config.resolve.alias === "object" && config.resolve.alias !== null
+          ? config.resolve.alias
+          : {}),
+        "pdf-parse": pdfParseStub,
+        "pdf-parse/lib/pdf-parse.js": pdfParseStub,
+      };
+    }
     return config;
   },
 
@@ -242,7 +271,11 @@ const nextConfig: NextConfig = {
     OPENROUTER_MODEL: process.env.OPENROUTER_MODEL ?? "meta-llama/llama-3.3-70b-instruct:free",
     OPENROUTER_FALLBACK_MODELS: process.env.OPENROUTER_FALLBACK_MODELS ?? "google/gemini-2.0-flash-exp:free,qwen/qwen-2.5-72b-instruct:free",
     OPENROUTER_APP_NAME: process.env.OPENROUTER_APP_NAME ?? "Vitals.AI",
-    NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
+    NEXT_PUBLIC_SITE_URL:
+      process.env.NEXT_PUBLIC_SITE_URL ??
+      (isGitHubPages ? githubPagesSiteUrl : "http://localhost:3000"),
+    NEXT_PUBLIC_BASE_PATH: process.env.NEXT_PUBLIC_BASE_PATH ?? (isGitHubPages ? githubPagesBasePath : ""),
+    NEXT_PUBLIC_STATIC_EXPORT: isGitHubPages ? "1" : process.env.NEXT_PUBLIC_STATIC_EXPORT ?? "",
   },
 };
 

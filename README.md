@@ -11,6 +11,7 @@
 
 <p align="center">
   <a href="https://github.com/mangeshraut712/Vitals.AI">GitHub Repo</a> •
+  <a href="https://mangeshraut712.github.io/Vitals.AI/">Live site (GitHub Pages)</a> •
   <a href="https://github.com/mangeshraut712/Vitals.AI/issues">Issues</a> •
   <a href="docs/VITALS_2.0.md">Vitals 2.0 Roadmap</a> •
   <a href="docs/OPENCLAW_INTEGRATION.md">OpenClaw Integration</a>
@@ -374,78 +375,65 @@ Notes:
 
 ### Secrets Hygiene
 
-- Keep real credentials only in `.env.local` (gitignored) or Vercel environment variables.
+- Keep real credentials only in `.env.local` (gitignored).
 - Never put API keys/tokens in committed files, screenshots, or issue comments.
 - Do not use `NEXT_PUBLIC_*` for secrets (those are exposed to the browser).
 - If a key is exposed, rotate it immediately in the provider dashboard.
 
-## ☁️ Deploy On Vercel
+## ☁️ Deploy on GitHub Pages (public site)
 
-1. Import this repository in Vercel.
-2. Keep framework preset as **Next.js**.
-3. Configure environment variables in Vercel project settings:
-   - `OPENROUTER_API_KEY` (required for AI chat and extraction on Vercel)
-   - `OPENROUTER_MODEL` (optional, default: `openrouter/free`)
-   - `OPENROUTER_FALLBACK_MODELS` (optional, comma-separated model IDs)
-   - `FASTAPI_BASE_URL` (optional; if set, `/api/chat` proxies to your FastAPI backend)
-   - `FASTAPI_CHAT_PATH` (optional, default: `/chat/stream`)
-   - `FASTAPI_HEALTH_PATH` (optional, default: `/health`)
-   - `FASTAPI_API_TOKEN` (optional bearer token for FastAPI)
-   - `FASTAPI_TIMEOUT_MS` (optional, default: `15000`)
-   - `NEXT_PUBLIC_SITE_URL` (recommended, e.g. `https://your-app.vercel.app`)
-   - `TERRA_API_SECRET` (optional)
-   - `TERRA_WEBHOOK_STRICT` (optional, defaults to `false`)
-   - `OPENCLAW_ENABLED` (optional, defaults to `false`)
-   - `OPENCLAW_HOOKS_TOKEN` (required only when OpenClaw integration is enabled)
-   - `OPENCLAW_HOOKS_BASE_URL` (optional, defaults to `http://127.0.0.1:18789`)
-   - `OPENCLAW_HOOKS_PATH` (optional, defaults to `/hooks`)
-   - `OPENCLAW_HOOK_MODE` (optional: `wake` or `agent`)
-   - `OPENCLAW_AUTO_DISPATCH_ON_SYNC` (optional, defaults to `false`)
-4. Deploy using default commands:
-   - Install: `npm ci`
-   - Build: `npm run build`
-   - Optional preflight: `npm run deploy:check`
-5. Keep `vercel.json` in sync with runtime behavior:
-   - `sw.js` is set to `must-revalidate`
-   - `manifest.json` is served as `application/manifest+json`
+The public site is a **static export** at [https://mangeshraut712.github.io/Vitals.AI/](https://mangeshraut712.github.io/Vitals.AI/). Vercel is not used.
 
-### GitHub + Vercel Recommended Setup
+GitHub Actions workflow `.github/workflows/pages.yml` runs `npm run build:pages` on `main` and publishes the `out/` directory.
 
-1. Enable branch protection on `main` and require the `CI / validate` check.
-2. Keep Vercel project connected to this GitHub repo for automatic preview and production deploys.
-3. Set all required env vars in Vercel for **Production** and **Preview** environments.
-4. Use pull requests for all changes so CI and Vercel preview pass before merge.
+### What the static site includes
 
-### Hosted Mode Notes
+- All main UI routes (home, dashboard, biomarkers, body composition, lifestyle, goals, experience, devices, vitals, plans, tools).
+- `basePath` / `assetPrefix` `/Vitals.AI` for project Pages.
+- Empty local `/data` at build time, so biomarker/activity cards show empty states unless you bake files into the repo (do not commit private health data).
 
-- This project is local-first. On Vercel, filesystem writes are not guaranteed durable.
-- Goals API now falls back to **memory-only storage** when persistent file writes are unavailable.
-- `/data` imports on Vercel only include files bundled at build time; use a cloud database/object storage for true multi-user production data persistence.
-- If `FASTAPI_BASE_URL` is set, chatbot traffic is routed server-to-server from Vercel to FastAPI.
-- For OpenClaw in Vercel: `OPENCLAW_HOOKS_BASE_URL=http://127.0.0.1:18789` will not work; use a publicly reachable OpenClaw gateway URL.
+### What requires a local Node server
 
-### Deployment Health Checklist
+Route handlers under `src/app/api` (chat, sync, goals persistence, Terra webhooks, Prisma-backed Vitals 2.0 stats) **cannot run on GitHub Pages**. Use `npm run dev` or `npm run build && npm start` on your machine for AI chat, `/data` sync, and API diagnostics.
 
-After each production deployment, verify:
+The `/future` page falls back to bundled demo stats when `/api/future/stats` is unavailable.
+
+### Local static export
 
 ```bash
-# Home route
-curl -I https://<your-domain>/
-
-# Core app pages
-curl -I https://<your-domain>/dashboard
-curl -I https://<your-domain>/body-comp
-curl -I https://<your-domain>/experience
-
-# Agent diagnostics
-curl -s https://<your-domain>/api/agent/diagnostics
+npm ci
+npm run build:pages
+mkdir -p /tmp/vitals-pages/Vitals.AI
+cp -a out/. /tmp/vitals-pages/Vitals.AI/
+python3 -m http.server 8080 --directory /tmp/vitals-pages
+# open http://127.0.0.1:8080/Vitals.AI/
 ```
 
-Expected behavior:
-- Core pages return `200`
-- `/api/agent/diagnostics` returns JSON with `openRouter.status` and `openClaw.status`
-- If OpenClaw gateway is unreachable in hosted mode, diagnostics should remain operational but report degraded delivery
-- If `FASTAPI_BASE_URL` is configured, chatbot requests route through FastAPI; otherwise they use direct OpenRouter fallback
+### GitHub Pages setup
+
+1. Repo Settings → Pages → **Source: GitHub Actions** (the workflow also creates this on first deploy).
+2. Repository homepage URL: `https://mangeshraut712.github.io/Vitals.AI/`
+3. After merge to `main`, verify:
+
+```bash
+curl -I https://mangeshraut712.github.io/Vitals.AI/
+curl -I https://mangeshraut712.github.io/Vitals.AI/dashboard/
+curl -I https://mangeshraut712.github.io/Vitals.AI/experience/
+```
+
+Expected: HTTP 200 for HTML routes. `/api/*` is not served.
+
+### Full-stack local hosting (APIs)
+
+For OpenRouter chat, file sync, and Prisma:
+
+```bash
+npm ci
+cp .env.example .env.local
+npm run build
+npm start
+npm run deploy:check   # optional
+```
 
 ## 🎨 Design System
 

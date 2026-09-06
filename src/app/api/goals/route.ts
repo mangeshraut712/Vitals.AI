@@ -1,9 +1,11 @@
 import { NextResponse, NextRequest } from 'next/server';
 import fs from 'fs';
 import path from 'path';
-import type { GoalPriority } from '@/lib/analysis/goals';
+import type { UserGoal } from '@/lib/types/user-goal';
 import { loggers } from '@/lib/logger';
 import { validateGoalCreateRequest } from '@/lib/validation';
+
+export type { UserGoal } from '@/lib/types/user-goal';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -12,17 +14,6 @@ const USER_GOALS_FILE = path.join(process.cwd(), 'user-goals.json');
 const globalForGoals = globalThis as unknown as {
   inMemoryGoals?: UserGoal[];
 };
-
-export interface UserGoal {
-  id: string;
-  title: string;
-  description: string;
-  priority: GoalPriority;
-  category: string;
-  actionItems: string[];
-  source: 'user';
-  createdAt: string;
-}
 
 interface WriteUserGoalsResult {
   success: boolean;

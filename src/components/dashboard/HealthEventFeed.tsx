@@ -5,6 +5,7 @@ import { Bot, Send } from 'lucide-react';
 import { toast } from 'sonner';
 import type { HealthEvent } from '@/lib/types/health-events';
 import type { OpenClawDispatchResult } from '@/lib/integrations/openclaw';
+import { withBasePath } from '@/lib/runtime/paths';
 
 interface HealthEventFeedProps {
   events: HealthEvent[];
@@ -79,7 +80,7 @@ export function HealthEventFeed({ events }: HealthEventFeedProps): React.JSX.Ele
   const handleDispatchToOpenClaw = async (): Promise<void> => {
     setIsSending(true);
     try {
-      const response = await fetch('/api/integrations/openclaw/dispatch', {
+      const response = await fetch(withBasePath('/api/integrations/openclaw/dispatch'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { RefreshCw } from 'lucide-react';
+import { withBasePath } from '@/lib/runtime/paths';
 
 export function SyncButton() {
   const [isLoading, setIsLoading] = useState(false);
@@ -13,7 +14,7 @@ export function SyncButton() {
     setIsLoading(true);
 
     try {
-      const response = await fetch('/api/sync', {
+      const response = await fetch(withBasePath('/api/sync'), {
         method: 'POST',
       });
 

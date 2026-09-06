@@ -1,17 +1,24 @@
 // Vitals.AI Service Worker for PWA offline support
-const CACHE_NAME = 'vitals-ai-v1';
-const STATIC_CACHE_NAME = 'vitals-ai-static-v1';
-const DYNAMIC_CACHE_NAME = 'vitals-ai-dynamic-v1';
+const CACHE_NAME = 'vitals-ai-v2';
+const STATIC_CACHE_NAME = 'vitals-ai-static-v2';
+const DYNAMIC_CACHE_NAME = 'vitals-ai-dynamic-v2';
+
+const BASE_PATH = self.location.pathname.replace(/\/sw\.js$/, '') || '';
+
+function withBase(path) {
+    const normalized = path.startsWith('/') ? path : `/${path}`;
+    return `${BASE_PATH}${normalized}`;
+}
 
 // Assets to cache immediately on install
 const STATIC_ASSETS = [
-    '/',
-    '/dashboard',
-    '/experience',
-    '/biomarkers',
-    '/body-comp',
-    '/vitals',
-    '/manifest.json',
+    withBase('/'),
+    withBase('/dashboard/'),
+    withBase('/experience/'),
+    withBase('/biomarkers/'),
+    withBase('/body-comp/'),
+    withBase('/vitals/'),
+    withBase('/manifest.json'),
 ];
 
 // Install event - cache static assets
@@ -64,7 +71,7 @@ self.addEventListener('fetch', (event) => {
     }
 
     // Skip API requests - always fetch fresh
-    if (url.pathname.startsWith('/api/')) {
+    if (url.pathname.includes('/api/')) {
         event.respondWith(
             fetch(request)
                 .catch(() => {
@@ -96,7 +103,7 @@ self.addEventListener('fetch', (event) => {
                 .catch(() => {
                     return caches.match(request)
                         .then((cachedResponse) => {
-                            return cachedResponse || caches.match('/');
+                            return cachedResponse || caches.match(withBase('/'));
                         });
                 })
         );
@@ -141,8 +148,8 @@ self.addEventListener('push', (event) => {
     const title = data.title || 'Vitals.AI';
     const options = {
         body: data.body || 'New health update available',
-        icon: '/icons/health-icon.svg',
-        badge: '/icons/health-badge.svg',
+        icon: withBase('/icons/health-icon.svg'),
+        badge: withBase('/icons/health-badge.svg'),
         data: data.data || {},
         actions: data.actions || [],
     };
@@ -156,7 +163,7 @@ self.addEventListener('push', (event) => {
 self.addEventListener('notificationclick', (event) => {
     event.notification.close();
 
-    const urlToOpen = event.notification.data?.url || '/dashboard';
+    const urlToOpen = event.notification.data?.url || withBase('/dashboard/');
 
     event.waitUntil(
         clients.matchAll({ type: 'window', includeUncontrolled: true })
@@ -178,7 +185,7 @@ self.addEventListener('sync', (event) => {
     if (event.tag === 'sync-health-data') {
         event.waitUntil(
             // Sync health data when back online
-            fetch('/api/sync', { method: 'POST' })
+            fetch(withBase('/api/sync'), { method: 'POST' })
                 .then(() => console.log('[SW] Health data synced'))
                 .catch((error) => console.error('[SW] Sync failed:', error))
         );

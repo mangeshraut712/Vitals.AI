@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { GRADIENTS } from '@/lib/design/tokens';
 import type { GoalProposal } from '@/lib/agent/goal-agent';
+import { withBasePath } from '@/lib/runtime/paths';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -60,7 +61,7 @@ export function GoalChat({ onGoalAccepted }: GoalChatProps): React.JSX.Element {
         content: m.content,
       }));
 
-      const response = await fetch('/api/goals/chat', {
+      const response = await fetch(withBasePath('/api/goals/chat'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

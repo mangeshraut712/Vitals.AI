@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { loggers } from '@/lib/logger';
+import { getBasePath } from '@/lib/runtime/paths';
 
 interface ServiceWorkerHook {
     isRegistered: boolean;
@@ -24,8 +25,11 @@ export function useServiceWorker(): ServiceWorkerHook {
 
         const registerServiceWorker = async () => {
             try {
-                const reg = await navigator.serviceWorker.register('/sw.js', {
-                    scope: '/',
+                const basePath = getBasePath();
+                const swPath = `${basePath}/sw.js`;
+                const scope = basePath ? `${basePath}/` : '/';
+                const reg = await navigator.serviceWorker.register(swPath, {
+                    scope,
                 });
 
                 setRegistration(reg);
