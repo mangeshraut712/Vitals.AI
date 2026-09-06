@@ -2,6 +2,10 @@ export function isVercelRuntime(): boolean {
   return process.env.VERCEL === '1' || Boolean(process.env.VERCEL_ENV);
 }
 
+export function isGitHubPagesRuntime(): boolean {
+  return process.env.GITHUB_PAGES === '1' || process.env.NEXT_PUBLIC_STATIC_EXPORT === '1';
+}
+
 function normalizeUrl(raw: string | undefined): string | null {
   if (!raw) return null;
   const trimmed = raw.trim();
@@ -27,6 +31,11 @@ export function getSiteUrl(): string | undefined {
 
   const vercelUrl = normalizeUrl(process.env.VERCEL_URL);
   if (vercelUrl) return vercelUrl;
+
+  const githubPages = normalizeUrl(
+    process.env.GITHUB_PAGES === '1' ? 'https://mangeshraut712.github.io/Vitals.AI' : undefined
+  );
+  if (githubPages) return githubPages;
 
   return undefined;
 }

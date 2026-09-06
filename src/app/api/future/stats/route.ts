@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/db';
 import { calculateTrend, type DataPoint } from '@/lib/analysis/advanced-analytics';
 import { loggers } from '@/lib/logger';
+import { DEMO_FUTURE_STATS } from '@/lib/future/demo-stats';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -26,31 +27,12 @@ interface FutureStatsUser {
 
 export async function GET() {
     let stats = {
-        healthScore: 92, // Default/Mock
-        prevHealthScore: 88,
-        hrvStatus: 'peak',
-        glucose: {
-            current: 98,
-            trend: 'stable',
-            history: [95, 96, 99, 98, 97, 98, 98]
-        },
-        coaching: {
-            message: "Based on your Oura Sleep Score (85) and Morning HRV (62ms), you've fully recovered from yesterday's strain. Suggested workout: Zone 2 Endurance Run (45 mins).",
-            metrics: {
-                sleep: 85,
-                hrv: 62
-            }
-        },
-        community: {
-            rank: 'top 5%',
-            metric: 'recovery'
-        },
-        devices: [
-            { name: 'Apple Watch Ultra', type: 'wearable', status: 'connected' },
-            { name: 'Oura Ring Gen 4', type: 'wearable', status: 'syncing' },
-            { name: 'Withings Body Comp', type: 'scale', status: 'disconnected' },
-            { name: 'Ultrahuman M1', type: 'glucose_monitor', status: 'connected' },
-        ]
+        ...DEMO_FUTURE_STATS,
+        devices: DEMO_FUTURE_STATS.devices.map((device) => ({
+            name: device.name,
+            type: device.type,
+            status: device.status,
+        })),
     };
 
     try {

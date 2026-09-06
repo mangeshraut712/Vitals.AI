@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { CARD_CLASSES, STATUS_COLORS } from '@/lib/design/tokens';
 import type { DataSourceInfo } from './page';
 import type { FileType } from '@/lib/files';
+import { withBasePath } from '@/lib/runtime/paths';
 
 interface DataSourcesClientProps {
   dataSources: DataSourceInfo[];
@@ -104,7 +105,7 @@ export function DataSourcesClient({ dataSources }: DataSourcesClientProps): Reac
     setSyncResult(null);
 
     try {
-      const response = await fetch('/api/sync', { method: 'POST' });
+      const response = await fetch(withBasePath('/api/sync'), { method: 'POST' });
       const data = await response.json() as { success: boolean; message?: string; error?: string; biomarkersExtracted?: number };
 
       if (data.success) {

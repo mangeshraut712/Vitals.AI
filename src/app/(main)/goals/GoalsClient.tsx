@@ -6,7 +6,8 @@ import { CreateGoalPanel } from '@/components/goals/CreateGoalPanel';
 import { Button } from '@/components/ui/button';
 import { Plus, Target } from 'lucide-react';
 import type { Goal } from '@/lib/analysis/goals';
-import type { UserGoal } from '@/app/api/goals/route';
+import type { UserGoal } from '@/lib/types/user-goal';
+import { withBasePath } from '@/lib/runtime/paths';
 
 interface GoalsClientProps {
   autoGoals: Goal[];
@@ -38,7 +39,7 @@ export function GoalsClient({ autoGoals }: GoalsClientProps): React.JSX.Element 
   // Fetch user goals on mount
   const fetchUserGoals = useCallback(async () => {
     try {
-      const response = await fetch('/api/goals');
+      const response = await fetch(withBasePath('/api/goals'));
       const data = (await response.json()) as UserGoalsResponse;
 
       if (data.success && data.goals) {

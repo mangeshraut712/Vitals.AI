@@ -6,6 +6,8 @@ import { Zap, Share2 } from 'lucide-react';
 import { SUPPORTED_DEVICES } from '@/features/sync/types';
 import AddDeviceModal from './AddDeviceModal';
 import GlucoseChart from './GlucoseChart';
+import { DEMO_FUTURE_STATS } from '@/lib/future/demo-stats';
+import { withBasePath } from '@/lib/runtime/paths';
 
 interface DashboardStats {
     healthScore: number;
@@ -42,16 +44,19 @@ export default function FutureDashboard(): React.JSX.Element {
 
         async function fetchStats() {
             try {
-                const res = await fetch('/api/future/stats', { signal: controller.signal });
+                const res = await fetch(withBasePath('/api/future/stats'), { signal: controller.signal });
                 if (res.ok) {
                     const data = await res.json();
                     if (!controller.signal.aborted) {
                         setStats(data);
                     }
+                } else if (!controller.signal.aborted) {
+                    setStats(DEMO_FUTURE_STATS);
                 }
             } catch (error) {
                 if (!controller.signal.aborted) {
                     console.error('Failed to fetch dashboard stats', error);
+                    setStats(DEMO_FUTURE_STATS);
                 }
             } finally {
                 if (!controller.signal.aborted) {

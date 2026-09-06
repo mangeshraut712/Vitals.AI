@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Bot, SendHorizonal, Sparkles, Activity, CheckCircle2, AlertTriangle, XCircle, RotateCw } from 'lucide-react';
 import { streamChatWithAI } from '@/lib/ai-chat/chatWithAI';
+import { withBasePath } from '@/lib/runtime/paths';
 
 interface DiagnosticResult {
   status: 'ok' | 'error' | 'warning' | 'pending';
@@ -24,7 +25,7 @@ function DiagnosticButton() {
     setLoading(true);
     setIsOpen(true);
     try {
-      const res = await fetch('/api/agent/diagnostics');
+      const res = await fetch(withBasePath('/api/agent/diagnostics'));
       const json = await res.json();
       setData(json);
     } catch (err) {

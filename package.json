@@ -8,7 +8,7 @@
     "type": "git",
     "url": "https://github.com/mangeshraut712/Vitals.AI.git"
   },
-  "homepage": "https://github.com/mangeshraut712/Vitals.AI",
+  "homepage": "https://mangeshraut712.github.io/Vitals.AI/",
   "bugs": {
     "url": "https://github.com/mangeshraut712/Vitals.AI/issues"
   },
@@ -29,6 +29,8 @@
     "dev": "node scripts/preflight.mjs && next dev --webpack",
     "postinstall": "prisma generate",
     "build": "next build --webpack",
+    "build:pages": "node scripts/github-pages.mjs",
+    "start": "next start",
     "start": "next start",
     "lint": "eslint",
     "typecheck": "node scripts/preflight.mjs --typecheck && node -e \"const fs=require('fs'); fs.rmSync('.next/types',{recursive:true,force:true}); fs.rmSync('.next/dev/types',{recursive:true,force:true});\" && next typegen && tsc --noEmit",

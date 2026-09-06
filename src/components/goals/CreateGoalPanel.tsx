@@ -4,6 +4,7 @@ import { useEffect, useCallback } from 'react';
 import { GoalChat } from './GoalChat';
 import { SHADOWS, Z_INDEX, ANIMATION } from '@/lib/design/tokens';
 import type { GoalProposal } from '@/lib/agent/goal-agent';
+import { withBasePath } from '@/lib/runtime/paths';
 
 interface CreateGoalPanelProps {
   isOpen: boolean;
@@ -40,7 +41,7 @@ export function CreateGoalPanel({
 
   const handleGoalAccepted = async (proposal: GoalProposal): Promise<void> => {
     try {
-      const response = await fetch('/api/goals', {
+      const response = await fetch(withBasePath('/api/goals'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
