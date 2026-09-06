@@ -6,6 +6,8 @@ const mockStreamText = vi.fn();
 vi.mock('ai', () => ({
   generateText: (...args: unknown[]) => mockGenerateText(...args),
   streamText: (...args: unknown[]) => mockStreamText(...args),
+  isStepCount: (count: number) => () => count,
+  tool: (definition: unknown) => definition,
 }));
 
 vi.mock('@ai-sdk/openai', () => {
@@ -38,12 +40,13 @@ describe('queryHealthAgent', () => {
     expect(result.content).toContain('unverified links were removed');
   });
 
-  it('returns message when API key is missing', async () => {
+  it('runs local tools when API key is missing', async () => {
     delete process.env.OPENROUTER_API_KEY;
 
-    const result = await queryHealthAgent('What does this mean?', 'context');
+    const result = await queryHealthAgent('What is my CRP?', 'context');
 
     expect(result.error).toBeUndefined();
-    expect(result.content).toContain('OPENROUTER_API_KEY');
+    expect(result.content).toContain('Offline mode');
+    expect(result.content).toContain('lookupBiomarker');
   });
 });

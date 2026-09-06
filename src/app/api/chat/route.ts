@@ -5,16 +5,20 @@ import { requestFastApiChat } from '@/lib/integrations/fastapi';
 import { loggers } from '@/lib/logger';
 import { checkRateLimit } from '@/lib/security';
 import { validateChatPromptRequest } from '@/lib/validation';
+import { encodeSseEvent, type AgentStreamEvent } from '@/lib/agent/agent-events';
+import { loadHealthSnapshotFromStore } from '@/lib/agent/load-snapshot';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
-function streamSingleMessage(message: string): Response {
+function streamEvents(events: AgentStreamEvent[]): Response {
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
     start(controller) {
-      controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: message })}\n\n`));
+      for (const event of events) {
+        controller.enqueue(encoder.encode(encodeSseEvent(event)));
+      }
       controller.close();
     },
   });
@@ -67,11 +71,11 @@ async function buildFastApiProxyResponse(
       payload.response?.trim() ||
       payload.message?.trim() ||
       'FastAPI request completed.';
-    return streamSingleMessage(text);
+    return streamEvents([{ type: 'text', text }]);
   }
 
   const fallbackText = (await proxyResponse.text().catch(() => '')).trim();
-  return streamSingleMessage(fallbackText || 'FastAPI request completed.');
+  return streamEvents([{ type: 'text', text: fallbackText || 'FastAPI request completed.' }]);
 }
 
 export async function POST(request: NextRequest): Promise<Response> {
@@ -79,18 +83,21 @@ export async function POST(request: NextRequest): Promise<Response> {
     const clientIp = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
     const rateLimit = checkRateLimit(`chat:${clientIp}`, 40, 60_000);
     if (!rateLimit.allowed) {
-      return streamSingleMessage(
-        'Too many requests right now. Please try again in a minute.'
-      );
+      return streamEvents([
+        { type: 'error', message: 'Too many requests right now. Please try again in a minute.' },
+      ]);
     }
 
     const parsed = validateChatPromptRequest(await request.json());
     if (!parsed.success) {
-      return streamSingleMessage('Invalid request payload.');
+      return streamEvents([{ type: 'error', message: 'Invalid request payload.' }]);
     }
     const message = parsed.data.message;
 
-    const healthContext = await HealthDataStore.getHealthSummary();
+    const [healthContext, snapshot] = await Promise.all([
+      HealthDataStore.getHealthSummary(),
+      loadHealthSnapshotFromStore(),
+    ]);
     try {
       const fastApiResponse = await buildFastApiProxyResponse(message, healthContext);
       if (fastApiResponse) {
@@ -105,14 +112,13 @@ export async function POST(request: NextRequest): Promise<Response> {
       async start(controller) {
         try {
           let sentChunk = false;
-          const result = await queryHealthAgentStream(message, healthContext, (chunk) => {
+          const result = await queryHealthAgentStream(message, healthContext, (event) => {
             sentChunk = true;
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: chunk })}\n\n`));
-          });
+            controller.enqueue(encoder.encode(encodeSseEvent(event)));
+          }, snapshot);
 
-          // If no chunks were streamed (e.g. provider error), send the final fallback message.
           if (!sentChunk && result.content) {
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: result.content })}\n\n`));
+            controller.enqueue(encoder.encode(encodeSseEvent({ type: 'text', text: result.content })));
           }
 
           controller.close();
@@ -131,6 +137,6 @@ export async function POST(request: NextRequest): Promise<Response> {
     });
   } catch (error) {
     loggers.api.error('Chat API error', error);
-    return streamSingleMessage('Internal Server Error');
+    return streamEvents([{ type: 'error', message: 'Internal Server Error' }]);
   }
 }

@@ -200,6 +200,12 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: true,
   },
 
+  serverExternalPackages: [
+    "@opentelemetry/sdk-trace-node",
+    "@opentelemetry/sdk-trace-base",
+    "@opentelemetry/exporter-trace-otlp-http",
+  ],
+
   // Improved image optimization (unoptimized required for static export)
   images: {
     unoptimized: isGitHubPages,
