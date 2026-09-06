@@ -53,7 +53,9 @@ export function GoalsClient({ autoGoals }: GoalsClientProps): React.JSX.Element 
   }, []);
 
   useEffect(() => {
-    fetchUserGoals();
+    // Persist user-created goals live in /api/goals; load after mount.
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- remote fetch, not derived state
+    void fetchUserGoals();
   }, [fetchUserGoals]);
 
   const handleGoalCreated = (): void => {

@@ -25,8 +25,12 @@ interface FutureStatsUser {
     activities: FutureStatsActivity[];
 }
 
+type FutureDashboardStats = Omit<typeof DEMO_FUTURE_STATS, 'devices'> & {
+    devices: FutureStatsDevice[];
+};
+
 export async function GET() {
-    let stats = {
+    let stats: FutureDashboardStats = {
         ...DEMO_FUTURE_STATS,
         devices: DEMO_FUTURE_STATS.devices.map((device) => ({
             name: device.name,

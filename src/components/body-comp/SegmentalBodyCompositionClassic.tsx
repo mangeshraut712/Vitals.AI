@@ -357,7 +357,12 @@ function SegmentDetail({ segment, gender }: { segment: SegmentData; gender: Gend
                             contentStyle={{ background: '#1a1a2e', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontSize: 11 }}
                             labelStyle={{ color: 'rgba(255,255,255,0.5)' }}
                             itemStyle={{ color: 'white' }}
-                            formatter={(v: number | string | Array<number | string> | undefined) => [`${v ?? ''}%`, '']}
+                            formatter={(value) => {
+                                const display = Array.isArray(value)
+                                    ? value.join(', ')
+                                    : String(value ?? '');
+                                return [`${display}%`, ''];
+                            }}
                         />
                         <Bar dataKey="value" radius={[4, 4, 0, 0]}>
                             {barData.map((entry, i) => (
