@@ -403,9 +403,10 @@ The `/future` page falls back to bundled demo stats when `/api/future/stats` is 
 ```bash
 npm ci
 npm run build:pages
-# Serve like GitHub Pages (project site under /Vitals.AI/)
-python3 -m http.server 8080 --directory out
-# then open http://127.0.0.1:8080/  — or nest under /Vitals.AI for a true path check
+mkdir -p /tmp/vitals-pages/Vitals.AI
+cp -a out/. /tmp/vitals-pages/Vitals.AI/
+python3 -m http.server 8080 --directory /tmp/vitals-pages
+# open http://127.0.0.1:8080/Vitals.AI/
 ```
 
 ### GitHub Pages setup
