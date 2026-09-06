@@ -41,7 +41,43 @@ jobs:
         run: npm run typecheck
 
       - name: Test
-        run: npm run test
+        run: npm run test -- --run
+
+      - name: Evals
+        run: npm run test:evals
 
       - name: Build
         run: npm run build
+
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+      E2E_SKIP_BUILD: "1"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Static export
+        run: npm run build:pages
+        env:
+          GITHUB_PAGES: "1"
+          NEXT_PUBLIC_STATIC_EXPORT: "1"
+          NEXT_PUBLIC_BASE_PATH: "/Vitals.AI"
+          NEXT_PUBLIC_SITE_URL: "https://mangeshraut712.github.io/Vitals.AI"
+
+      - name: Agent Pages smoke
+        run: npm run test:e2e:smoke

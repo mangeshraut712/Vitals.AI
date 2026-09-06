@@ -1,6 +1,13 @@
 import { createOpenAI } from '@ai-sdk/openai';
-import { streamText, generateText } from 'ai';
+import { generateText, isStepCount, streamText } from 'ai';
 import { getOpenRouterHeaders } from '@/lib/runtime/deployment';
+import { createHealthAiTools } from '@/lib/agent/ai-tools';
+import { runDeterministicAgentTurn } from '@/lib/agent/deterministic-runtime';
+import { isHealthToolName } from '@/lib/agent/tool-names';
+import { EMPTY_HEALTH_SNAPSHOT } from '@/lib/agent/demo-snapshot';
+import type { HealthSnapshot } from '@/lib/agent/health-snapshot';
+import { isTracingEnabled, withSpan } from '@/lib/observability/tracing';
+import type { AgentStreamEvent } from '@/lib/agent/agent-events';
 
 const VERIFIED_SOURCE_DOMAINS = [
   'pubmed.ncbi.nlm.nih.gov',
@@ -16,10 +23,18 @@ const DEFAULT_OPENROUTER_MODEL = 'openrouter/free';
 const HEALTH_SYSTEM_PROMPT = `You are Vitals.AI, a knowledgeable health assistant that helps users understand their health data and make informed decisions about their wellness.
 
 ## Your Role
+- Call tools before answering questions about labs, recovery, or biological age
 - Analyze health biomarkers and provide context
 - Explain what values mean and their significance
 - Suggest evidence-based lifestyle improvements
 - Help users understand their PhenoAge (biological age) results
+
+## Tools
+- lookupBiomarker: lab markers (CRP, LDL, glucose, summary)
+- getRecoverySnapshot: sleep, HRV, recovery, steps
+- getHealthScorecard: composite score + PhenoAge
+
+If a tool returns empty: true, say so clearly and do not invent numbers.
 
 ## Reference Ranges (Optimal for Longevity)
 
@@ -48,19 +63,11 @@ const HEALTH_SYSTEM_PROMPT = `You are Vitals.AI, a knowledgeable health assistan
 - Resting Heart Rate: <60 bpm is excellent
 - Sleep: 7-9 hours, with >1.5h Deep and >1.5h REM
 
-## Verified Knowledge Sources
-Prefer information from:
-- PubMed / NIH (Research)
-- Peter Attia (Longevity Medicine)
-- Bryan Johnson (Blueprint)
-- Examine.com (Supplements)
-- Rhonda Patrick (FoundMyFitness)
-
 ## Response Guidelines
-1. **Be Precise**: Use the user's provided data values.
-2. **Contextualize**: Explain *why* a number matters (e.g., "Elevated CRP indicates systemic inflammation...").
-3. **Actionable**: Suggest specific behavioral changes (sleep, diet, exercise) before supplements.
-4. **Disclaimer**: You are an AI, not a doctor. Medical advice disclaimer is mandatory for any diagnostic opinion.
+1. **Be Precise**: Use tool results and the provided health context.
+2. **Contextualize**: Explain why a number matters.
+3. **Actionable**: Suggest sleep, diet, and exercise before supplements.
+4. **Disclaimer**: You are an AI, not a doctor.
 
 The Levine PhenoAge formula is a research tool, not a clinical diagnostic.`;
 
@@ -85,7 +92,7 @@ function getModelCandidates(): string[] {
 }
 
 function getMissingKeyMessage(): string {
-  return "I'm ready to help! Please set your `OPENROUTER_API_KEY` in Vercel environment variables (or `.env.local`) to enable chat.";
+  return 'Set OPENROUTER_API_KEY in `.env.local` to enable live model streaming. Tools still run on local files.';
 }
 
 function isVerifiedSourceUrl(url: string): boolean {
@@ -114,23 +121,38 @@ function sanitizeUnverifiedSourceUrls(content: string): { content: string; remov
   return { content: sanitized, removedCount };
 }
 
-// Initialize OpenRouter client via OpenAI SDK
 const openrouter = createOpenAI({
   baseURL: 'https://openrouter.ai/api/v1',
   apiKey: process.env.OPENROUTER_API_KEY,
   headers: getOpenRouterHeaders(),
 });
 
+function telemetryOptions() {
+  return {
+    isEnabled: isTracingEnabled(),
+    functionId: 'health-agent',
+  };
+}
+
 export async function queryHealthAgent(
   message: string,
-  healthContext: string
+  healthContext: string,
+  snapshot: HealthSnapshot = EMPTY_HEALTH_SNAPSHOT
 ): Promise<HealthAgentResponse> {
   const apiKey = process.env.OPENROUTER_API_KEY;
+  const tools = createHealthAiTools(snapshot);
 
   if (!apiKey) {
-    return {
-      content: getMissingKeyMessage(),
-    };
+    let content = '';
+    await runDeterministicAgentTurn({
+      message,
+      snapshot,
+      mode: 'offline',
+      onEvent: (event) => {
+        if (event.type === 'text') content = event.text;
+      },
+    });
+    return { content: content || getMissingKeyMessage() };
   }
 
   const fullPrompt = `## User's Health Data Context
@@ -148,6 +170,9 @@ ${message}`;
         model: openrouter(modelId),
         system: HEALTH_SYSTEM_PROMPT,
         prompt: fullPrompt,
+        tools,
+        stopWhen: isStepCount(5),
+        experimental_telemetry: telemetryOptions(),
       });
 
       const { content: sanitizedContent, removedCount } = sanitizeUnverifiedSourceUrls(text);
@@ -179,11 +204,40 @@ function formatStreamResult(content: string): HealthAgentResponse {
   return { content: finalContent };
 }
 
+function emitStreamPart(
+  part: { type: string; text?: string; delta?: string; toolName?: string; input?: unknown; output?: unknown },
+  onEvent: (event: AgentStreamEvent) => void
+): void {
+  switch (part.type) {
+    case 'text-delta': {
+      const text = part.text ?? part.delta ?? '';
+      if (text) onEvent({ type: 'text', text });
+      return;
+    }
+    case 'tool-call': {
+      if (part.toolName && isHealthToolName(part.toolName)) {
+        onEvent({ type: 'tool', name: part.toolName, status: 'start', input: part.input });
+      }
+      return;
+    }
+    case 'tool-result': {
+      if (part.toolName && isHealthToolName(part.toolName)) {
+        onEvent({ type: 'tool', name: part.toolName, status: 'result', result: part.output });
+      }
+      return;
+    }
+    default:
+      return;
+  }
+}
+
 async function streamWithFallback(
   prompt: string,
-  onChunk: (text: string) => void
+  snapshot: HealthSnapshot,
+  onEvent: (event: AgentStreamEvent) => void
 ): Promise<HealthAgentResponse> {
   const modelCandidates = getModelCandidates();
+  const tools = createHealthAiTools(snapshot);
   let lastError: unknown;
 
   for (const modelId of modelCandidates) {
@@ -193,19 +247,24 @@ async function streamWithFallback(
         model: openrouter(modelId),
         system: HEALTH_SYSTEM_PROMPT,
         prompt,
+        tools,
+        stopWhen: isStepCount(5),
+        experimental_telemetry: telemetryOptions(),
       });
 
-      for await (const textPart of result.textStream) {
-        if (!textPart) continue;
-        candidateContent += textPart;
-        onChunk(textPart);
+      const parts = result.fullStream ?? result.stream;
+      for await (const part of parts) {
+        emitStreamPart(part as { type: string; text?: string; delta?: string; toolName?: string; input?: unknown; output?: unknown }, onEvent);
+        if (part.type === 'text-delta') {
+          const text = 'text' in part && typeof part.text === 'string' ? part.text : '';
+          candidateContent += text;
+        }
       }
 
       return formatStreamResult(candidateContent);
     } catch (error) {
       lastError = error;
 
-      // If partial output already streamed, don't switch models mid-response.
       if (candidateContent.length > 0) {
         throw error;
       }
@@ -220,31 +279,46 @@ async function streamWithFallback(
 export async function queryHealthAgentStream(
   message: string,
   healthContext: string,
-  onChunk: (text: string) => void
+  onEvent: (event: AgentStreamEvent) => void,
+  snapshot: HealthSnapshot = EMPTY_HEALTH_SNAPSHOT
 ): Promise<HealthAgentResponse> {
-  const apiKey = process.env.OPENROUTER_API_KEY;
+  return withSpan(
+    'agent.queryHealthAgentStream',
+    { 'agent.message_length': message.length },
+    async () => {
+      const apiKey = process.env.OPENROUTER_API_KEY;
 
-  if (!apiKey) {
-    const msg = getMissingKeyMessage();
-    onChunk(msg);
-    return { content: msg };
-  }
+      if (!apiKey) {
+        return runDeterministicAgentTurn({
+          message,
+          snapshot,
+          mode: 'offline',
+          onEvent,
+        }).then((result) => ({ content: result.content }));
+      }
 
-  const fullPrompt = `## User's Health Data Context
+      const fullPrompt = `## User's Health Data Context
 ${healthContext}
 
 ## User Question
 ${message}`;
 
-  try {
-    return await streamWithFallback(fullPrompt, onChunk);
-  } catch (error) {
-    console.error('[Vitals.AI] OpenRouter API Streaming Error:', error);
-    return {
-      content: "I'm having trouble connecting to my knowledge base right now.",
-      error: error instanceof Error ? error.message : 'Unknown error',
-    };
-  }
+      try {
+        onEvent({ type: 'mode', mode: 'live' });
+        return await streamWithFallback(fullPrompt, snapshot, onEvent);
+      } catch (error) {
+        console.error('[Vitals.AI] OpenRouter API Streaming Error:', error);
+        onEvent({
+          type: 'error',
+          message: "I'm having trouble connecting to my knowledge base right now.",
+        });
+        return {
+          content: "I'm having trouble connecting to my knowledge base right now.",
+          error: error instanceof Error ? error.message : 'Unknown error',
+        };
+      }
+    }
+  );
 }
 
 export function createHealthAgent(): typeof queryHealthAgent {

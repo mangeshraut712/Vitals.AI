@@ -1,49 +1,41 @@
 /**
- * Chat with AI - Client-side function to send messages to the health AI
- *
- * Sends message to /api/chat endpoint which calls OpenRouter
- * through the AI SDK with the user's health data context.
+ * Chat with AI — client stream of /api/chat, with a local tool demo fallback
+ * for GitHub Pages (no API routes).
  */
 
-import { withBasePath } from '@/lib/runtime/paths';
+import { withBasePath, isGitHubPagesExport } from '@/lib/runtime/paths';
+import { parseSseDataLine, type AgentStreamEvent } from '@/lib/agent/agent-events';
+import { runDeterministicAgentTurn } from '@/lib/agent/deterministic-runtime';
+import { DEMO_HEALTH_SNAPSHOT } from '@/lib/agent/demo-snapshot';
 
 export interface ChatResponse {
   response: string;
   error?: string;
 }
 
-/**
- * Send a message to the health AI and get a response
- *
- * @param message - The user's message/question
- * @returns Promise with the AI's response or error
- */
-export async function chatWithAI(message: string): Promise<ChatResponse> {
-  try {
-    let fullResponse = '';
-    for await (const chunk of streamChatWithAI(message)) {
-      fullResponse += chunk;
-    }
-    return { response: fullResponse };
-  } catch (error) {
-    // Network or parsing error
-    const errorMessage =
-      error instanceof Error ? error.message : 'Failed to connect to AI';
-    return {
-      response: '',
-      error: errorMessage,
-    };
+async function* runDemoStream(message: string): AsyncGenerator<AgentStreamEvent, void, unknown> {
+  const queued: AgentStreamEvent[] = [];
+  await runDeterministicAgentTurn({
+    message,
+    snapshot: DEMO_HEALTH_SNAPSHOT,
+    mode: 'demo',
+    onEvent: (event) => {
+      queued.push(event);
+    },
+  });
+  for (const event of queued) {
+    yield event;
   }
 }
 
-/**
- * Stream a chat response from the AI
- *
- * API returns Server-Sent Events (SSE).
- */
-export async function* streamChatWithAI(
+export async function* streamChatEvents(
   message: string
-): AsyncGenerator<string, void, unknown> {
+): AsyncGenerator<AgentStreamEvent, void, unknown> {
+  if (isGitHubPagesExport()) {
+    yield* runDemoStream(message);
+    return;
+  }
+
   try {
     const response = await fetch(withBasePath('/api/chat'), {
       method: 'POST',
@@ -51,17 +43,29 @@ export async function* streamChatWithAI(
       body: JSON.stringify({ message }),
     });
 
+    if (response.status === 404) {
+      yield* runDemoStream(message);
+      return;
+    }
+
     if (!response.ok) {
       const errorData = (await response.json().catch(() => ({}))) as { error?: string };
-      yield errorData.error ?? 'Sorry, I encountered an error. Please try again.';
+      yield {
+        type: 'error',
+        message: errorData.error ?? 'Sorry, I encountered an error. Please try again.',
+      };
       return;
     }
 
     const reader = response.body?.getReader();
-    if (!reader) return;
+    if (!reader) {
+      yield { type: 'error', message: 'Empty response from the health agent.' };
+      return;
+    }
 
     const decoder = new TextDecoder();
     let buffer = '';
+    let received = false;
 
     while (true) {
       const { done, value } = await reader.read();
@@ -72,18 +76,45 @@ export async function* streamChatWithAI(
       buffer = lines.pop() || '';
 
       for (const line of lines) {
-        if (line.startsWith('data: ')) {
-          try {
-            const data = JSON.parse(line.slice(6));
-            if (data.text) yield data.text;
-          } catch (e) {
-            console.warn('Failed to parse stream chunk', e);
-          }
-        }
+        if (!line.startsWith('data: ')) continue;
+        const event = parseSseDataLine(line);
+        if (!event) continue;
+        received = true;
+        yield event;
       }
     }
+
+    if (!received) {
+      yield { type: 'error', message: 'Sorry, I could not generate a response. Please try again.' };
+    }
   } catch {
-    yield 'Failed to connect to the AI assistant.';
+    yield* runDemoStream(message);
+  }
+}
+
+export async function* streamChatWithAI(
+  message: string
+): AsyncGenerator<string, void, unknown> {
+  for await (const event of streamChatEvents(message)) {
+    if (event.type === 'text') yield event.text;
+    if (event.type === 'error') yield event.message;
+  }
+}
+
+export async function chatWithAI(message: string): Promise<ChatResponse> {
+  try {
+    let fullResponse = '';
+    for await (const chunk of streamChatWithAI(message)) {
+      fullResponse += chunk;
+    }
+    return { response: fullResponse };
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error ? error.message : 'Failed to connect to AI';
+    return {
+      response: '',
+      error: errorMessage,
+    };
   }
 }
 
