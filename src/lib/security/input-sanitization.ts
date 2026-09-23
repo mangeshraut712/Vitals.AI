@@ -26,24 +26,9 @@ export function sanitizeString(input: string): string {
  * Sanitize HTML content - remove dangerous tags and attributes
  */
 export function sanitizeHtml(html: string): string {
-    // Remove script tags
-    let sanitized = html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
-
-    // Remove event handlers
-    sanitized = sanitized.replace(/\s*on\w+\s*=\s*["'][^"']*["']/gi, '');
-
-    // Remove javascript: URLs
-    sanitized = sanitized.replace(/javascript:/gi, '');
-
-    // Remove data: URLs (can be used for XSS)
-    sanitized = sanitized.replace(/data:/gi, '');
-
-    return sanitized;
+    return sanitizeString(html);
 }
 
-/**
- * Sanitize filename to prevent path traversal
- */
 export function sanitizeFilename(filename: string): string {
     // Remove path separators and null bytes
     return filename
