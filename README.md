@@ -9,13 +9,21 @@ Privacy-first health analytics dashboard with a tool-calling health agent.
 [![CI](https://github.com/mangeshraut712/Vitals.AI/actions/workflows/ci.yml/badge.svg)](https://github.com/mangeshraut712/Vitals.AI/actions/workflows/ci.yml)
 [![GitHub Pages](https://github.com/mangeshraut712/Vitals.AI/actions/workflows/pages.yml/badge.svg)](https://github.com/mangeshraut712/Vitals.AI/actions/workflows/pages.yml)
 
-**Dashboard** — health overview, biomarkers, and digital twin on the live Pages demo (September 2026).
+## Screenshots
 
-![Vitals.AI dashboard](docs/screenshots/01-dashboard.png)
+Framed captures of the live app (current UI). Home and data sources are empty until you sync local files. The agent slide uses the public sample panel, not personal labs.
 
-**Health agent** — AI SDK tools with streamed answers and json-render cards (`lookupBiomarker` for CRP on the public sample panel).
+<div align="center">
 
-![Health agent with CRP tool result](docs/screenshots/02-agent-tools.png)
+<img src="docs/screenshots/01-home.webp" alt="Vitals.AI home dashboard with no labs synced" width="720" />
+
+<img src="docs/screenshots/02-agent.webp" alt="Health agent CRP lookup on the public sample panel" width="720" />
+
+<img src="docs/screenshots/03-experience.webp" alt="Experience page describing the health operating system" width="720" />
+
+<img src="docs/screenshots/04-data-sources.webp" alt="Data sources empty state — files stay on disk" width="720" />
+
+</div>
 
 ## What this is
 
