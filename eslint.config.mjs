@@ -13,6 +13,8 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
     ".github-pages-tmp/**",
+    // Sidecar skill templates are not product app code.
+    ".agents/**",
   ]),
 ]);
 
