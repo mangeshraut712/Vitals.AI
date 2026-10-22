@@ -11,6 +11,10 @@ Privacy-first health analytics dashboard with a tool-calling health agent.
 
 ## Screenshots
 
+Unframed capture of the [live demo](https://mangeshraut712.github.io/Vitals.AI/) home page, taken with headless Chromium on 22 October 2026:
+
+<p align="center"><img src="docs/screenshots/live-home.webp" alt="Vitals.AI live demo home page" width="720" /></p>
+
 Framed captures of the live app (current UI). Home and data sources are empty until you sync local files. The agent slide uses the public sample panel, not personal labs.
 
 <div align="center">
