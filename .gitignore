@@ -94,3 +94,6 @@ data/Bloodwork/
 data/Body\ Scan/
 labtest.pdf
 withings data/
+# Local agent tooling
+.agents/
+skills-lock.json
