@@ -2,6 +2,8 @@
  * Security Utilities for Input Validation and Sanitization
  */
 
+import { assessOutboundUrl } from './outbound-url';
+
 // ============================================
 // Input Sanitization
 // ============================================
@@ -52,36 +54,25 @@ export function sanitizeEmail(email: string): string | null {
  * Sanitize URL to prevent SSRF and XSS
  */
 export function sanitizeUrl(url: string): string | null {
-    try {
-        const parsed = new URL(url);
+    const assessed = assessOutboundUrl(url, {
+        allowLoopback: false,
+        allowPrivate: false,
+    });
+    return assessed.ok ? assessed.url : null;
+}
 
-        // Only allow safe protocols
-        const allowedProtocols = ['http:', 'https:'];
-        if (!allowedProtocols.includes(parsed.protocol)) {
-            return null;
-        }
+const SECRET_PATTERNS = [
+    /sk-or-v1-[a-z0-9]+/gi,
+    /sk-ant-[a-z0-9-]+/gi,
+    /ghp_[a-zA-Z0-9]+/g,
+    /bearer\s+[a-z0-9._~+/-]+=*/gi,
+];
 
-        // Block private IP ranges (basic check)
-        const hostname = parsed.hostname;
-        const privateIpPatterns = [
-            /^127\./,
-            /^10\./,
-            /^172\.(1[6-9]|2[0-9]|3[0-1])\./,
-            /^192\.168\./,
-            /^localhost$/i,
-            /^0\.0\.0\.0$/,
-        ];
-
-        for (const pattern of privateIpPatterns) {
-            if (pattern.test(hostname)) {
-                return null;
-            }
-        }
-
-        return parsed.toString();
-    } catch {
-        return null;
-    }
+export function redactSensitiveText(value: string): string {
+    return SECRET_PATTERNS.reduce(
+        (redacted, pattern) => redacted.replace(pattern, '[redacted]'),
+        value
+    );
 }
 
 // ============================================
@@ -94,6 +85,15 @@ interface RateLimitEntry {
 }
 
 const rateLimitStore = new Map<string, RateLimitEntry>();
+const MAX_RATE_LIMIT_KEYS = 5000;
+
+export function resetRateLimits(): void {
+    rateLimitStore.clear();
+}
+
+export function getRateLimitKeyCount(): number {
+    return rateLimitStore.size;
+}
 
 /**
  * Simple in-memory rate limiter
@@ -104,6 +104,14 @@ export function checkRateLimit(
     windowMs: number = 60000
 ): { allowed: boolean; remaining: number; resetTime: number } {
     const now = Date.now();
+    if (rateLimitStore.size > MAX_RATE_LIMIT_KEYS) {
+        cleanupRateLimits();
+    }
+    if (!rateLimitStore.has(key) && rateLimitStore.size >= MAX_RATE_LIMIT_KEYS) {
+        const oldest = rateLimitStore.keys().next().value;
+        if (oldest) rateLimitStore.delete(oldest);
+    }
+
     const entry = rateLimitStore.get(key);
 
     if (!entry || now > entry.resetTime) {

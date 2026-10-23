@@ -1,16 +1,18 @@
 import type { ExtractedBiomarkers } from '@/lib/extractors/biomarkers';
-import {
-  getBiomarkerStatus,
-  BIOMARKER_REFERENCES,
-  type BiomarkerStatus,
-} from '@/lib/types/health';
+import type { BiomarkerStatus } from '@/lib/types/health';
 import type { TopMarker } from '@/components/dashboard/TopMarkersCard';
+import { getBiomarkerStatus } from './calculations';
+import { BIOMARKER_REFERENCES } from './reference';
 
 /**
  * Fixed markers that always appear in top 5
  * These are the most important for longevity
  */
 const FIXED_MARKERS = ['apob', 'hba1c'] as const;
+
+function normalizeMarkerKey(key: string): string {
+  return key.toLowerCase();
+}
 
 /**
  * Longevity priority markers - ranked by clinical significance
@@ -80,21 +82,15 @@ function calculateMarkerScore(
       break;
   }
 
-  // Longevity priority bonus
-  const priorityIndex = LONGEVITY_PRIORITY.indexOf(
-    key.toLowerCase() as (typeof LONGEVITY_PRIORITY)[number]
+  const normalizedKey = normalizeMarkerKey(key);
+  const priorityIndex = LONGEVITY_PRIORITY.findIndex(
+    (marker) => normalizeMarkerKey(marker) === normalizedKey
   );
   if (priorityIndex !== -1) {
-    // Higher position in list = higher bonus
     score += (LONGEVITY_PRIORITY.length - priorityIndex) * 10;
   }
 
-  // Deprioritized penalty
-  if (
-    DEPRIORITIZED_MARKERS.includes(
-      key.toLowerCase() as (typeof DEPRIORITIZED_MARKERS)[number]
-    )
-  ) {
+  if (DEPRIORITIZED_MARKERS.some((marker) => normalizeMarkerKey(marker) === normalizedKey)) {
     score -= 50;
   }
 
@@ -131,14 +127,14 @@ export function selectTopMarkers(
     }
 
     const ref = BIOMARKER_REFERENCES[key];
-    if (!ref) continue;
+    if (!ref || !Number.isFinite(value)) continue;
 
     const status = getBiomarkerStatus(key, value);
     const score = calculateMarkerScore(key, status);
 
     allMarkers.push({
       key,
-      displayName: ref.displayName,
+      displayName: ref.name,
       value,
       unit: ref.unit,
       status,

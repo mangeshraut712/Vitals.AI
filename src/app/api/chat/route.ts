@@ -4,6 +4,7 @@ import { HealthDataStore } from '@/lib/store/health-data';
 import { requestFastApiChat } from '@/lib/integrations/fastapi';
 import { loggers } from '@/lib/logger';
 import { checkRateLimit } from '@/lib/security';
+import { clientRateLimitKey } from '@/lib/security/request-guard';
 import { validateChatPromptRequest } from '@/lib/validation';
 import { encodeSseEvent, type AgentStreamEvent } from '@/lib/agent/agent-events';
 import { loadHealthSnapshotFromStore } from '@/lib/agent/load-snapshot';
@@ -80,17 +81,24 @@ async function buildFastApiProxyResponse(
 
 export async function POST(request: NextRequest): Promise<Response> {
   try {
-    const clientIp = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
-    const rateLimit = checkRateLimit(`chat:${clientIp}`, 40, 60_000);
+    const rateLimit = checkRateLimit(clientRateLimitKey(request, 'chat'), 40, 60_000);
     if (!rateLimit.allowed) {
-      return streamEvents([
-        { type: 'error', message: 'Too many requests right now. Please try again in a minute.' },
-      ]);
+      return Response.json(
+        { error: 'Too many requests right now. Please try again in a minute.' },
+        { status: 429 }
+      );
     }
 
-    const parsed = validateChatPromptRequest(await request.json());
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return Response.json({ error: 'Invalid request payload.' }, { status: 400 });
+    }
+
+    const parsed = validateChatPromptRequest(body);
     if (!parsed.success) {
-      return streamEvents([{ type: 'error', message: 'Invalid request payload.' }]);
+      return Response.json({ error: 'Invalid request payload.' }, { status: 400 });
     }
     const message = parsed.data.message;
 

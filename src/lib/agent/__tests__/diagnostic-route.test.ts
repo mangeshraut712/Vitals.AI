@@ -1,5 +1,6 @@
 
 import { describe, it, expect } from 'vitest';
+import { NextRequest } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 
@@ -19,7 +20,7 @@ if (fs.existsSync(envPath)) {
 describe('Diagnostic API Route', () => {
     it('should run diagnostics for OpenRouter and OpenClaw', async () => {
         const { GET } = await import('@/app/api/agent/diagnostics/route');
-        const response = await GET();
+        const response = await GET(new NextRequest('http://localhost/api/agent/diagnostics'));
         const data = await response.json();
 
         console.log('Diagnostic Results:', JSON.stringify(data, null, 2));

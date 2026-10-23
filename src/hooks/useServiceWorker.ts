@@ -30,6 +30,7 @@ export function useServiceWorker(): ServiceWorkerHook {
                 const scope = basePath ? `${basePath}/` : '/';
                 const reg = await navigator.serviceWorker.register(swPath, {
                     scope,
+                    type: 'module',
                 });
 
                 setRegistration(reg);

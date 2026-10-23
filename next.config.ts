@@ -35,12 +35,23 @@ function isNextEnvPath(p: unknown): boolean {
   return String(p).includes("next-env.d.ts") || String(p).includes("next-env");
 }
 
+function isRestrictedReadPath(p: unknown): boolean {
+  const value = String(p);
+  return (
+    isNextEnvPath(value) ||
+    value.includes(`${path.sep}data${path.sep}`) ||
+    value.endsWith(`${path.sep}data`) ||
+    value.includes("/data/") ||
+    value.endsWith("/data")
+  );
+}
+
 // Patch async readdir
 _fs.readdir = function (p: string, options: unknown, callback?: unknown) {
   const cb = typeof options === "function" ? options : callback;
   const opts = typeof options === "function" ? undefined : options;
   const wrappedCb = (err: NodeJS.ErrnoException | null, files: string[]) => {
-    if (err && err.code === "EPERM") {
+    if (err && err.code === "EPERM" && isRestrictedReadPath(p)) {
       (cb as (err: null, files: string[]) => void)(null, []);
     } else {
       (cb as (err: NodeJS.ErrnoException | null, files: string[]) => void)(err, files);
@@ -61,7 +72,13 @@ _fs.readdirSync = function (p: string, options?: unknown) {
     }
     return _origReaddirSync(p);
   } catch (e: unknown) {
-    if (e && typeof e === "object" && "code" in e && (e as NodeJS.ErrnoException).code === "EPERM") {
+    if (
+      e &&
+      typeof e === "object" &&
+      "code" in e &&
+      (e as NodeJS.ErrnoException).code === "EPERM" &&
+      isRestrictedReadPath(p)
+    ) {
       return [];
     }
     throw e;
@@ -195,9 +212,10 @@ const nextConfig: NextConfig = {
       }
     : {}),
 
-  // Skip type checking during build (run separately via tsc)
   typescript: {
-    ignoreBuildErrors: true,
+    // The GitHub Pages export temporarily moves API routes aside, so that
+    // build cannot typecheck route imports. The normal build and `npm run typecheck` still do.
+    ignoreBuildErrors: process.env.GITHUB_PAGES === "1",
   },
 
   serverExternalPackages: [
@@ -231,6 +249,11 @@ const nextConfig: NextConfig = {
                 key: "Permissions-Policy",
                 value: "camera=(), microphone=(), geolocation=()",
               },
+              {
+                key: "Content-Security-Policy",
+                value: "base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'",
+              },
+              { key: "X-Permitted-Cross-Domain-Policies", value: "none" },
             ],
           },
         ],

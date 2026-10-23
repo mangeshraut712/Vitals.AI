@@ -120,6 +120,15 @@ export function parseAppleHealthExport(folderPath: string): AppleHealthData {
       ignoreAttributes: false,
       attributeNamePrefix: '@_',
       allowBooleanAttributes: true,
+      // Depth 1 still decodes &amp; but stops nested entity bombs.
+      processEntities: {
+        enabled: true,
+        maxExpansionDepth: 1,
+        maxEntityCount: 20,
+        maxEntitySize: 1000,
+        maxExpandedLength: 100_000,
+        maxTotalExpansions: 1_000_000,
+      },
     });
 
     const parsed: AppleHealthExport = parser.parse(xmlContent);

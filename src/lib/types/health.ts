@@ -196,19 +196,35 @@ export function getBiomarkerStatus(
     if (inNormal) return 'normal';
   }
 
-  // Check if borderline (within 10% of normal range)
-  if (normal) {
-    const range = (normal.max ?? 0) - (normal.min ?? 0);
-    const buffer = range * 0.1;
-    const borderlineMin = (normal.min ?? 0) - buffer;
-    const borderlineMax = (normal.max ?? Infinity) + buffer;
-
-    if (value >= borderlineMin && value <= borderlineMax) {
-      return 'borderline';
-    }
+  if (normal && isBorderline(value, normal)) {
+    return 'borderline';
   }
 
   return 'out_of_range';
+}
+
+function isBorderline(
+  value: number,
+  normal: { min?: number; max?: number }
+): boolean {
+  const { min, max } = normal;
+  let lower = min;
+  let upper = max;
+
+  if (min !== undefined && max !== undefined) {
+    if (max < min) return false;
+    const buffer = (max - min) * 0.1;
+    lower = min - buffer;
+    upper = max + buffer;
+  } else if (max !== undefined) {
+    upper = max + Math.abs(max) * 0.1;
+  } else if (min !== undefined) {
+    lower = min - Math.max(Math.abs(min) * 0.1, 0.1);
+  }
+
+  if (lower !== undefined && value < lower) return false;
+  if (upper !== undefined && value > upper) return false;
+  return lower !== undefined || upper !== undefined;
 }
 
 export function getStatusColor(status: BiomarkerStatus): string {

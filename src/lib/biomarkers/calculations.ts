@@ -292,10 +292,11 @@ export function calculateDerivedBiomarkers(raw: RawBiomarkers): CalculatedBiomar
   // ============================================
 
   // NLR (Neutrophil-to-Lymphocyte Ratio)
-  // Can use absolute counts or calculate from percentages and WBC
-  const neutrophils = raw.neutrophils ?? (raw.neutrophilPercent && raw.wbc ? (raw.neutrophilPercent / 100) * raw.wbc : undefined);
-  const lymphocytes = raw.lymphocytes ?? (raw.lymphocytePercent && raw.wbc ? (raw.lymphocytePercent / 100) * raw.wbc : undefined);
-  const monocytes = raw.monocytes ?? (raw.monocytePercent && raw.wbc ? (raw.monocytePercent / 100) * raw.wbc : undefined);
+  // Absolute counts are cells/µL. WBC is stored as ×10³/µL, so a percent-derived
+  // count has to be scaled by 1000 or PLR/SIRI/MHR come out ~1000× off.
+  const neutrophils = raw.neutrophils ?? absoluteCountFromPercent(raw.neutrophilPercent, raw.wbc);
+  const lymphocytes = raw.lymphocytes ?? absoluteCountFromPercent(raw.lymphocytePercent, raw.wbc);
+  const monocytes = raw.monocytes ?? absoluteCountFromPercent(raw.monocytePercent, raw.wbc);
 
   if (neutrophils && lymphocytes && lymphocytes > 0) {
     calculated.push({
@@ -654,6 +655,11 @@ function isInRange(value: number, range: { min?: number; max?: number }): boolea
   if (range.min !== undefined && value < range.min) return false;
   if (range.max !== undefined && value > range.max) return false;
   return true;
+}
+
+function absoluteCountFromPercent(percent: number | undefined, wbcThousandPerUl: number | undefined): number | undefined {
+  if (percent === undefined || wbcThousandPerUl === undefined || wbcThousandPerUl <= 0) return undefined;
+  return (percent / 100) * wbcThousandPerUl * 1000;
 }
 
 function round(value: number, decimals: number): number {

@@ -63,6 +63,20 @@ describe('dispatchHealthEventsToOpenClaw', () => {
     expect(result.reason).toBe('missing_hooks_token');
   });
 
+  it('refuses metadata and private hook URLs before fetching', async () => {
+    process.env.OPENCLAW_ENABLED = 'true';
+    process.env.OPENCLAW_HOOKS_TOKEN = 'test-token';
+    process.env.OPENCLAW_HOOKS_BASE_URL = 'http://169.254.169.254';
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await dispatchHealthEventsToOpenClaw(sampleEvents);
+
+    expect(result.reason).toBe('invalid_hooks_base_url');
+    expect(result.attempted).toBe(false);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it('dispatches filtered events to wake hook endpoint', async () => {
     process.env.OPENCLAW_ENABLED = 'true';
     process.env.OPENCLAW_HOOKS_TOKEN = 'test-token';

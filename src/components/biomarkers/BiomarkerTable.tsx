@@ -134,21 +134,27 @@ export function BiomarkerTable({
       {/* Header row */}
       <div className="grid grid-cols-12 gap-4 px-4 py-2 text-sm font-medium text-muted-foreground min-w-[600px]">
         <button
+          type="button"
           onClick={() => handleSort('name')}
+          aria-label={`Sort by name, currently ${sortField === 'name' ? sortDirection : 'unsorted'}`}
           className="col-span-4 flex items-center gap-1 hover:text-foreground text-left min-w-0"
         >
           Name
           <SortIndicator field="name" current={sortField} direction={sortDirection} />
         </button>
         <button
+          type="button"
           onClick={() => handleSort('status')}
+          aria-label={`Sort by status, currently ${sortField === 'status' ? sortDirection : 'unsorted'}`}
           className="col-span-3 flex items-center gap-1 hover:text-foreground text-left min-w-0"
         >
           Status
           <SortIndicator field="status" current={sortField} direction={sortDirection} />
         </button>
         <button
+          type="button"
           onClick={() => handleSort('value')}
+          aria-label={`Sort by value, currently ${sortField === 'value' ? sortDirection : 'unsorted'}`}
           className="col-span-2 flex items-center gap-1 hover:text-foreground text-left min-w-0"
         >
           Value
@@ -193,7 +199,9 @@ function BiomarkerRowItem({ biomarker, onClick }: BiomarkerRowItemProps): React.
 
   return (
     <button
+      type="button"
       onClick={onClick}
+      aria-label={`${biomarker.name}, ${getStatusLabel(biomarker.status)}, ${biomarker.value} ${biomarker.unit}`}
       className="group relative grid grid-cols-12 gap-4 items-center px-5 py-4 w-full text-left cursor-pointer transition-all duration-200 bg-card border border-border rounded-xl hover:border-primary/20 hover:shadow-sm"
     >
       <div className="absolute inset-0 bg-muted/0 group-hover:bg-muted/30 transition-colors rounded-xl" />

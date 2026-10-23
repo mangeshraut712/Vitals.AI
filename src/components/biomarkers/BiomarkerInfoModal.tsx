@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useCallback, useState } from 'react';
+import { useEffect, useCallback, useState, useRef } from 'react';
 import { BiomarkerRangeGraph } from './BiomarkerRangeGraph';
+import { useDialogBehavior } from '@/hooks/useDialogBehavior';
 import { getBiomarkerReference, type BiomarkerReference } from '@/lib/biomarkers/reference';
 import { type BiomarkerStatus } from '@/lib/types/health';
 
@@ -94,6 +95,7 @@ export function BiomarkerInfoModal({
   onClose,
 }: BiomarkerInfoModalProps): React.JSX.Element {
   const [isVisible, setIsVisible] = useState(false);
+  const dialogRef = useRef<HTMLDivElement>(null);
   const reference: BiomarkerReference | undefined = getBiomarkerReference(biomarkerId);
   const config = statusConfig[status];
 
@@ -108,22 +110,14 @@ export function BiomarkerInfoModal({
     setTimeout(onClose, 200);
   }, [onClose]);
 
-  // Handle escape key
-  const handleKeyDown = useCallback(
-    (e: KeyboardEvent) => {
-      if (e.key === 'Escape') handleClose();
-    },
-    [handleClose]
-  );
+  useDialogBehavior(true, handleClose, dialogRef);
 
   useEffect(() => {
-    document.addEventListener('keydown', handleKeyDown);
     document.body.style.overflow = 'hidden';
     return () => {
-      document.removeEventListener('keydown', handleKeyDown);
       document.body.style.overflow = 'unset';
     };
-  }, [handleKeyDown]);
+  }, []);
 
   const handleBackdropClick = (e: React.MouseEvent): void => {
     if (e.target === e.currentTarget) handleClose();
@@ -131,6 +125,8 @@ export function BiomarkerInfoModal({
 
   return (
     <div
+      ref={dialogRef}
+      tabIndex={-1}
       className={`fixed inset-0 z-50 flex items-center justify-center p-4 transition-all duration-200 ${isVisible ? 'bg-black/50 backdrop-blur-sm' : 'bg-black/0'
         }`}
       onClick={handleBackdropClick}

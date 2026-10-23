@@ -3,7 +3,10 @@ import fs from 'fs';
 import path from 'path';
 import type { UserGoal } from '@/lib/types/user-goal';
 import { loggers } from '@/lib/logger';
-import { validateGoalCreateRequest } from '@/lib/validation';
+import { GoalIdSchema, validateGoalCreateRequest } from '@/lib/validation';
+import { parseStoredGoals } from '@/lib/goals/stored-goals';
+import { checkRateLimit } from '@/lib/security';
+import { clientRateLimitKey } from '@/lib/security/request-guard';
 
 export type { UserGoal } from '@/lib/types/user-goal';
 
@@ -11,6 +14,7 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 const USER_GOALS_FILE = path.join(process.cwd(), 'user-goals.json');
+const MAX_STORED_GOALS = 100;
 const globalForGoals = globalThis as unknown as {
   inMemoryGoals?: UserGoal[];
 };
@@ -34,7 +38,7 @@ function readUserGoals(): UserGoal[] {
       return globalForGoals.inMemoryGoals ?? [];
     }
     const content = fs.readFileSync(USER_GOALS_FILE, 'utf-8');
-    return JSON.parse(content) as UserGoal[];
+    return parseStoredGoals(content);
   } catch (error) {
     loggers.api.error('Goals API failed to read user goals', error);
     return globalForGoals.inMemoryGoals ?? [];
@@ -77,29 +81,47 @@ export async function GET(): Promise<NextResponse> {
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
+  const rateLimit = checkRateLimit(clientRateLimitKey(request, 'goals'), 20, 60_000);
+  if (!rateLimit.allowed) {
+    return NextResponse.json({ success: false, error: 'Too many requests' }, { status: 429 });
+  }
+
   try {
-    const parsed = validateGoalCreateRequest(await request.json());
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ success: false, error: 'Invalid goal payload' }, { status: 400 });
+    }
+
+    const parsed = validateGoalCreateRequest(body);
     if (!parsed.success) {
       return NextResponse.json(
-        { success: false, error: 'Invalid goal payload' }
+        { success: false, error: 'Invalid goal payload' },
+        { status: 400 }
       );
     }
-    const body = parsed.data;
+    const goalInput = parsed.data;
 
-    // Create new goal
     const newGoal: UserGoal = {
       id: `user-goal-${Date.now()}`,
-      title: body.title,
-      description: body.description,
-      priority: body.priority,
-      category: body.category || 'Other',
-      actionItems: body.actionItems,
+      title: goalInput.title,
+      description: goalInput.description,
+      priority: goalInput.priority,
+      category: goalInput.category || 'Other',
+      actionItems: goalInput.actionItems,
       source: 'user',
       createdAt: new Date().toISOString(),
     };
 
     // Read existing goals and add new one
     const existingGoals = readUserGoals();
+    if (existingGoals.length >= MAX_STORED_GOALS) {
+      return NextResponse.json(
+        { success: false, error: 'Goal limit reached' },
+        { status: 400 }
+      );
+    }
     existingGoals.push(newGoal);
 
     // Write back
@@ -130,11 +152,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 export async function DELETE(request: NextRequest): Promise<NextResponse> {
   try {
     const { searchParams } = new URL(request.url);
-    const goalId = searchParams.get('id');
-
-    if (!goalId) {
+    const goalId = searchParams.get('id') ?? '';
+    if (!GoalIdSchema.safeParse(goalId).success) {
       return NextResponse.json(
-        { success: false, error: 'Goal ID required' }
+        { success: false, error: 'Goal ID required' },
+        { status: 400 }
       );
     }
 

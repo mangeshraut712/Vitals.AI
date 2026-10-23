@@ -57,14 +57,13 @@ function calculateBiomarkerScore(biomarkers: ExtractedBiomarkers): {
   // This gives us the actual lab flags (H/L/normal) for ALL biomarkers
   if (biomarkers.all && biomarkers.all.length > 0) {
     for (const marker of biomarkers.all) {
+      if (typeof marker.value !== 'number' || !Number.isFinite(marker.value)) continue;
       total++;
-      // Use the lab's own status flag
       if (marker.status === 'high' || marker.status === 'low') {
         outOfRangeCount++;
       } else {
-        // 'normal' or undefined status counts as optimal/normal
-        // We'll be generous and count unflagged as optimal
-        optimalCount++;
+        // Lab "normal" and unflagged rows are not the same as an optimal range.
+        normalCount++;
       }
     }
   } else {

@@ -144,6 +144,22 @@ export const ChatPromptRequestSchema = z.object({
     message: z.string().trim().min(1).max(4000),
 });
 
+export const GoalIdSchema = z.string().trim().regex(/^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$/);
+
+export const GoalChatRequestSchema = z.object({
+    message: z.string().trim().min(1).max(4000),
+    conversationHistory: z.array(z.object({
+        role: z.enum(['user', 'assistant']),
+        content: z.string().trim().min(1).max(4000),
+    })).max(20).optional().default([]),
+});
+
+export const OpenClawDispatchRequestSchema = z.object({
+    limit: z.number().int().min(1).max(200).optional(),
+    dryRun: z.boolean().optional(),
+    severities: z.array(z.enum(['info', 'warning', 'critical'])).max(3).optional(),
+});
+
 // ============================================
 // File Upload Validation Schemas
 // ============================================
@@ -210,6 +226,14 @@ export function validateChatPromptRequest(data: unknown) {
 
 export function validateGoalCreateRequest(data: unknown) {
     return GoalCreateRequestSchema.safeParse(data);
+}
+
+export function validateGoalChatRequest(data: unknown) {
+    return GoalChatRequestSchema.safeParse(data);
+}
+
+export function validateOpenClawDispatchRequest(data: unknown) {
+    return OpenClawDispatchRequestSchema.safeParse(data);
 }
 
 export function validateFileUpload(data: unknown) {
