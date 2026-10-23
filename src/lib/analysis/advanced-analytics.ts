@@ -48,12 +48,16 @@ export interface HealthInsight {
  * Calculate linear regression for trend analysis
  */
 export function calculateTrend(data: DataPoint[]): TrendAnalysis {
-    if (data.length < 2) {
+    const finite = data.filter((point) => {
+        const time = new Date(point.timestamp).getTime();
+        return Number.isFinite(point.value) && Number.isFinite(time);
+    });
+    if (finite.length < 2) {
         return { direction: 'stable', slope: 0, r2: 0, confidence: 0 };
     }
 
     // Sort by timestamp
-    const sorted = [...data].sort((a, b) =>
+    const sorted = [...finite].sort((a, b) =>
         new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
     );
 
@@ -70,18 +74,30 @@ export function calculateTrend(data: DataPoint[]): TrendAnalysis {
     const sumY = points.reduce((acc, p) => acc + p.y, 0);
     const sumXY = points.reduce((acc, p) => acc + p.x * p.y, 0);
     const sumX2 = points.reduce((acc, p) => acc + p.x * p.x, 0);
+    const yMean = sumY / n;
+    const denominator = n * sumX2 - sumX * sumX;
 
-    const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+    if (!Number.isFinite(denominator) || denominator === 0) {
+        return {
+            direction: 'stable',
+            slope: 0,
+            r2: 1,
+            confidence: 0,
+            prediction: yMean,
+        };
+    }
+
+    const slope = (n * sumXY - sumX * sumY) / denominator;
     const intercept = (sumY - slope * sumX) / n;
 
     // Calculate R-squared
-    const yMean = sumY / n;
     const ssTotal = points.reduce((acc, p) => acc + Math.pow(p.y - yMean, 2), 0);
     const ssResidual = points.reduce((acc, p) => {
         const predicted = slope * p.x + intercept;
         return acc + Math.pow(p.y - predicted, 2);
     }, 0);
-    const r2 = 1 - (ssResidual / ssTotal);
+    const rawR2 = ssTotal === 0 ? 1 : 1 - (ssResidual / ssTotal);
+    const r2 = Number.isFinite(rawR2) ? Math.max(0, Math.min(1, rawR2)) : 0;
 
     // Determine direction
     const absSlope = Math.abs(slope);
@@ -162,6 +178,7 @@ interface BiomarkerRiskConfig {
     optimalMax: number;
     weight: number;
     unit: string;
+    higherIsBetter?: boolean;
 }
 
 const BIOMARKER_RISK_CONFIGS: BiomarkerRiskConfig[] = [
@@ -169,7 +186,7 @@ const BIOMARKER_RISK_CONFIGS: BiomarkerRiskConfig[] = [
     { name: 'hba1c', optimalMin: 4, optimalMax: 5.6, weight: 1.2, unit: '%' },
     { name: 'cholesterol_total', optimalMin: 0, optimalMax: 200, weight: 0.8, unit: 'mg/dL' },
     { name: 'ldl', optimalMin: 0, optimalMax: 100, weight: 0.9, unit: 'mg/dL' },
-    { name: 'hdl', optimalMin: 40, optimalMax: 100, weight: 0.7, unit: 'mg/dL' },
+    { name: 'hdl', optimalMin: 40, optimalMax: 100, weight: 0.7, unit: 'mg/dL', higherIsBetter: true },
     { name: 'triglycerides', optimalMin: 0, optimalMax: 150, weight: 0.8, unit: 'mg/dL' },
     { name: 'crp', optimalMin: 0, optimalMax: 3, weight: 1.0, unit: 'mg/L' },
     { name: 'creatinine', optimalMin: 0.6, optimalMax: 1.2, weight: 0.9, unit: 'mg/dL' },
@@ -192,18 +209,26 @@ export function calculateCardiovascularRisk(biomarkers: Record<string, number>):
         let risk = 0;
         let description = '';
 
-        if (value < config.optimalMin) {
-            // Below optimal
-            const deviation = (config.optimalMin - value) / config.optimalMin;
-            risk = Math.min(deviation * 50, 50);
+        if (config.higherIsBetter) {
+            if (value < config.optimalMin) {
+                const baseline = config.optimalMin === 0 ? 1 : Math.abs(config.optimalMin);
+                const deviation = (config.optimalMin - value) / baseline;
+                risk = Math.min(Math.max(deviation, 0) * 50, 50);
+                description = `${config.name} is below optimal range (${value} ${config.unit})`;
+            } else {
+                description = `${config.name} is within a protective range (${value} ${config.unit})`;
+            }
+        } else if (value < config.optimalMin) {
+            const baseline = config.optimalMin === 0 ? 1 : Math.abs(config.optimalMin);
+            const deviation = (config.optimalMin - value) / baseline;
+            risk = Math.min(Math.max(deviation, 0) * 50, 50);
             description = `${config.name} is below optimal range (${value} ${config.unit})`;
         } else if (value > config.optimalMax) {
-            // Above optimal
-            const deviation = (value - config.optimalMax) / config.optimalMax;
+            const baseline = config.optimalMax === 0 ? 1 : Math.abs(config.optimalMax);
+            const deviation = (value - config.optimalMax) / baseline;
             risk = Math.min(deviation * 50 + 25, 100);
             description = `${config.name} is above optimal range (${value} ${config.unit})`;
         } else {
-            // Within optimal
             description = `${config.name} is within optimal range (${value} ${config.unit})`;
         }
 
@@ -236,7 +261,7 @@ export function calculateMetabolicHealthScore(biomarkers: Record<string, number>
         glucose: { weight: 1.0, optimal: [70, 100] },
         hba1c: { weight: 1.2, optimal: [4, 5.6] },
         triglycerides: { weight: 0.8, optimal: [0, 150] },
-        hdl: { weight: 0.7, optimal: [40, 100], inverse: false },
+        hdl: { weight: 0.7, optimal: [40, 100], inverse: true },
         waist_circumference: { weight: 0.9, optimal: [0, 40] }, // inches
         blood_pressure_systolic: { weight: 1.0, optimal: [90, 120] },
     };
@@ -251,10 +276,17 @@ export function calculateMetabolicHealthScore(biomarkers: Record<string, number>
         let score = 100;
         const [min, max] = config.optimal;
 
-        if (value < min) {
-            score = Math.max(0, 100 - (min - value) / min * 100);
+        if (config.inverse) {
+            if (value < min) {
+                const baseline = min === 0 ? 1 : Math.abs(min);
+                score = Math.max(0, 100 - ((min - value) / baseline) * 100);
+            }
+        } else if (value < min) {
+            const baseline = min === 0 ? 1 : Math.abs(min);
+            score = Math.max(0, 100 - ((min - value) / baseline) * 100);
         } else if (value > max) {
-            score = Math.max(0, 100 - (value - max) / max * 100);
+            const baseline = max === 0 ? 1 : Math.abs(max);
+            score = Math.max(0, 100 - ((value - max) / baseline) * 100);
         }
 
         totalScore += score * config.weight;

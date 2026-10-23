@@ -46,6 +46,7 @@ export function FloatingDock(): React.JSX.Element {
               key={item.href}
               href={item.href}
               aria-label={item.label}
+              aria-current={active ? 'page' : undefined}
               className={
                 active
                   ? 'inline-flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground transition'

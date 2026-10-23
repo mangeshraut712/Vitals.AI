@@ -5,30 +5,20 @@ import {
   type OpenClawDispatchResult,
 } from '@/lib/integrations/openclaw';
 import type { HealthEventSeverity } from '@/lib/types/health-events';
+import { validateOpenClawDispatchRequest } from '@/lib/validation';
+import { checkRateLimit } from '@/lib/security';
+import { clientRateLimitKey, isPrivilegedRequest } from '@/lib/security/request-guard';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 30;
 
-interface DispatchRequestBody {
-  limit?: number;
-  dryRun?: boolean;
-  severities?: string[];
-}
-
-function toSeverityList(input: string[] | undefined): HealthEventSeverity[] | undefined {
+function toSeverityList(input: HealthEventSeverity[] | undefined): HealthEventSeverity[] | undefined {
   if (!input || input.length === 0) {
     return undefined;
   }
 
-  const normalized = input
-    .map((value) => value.trim().toLowerCase())
-    .filter(
-      (value): value is HealthEventSeverity =>
-        value === 'info' || value === 'warning' || value === 'critical'
-    );
-
-  return normalized.length > 0 ? normalized : undefined;
+  return input.length > 0 ? input : undefined;
 }
 
 function normalizeLimit(limit: number | undefined): number | undefined {
@@ -50,11 +40,24 @@ function statusForResult(result: OpenClawDispatchResult): number {
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
+  if (!isPrivilegedRequest(request)) {
+    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const rateLimit = checkRateLimit(clientRateLimitKey(request, 'openclaw-dispatch'), 10, 60_000);
+  if (!rateLimit.allowed) {
+    return NextResponse.json({ success: false, error: 'Too many requests' }, { status: 429 });
+  }
+
   try {
-    const body = (await request.json().catch(() => ({}))) as DispatchRequestBody;
-    const limit = normalizeLimit(body.limit);
-    const severities = toSeverityList(body.severities);
-    const dryRun = body.dryRun === true;
+    const parsed = validateOpenClawDispatchRequest(await request.json().catch(() => ({})));
+    if (!parsed.success) {
+      return NextResponse.json({ success: false, error: 'Invalid dispatch payload' }, { status: 400 });
+    }
+
+    const limit = normalizeLimit(parsed.data.limit);
+    const severities = toSeverityList(parsed.data.severities);
+    const dryRun = parsed.data.dryRun === true;
 
     const events = await HealthDataStore.getHealthEvents({
       limit: 200,
@@ -73,11 +76,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       {
         success,
         httpStatus: status,
-        result,
+        result: {
+          ...result,
+          error: result.error ? 'dispatch_failed' : undefined,
+        },
         message: result.delivered
           ? 'OpenClaw dispatch succeeded.'
           : 'OpenClaw dispatch did not send a payload.',
-      }
+      },
+      { status }
     );
   } catch (error) {
     console.error('[OpenClaw Dispatch] Route error:', error);
@@ -85,8 +92,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       {
         success: false,
         httpStatus: 500,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      }
+        error: 'OpenClaw dispatch failed',
+      },
+      { status: 500 }
     );
   }
 }

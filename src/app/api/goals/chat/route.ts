@@ -1,38 +1,42 @@
 import { NextResponse, NextRequest } from 'next/server';
 import { queryGoalAgent, type GoalAgentResponse } from '@/lib/agent/goal-agent';
 import { HealthDataStore } from '@/lib/store/health-data';
+import { validateGoalChatRequest } from '@/lib/validation';
+import { checkRateLimit } from '@/lib/security';
+import { clientRateLimitKey } from '@/lib/security/request-guard';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
-interface ChatRequest {
-  message: string;
-  conversationHistory: Array<{ role: 'user' | 'assistant'; content: string }>;
-}
-
-function fallbackGoalChatMessage(message: string): string {
-  return `I can still help draft a goal even while the AI service is unavailable. Based on "${message}", start with a small weekly target, track it daily, and adjust after 14 days.`;
+function fallbackGoalChatMessage(): string {
+  return 'I can still help draft a goal even while the AI service is unavailable. Start with a small weekly target, track it daily, and adjust after 14 days.';
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
-  try {
-    const body = (await request.json()) as ChatRequest;
+  const rateLimit = checkRateLimit(clientRateLimitKey(request, 'goal-chat'), 20, 60_000);
+  if (!rateLimit.allowed) {
+    return NextResponse.json({ success: false, error: 'Too many requests' }, { status: 429 });
+  }
 
-    if (!body.message) {
-      return NextResponse.json(
-        { success: false, error: 'Message is required' }
-      );
+  try {
+    let payload: unknown;
+    try {
+      payload = await request.json();
+    } catch {
+      return NextResponse.json({ success: false, error: 'Message is required' }, { status: 400 });
     }
 
-    // Get health context for the AI
-    const healthContext = await HealthDataStore.getHealthSummary();
+    const parsed = validateGoalChatRequest(payload);
+    if (!parsed.success) {
+      return NextResponse.json({ success: false, error: 'Message is required' }, { status: 400 });
+    }
 
-    // Query the goal agent
+    const healthContext = await HealthDataStore.getHealthSummary();
     const response: GoalAgentResponse = await queryGoalAgent(
-      body.message,
+      parsed.data.message,
       healthContext,
-      body.conversationHistory || []
+      parsed.data.conversationHistory
     );
 
     if (response.error) {
@@ -40,7 +44,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json(
         {
           success: true,
-          content: response.content || fallbackGoalChatMessage(body.message),
+          content: response.content || fallbackGoalChatMessage(),
           proposal: response.proposal,
           degraded: true,
           warning: 'goal-agent-unavailable',
@@ -58,7 +62,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json(
       {
         success: true,
-        content: fallbackGoalChatMessage('your goal request'),
+        content: fallbackGoalChatMessage(),
         degraded: true,
         warning: 'goal-chat-exception',
       }

@@ -1,9 +1,11 @@
 
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { queryHealthAgent } from '@/lib/agent/health-agent';
 import { dispatchHealthEventsToOpenClaw } from '@/lib/integrations/openclaw';
 import { getFastApiConfig, pingFastApi } from '@/lib/integrations/fastapi';
 import { HealthEvent } from '@/lib/types/health-events';
+import { redactSensitiveText } from '@/lib/security';
+import { isPrivilegedRequest } from '@/lib/security/request-guard';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,10 +14,14 @@ function okResult(message: string, latency: number) {
 }
 
 function degradedMessage(detail: string): string {
-    return `Operational (degraded): ${detail}`;
+    return `Operational (degraded): ${redactSensitiveText(detail).slice(0, 240)}`;
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+    if (!isPrivilegedRequest(request)) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const results = {
         openRouter: okResult('Pending', 0),
         openClaw: okResult('Pending', 0),

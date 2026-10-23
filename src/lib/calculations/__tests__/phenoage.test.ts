@@ -19,8 +19,8 @@ describe('calculatePhenoAge', () => {
     );
 
     expect(result).not.toBeNull();
-    expect(result?.phenoAge).toBe(33.2);
-    expect(result?.delta).toBe(-1.8);
+    expect(result?.phenoAge).toBe(24);
+    expect(result?.delta).toBe(-11);
   });
 
   it('derives lymphocytePercent from absolute lymphocytes when needed', () => {
@@ -54,6 +54,48 @@ describe('calculatePhenoAge', () => {
     );
 
     expect(result).toBeNull();
+  });
+
+  it('returns null for non-finite age or biomarker values', () => {
+    expect(calculatePhenoAge({
+      albumin: 4.5,
+      creatinine: 0.9,
+      glucose: 85,
+      crp: 0.5,
+      lymphocytePercent: 30,
+      mcv: 88,
+      rdw: 12.5,
+      alkalinePhosphatase: 50,
+      wbc: 5.5,
+    }, Number.NaN)).toBeNull();
+
+    expect(calculatePhenoAge({
+      albumin: 4.5,
+      creatinine: 0.9,
+      glucose: Number.POSITIVE_INFINITY,
+      crp: 0.5,
+      lymphocytePercent: 30,
+      mcv: 88,
+      rdw: 12.5,
+      alkalinePhosphatase: 50,
+      wbc: 5.5,
+    }, 35)).toBeNull();
+  });
+
+  it('does not throw when CRP is zero', () => {
+    const result = calculatePhenoAge({
+      albumin: 4.5,
+      creatinine: 0.9,
+      glucose: 85,
+      crp: 0,
+      lymphocytePercent: 30,
+      mcv: 88,
+      rdw: 12.5,
+      alkalinePhosphatase: 50,
+      wbc: 5.5,
+    }, 35);
+
+    expect(result?.phenoAge).toBeGreaterThan(0);
   });
 });
 

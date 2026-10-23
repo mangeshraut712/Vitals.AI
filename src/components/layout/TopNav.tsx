@@ -114,7 +114,14 @@ function NavDropdown({ item, isOpen, onToggle, onClose }: DropdownProps): React.
   return (
     <div ref={dropdownRef} className="relative">
       <button
+        type="button"
         onClick={onToggle}
+        aria-haspopup="menu"
+        aria-expanded={isOpen}
+        aria-controls={`${item.name.toLowerCase().replace(/\s+/g, '-')}-menu`}
+        onKeyDown={(event) => {
+          if (event.key === 'Escape') onClose();
+        }}
         className={`
           flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-medium
           transition-all duration-200
@@ -138,6 +145,8 @@ function NavDropdown({ item, isOpen, onToggle, onClose }: DropdownProps): React.
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 8, scale: 0.96 }}
             transition={{ duration: 0.15, ease: 'easeOut' }}
+            id={`${item.name.toLowerCase().replace(/\s+/g, '-')}-menu`}
+            role="menu"
             className="absolute top-full left-0 mt-2 min-w-[180px] py-1.5 rounded-xl bg-popover border border-border shadow-lg z-50"
             style={{
               backdropFilter: 'blur(16px)',
@@ -152,6 +161,7 @@ function NavDropdown({ item, isOpen, onToggle, onClose }: DropdownProps): React.
                 <Link
                   key={child.href}
                   href={child.href}
+                  role="menuitem"
                   onClick={onClose}
                   className={`
                     flex items-center gap-2.5 px-3 py-2 mx-1.5 rounded-lg text-sm
@@ -289,7 +299,6 @@ export function TopNav(): React.JSX.Element {
 
   const logoOpacity = useTransform(scrollY, [0, 60], [1, 0]);
   const logoScale = useTransform(scrollY, [0, 60], [1, 0.8]);
-  const navY = useTransform(scrollY, [0, 60], [0, 0]);
   const pillPadding = useTransform(scrollY, [0, 60], [6, 4]);
 
   useEffect(() => {
@@ -330,7 +339,6 @@ export function TopNav(): React.JSX.Element {
     <>
       <motion.nav
         className="fixed top-0 left-0 right-0 z-50 flex justify-center pt-4 pointer-events-none"
-        style={{ y: navY }}
       >
         <motion.div
           className="flex items-center gap-2 bg-background/80 backdrop-blur-xl border border-border shadow-lg rounded-full pointer-events-auto max-w-[calc(100vw-1rem)]"

@@ -1,8 +1,10 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { clearAllCache } from '@/lib/cache';
 import { HealthDataStore } from '@/lib/store/health-data';
 import { dispatchHealthEventsToOpenClaw } from '@/lib/integrations/openclaw';
 import { loggers } from '@/lib/logger';
+import { checkRateLimit } from '@/lib/security';
+import { clientRateLimitKey, isPrivilegedRequest } from '@/lib/security/request-guard';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -16,7 +18,16 @@ function isTrue(value: string | undefined): boolean {
   return value?.trim().toLowerCase() === 'true';
 }
 
-export async function POST(): Promise<NextResponse> {
+export async function POST(request: NextRequest): Promise<NextResponse> {
+  if (!isPrivilegedRequest(request)) {
+    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const rateLimit = checkRateLimit(clientRateLimitKey(request, 'sync'), 10, 60_000);
+  if (!rateLimit.allowed) {
+    return NextResponse.json({ success: false, error: 'Too many requests' }, { status: 429 });
+  }
+
   try {
     loggers.sync.info('Starting data sync');
 
@@ -69,8 +80,9 @@ export async function POST(): Promise<NextResponse> {
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      }
+        error: 'Sync failed',
+      },
+      { status: 500 }
     );
   }
 }

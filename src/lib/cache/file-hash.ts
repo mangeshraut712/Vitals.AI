@@ -2,16 +2,17 @@
 // Used to detect if files have changed since last extraction
 
 import fs from 'fs';
+import path from 'path';
 import crypto from 'crypto';
 
 /**
- * Calculate MD5 hash of a file's contents
+ * Calculate a SHA-256 hash of a file's contents
  * Used to detect if a file has changed since last extraction
  */
 export function calculateFileHash(filePath: string): string {
   try {
     const content = fs.readFileSync(filePath);
-    return crypto.createHash('md5').update(content).digest('hex');
+    return crypto.createHash('sha256').update(content).digest('hex');
   } catch (error) {
     console.error(`[Cache] Error hashing file ${filePath}:`, error);
     return '';
@@ -28,13 +29,13 @@ export function calculateFolderHash(folderPath: string): string {
     const fileInfo = files
       .filter((f) => f.isFile())
       .map((f) => {
-        const stats = fs.statSync(`${folderPath}/${f.name}`);
+        const stats = fs.statSync(path.join(folderPath, f.name));
         return `${f.name}:${stats.size}:${stats.mtimeMs}`;
       })
       .sort()
       .join('|');
 
-    return crypto.createHash('md5').update(fileInfo).digest('hex');
+    return crypto.createHash('sha256').update(fileInfo).digest('hex');
   } catch (error) {
     console.error(`[Cache] Error hashing folder ${folderPath}:`, error);
     return '';

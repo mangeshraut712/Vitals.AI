@@ -1,3 +1,6 @@
+import { assessOutboundUrl } from '@/lib/security/outbound-url';
+import { isVercelRuntime } from '@/lib/runtime/deployment';
+
 const DEFAULT_FASTAPI_CHAT_PATH = '/chat/stream';
 const DEFAULT_FASTAPI_HEALTH_PATH = '/health';
 const DEFAULT_FASTAPI_TIMEOUT_MS = 15_000;
@@ -23,16 +26,12 @@ function normalizePath(pathname: string, fallback: string): string {
 }
 
 function normalizeBaseUrl(value: string): string | null {
-  const trimmed = value.trim();
-  if (!trimmed) return null;
-
-  try {
-    const parsed = new URL(trimmed);
-    parsed.pathname = parsed.pathname.replace(/\/+$/, '');
-    return parsed.toString().replace(/\/+$/, '');
-  } catch {
-    return null;
-  }
+  const allowLocal = !isVercelRuntime();
+  const assessed = assessOutboundUrl(value, {
+    allowLoopback: allowLocal,
+    allowPrivate: allowLocal,
+  });
+  return assessed.ok ? assessed.url : null;
 }
 
 export function getFastApiConfig(): FastApiConfig | null {

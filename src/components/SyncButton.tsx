@@ -57,6 +57,7 @@ export function SyncButton() {
 
   return (
     <button
+      type="button"
       onClick={handleSync}
       disabled={isLoading}
       className="group flex items-center gap-2 px-4 py-2.5 rounded-xl bg-card hover:bg-accent border border-border text-sm font-medium text-foreground transition-all duration-200 shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"

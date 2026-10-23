@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useRef, useCallback, useLayoutEffect } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { X, Send, Sparkles } from 'lucide-react';
+import { useDialogBehavior } from '@/hooks/useDialogBehavior';
 
 interface Message {
   id: string;
@@ -41,12 +42,6 @@ export function ChatModal({
   const inputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Stable callback ref to prevent effect re-subscriptions
-  const onCloseRef = useRef(onClose);
-  useLayoutEffect(() => {
-    onCloseRef.current = onClose;
-  }, [onClose]);
-
   // Auto-scroll to bottom when messages change
   useEffect(() => {
     if (messagesEndRef.current) {
@@ -54,27 +49,7 @@ export function ChatModal({
     }
   }, [messages]);
 
-  // Focus input when modal opens
-  useEffect(() => {
-    if (isOpen && inputRef.current) {
-      const timer = setTimeout(() => {
-        inputRef.current?.focus();
-      }, 100);
-      return () => clearTimeout(timer);
-    }
-  }, [isOpen]);
-
-  // Handle ESC key to close modal
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent): void => {
-      if (e.key === 'Escape' && isOpen) {
-        onCloseRef.current();
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen]);
+  useDialogBehavior(isOpen, onClose, modalRef, inputRef);
 
   // Handle click outside to close
   const handleBackdropClick = useCallback(
@@ -110,7 +85,7 @@ export function ChatModal({
       }}
       role="dialog"
       aria-modal="true"
-      aria-label="AI Chat"
+      aria-labelledby="health-ai-chat-title"
     >
       {/* Modal container with slide-down animation */}
       <div
@@ -129,7 +104,7 @@ export function ChatModal({
             <div className="w-8 h-8 rounded-xl vitals-gradient-bg flex items-center justify-center">
               <Sparkles className="w-4 h-4 text-white" />
             </div>
-            <h2 className="font-semibold text-foreground">
+            <h2 id="health-ai-chat-title" className="font-semibold text-foreground">
               Health AI Assistant
             </h2>
           </div>
@@ -178,6 +153,7 @@ export function ChatModal({
               value={inputValue}
               onChange={(e) => onInputChange(e.target.value)}
               placeholder="Type your message..."
+              aria-label="Message"
               className="flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
               disabled={isLoading}
             />
@@ -305,7 +281,7 @@ function MessageBubble({ message }: { message: Message }): React.JSX.Element {
 // Loading indicator
 function LoadingIndicator(): React.JSX.Element {
   return (
-    <div className="flex justify-start">
+    <div className="flex justify-start" role="status" aria-live="polite" aria-label="Assistant is responding">
       <div className="px-4 py-3 flex items-center gap-1 bg-muted rounded-2xl rounded-bl-sm">
         {[0, 1, 2].map((i) => (
           <div

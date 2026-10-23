@@ -1,5 +1,6 @@
 import type { HealthEvent, HealthEventSeverity } from '@/lib/types/health-events';
-import { isLoopbackUrl, isVercelRuntime } from '@/lib/runtime/deployment';
+import { isVercelRuntime } from '@/lib/runtime/deployment';
+import { assessOutboundUrl } from '@/lib/security/outbound-url';
 
 export type OpenClawHookMode = 'wake' | 'agent';
 type OpenClawWakeMode = 'now' | 'next-heartbeat';
@@ -187,6 +188,14 @@ function loadConfig(): OpenClawConfig {
   };
 }
 
+function isSafeHooksPath(pathname: string): boolean {
+  if (!pathname.startsWith('/')) return false;
+  if (pathname.includes('..') || pathname.includes('\\') || pathname.includes('://') || /\s/.test(pathname)) {
+    return false;
+  }
+  return /^\/[A-Za-z0-9._~/-]*$/.test(pathname);
+}
+
 function validateConfig(config: OpenClawConfig): OpenClawConfigIssue {
   if (!config.enabled) {
     return { reason: 'disabled' };
@@ -194,7 +203,12 @@ function validateConfig(config: OpenClawConfig): OpenClawConfigIssue {
   if (!config.hooksToken) {
     return { reason: 'missing_hooks_token' };
   }
-  if (isVercelRuntime() && isLoopbackUrl(config.hooksBaseUrl)) {
+  const allowLocal = !isVercelRuntime();
+  const assessed = assessOutboundUrl(config.hooksBaseUrl, {
+    allowLoopback: allowLocal,
+    allowPrivate: allowLocal,
+  });
+  if (!assessed.ok || !isSafeHooksPath(config.hooksPath.startsWith('/') ? config.hooksPath : `/${config.hooksPath}`)) {
     return { reason: 'invalid_hooks_base_url' };
   }
   return {};
