@@ -29,6 +29,11 @@ vi.mock('@/lib/extractors/body-comp', () => ({
   extractBodyComposition: vi.fn(),
 }));
 
+vi.mock('@/lib/parsers/withings', () => ({
+  parseWithingsExport: vi.fn(),
+  convertWithingsToActivity: vi.fn(),
+}));
+
 vi.mock('@/lib/calculations/phenoage', () => ({
   calculatePhenoAge: vi.fn(),
 }));
@@ -96,6 +101,64 @@ describe('HealthDataStore', () => {
 
     expect(parseTextFile).toHaveBeenCalledWith('/data/blood.txt');
     expect(extractBiomarkers).toHaveBeenCalledWith('Glucose: 95');
+  });
+
+  it('does not write locally extracted biomarker values to diagnostic logs', async () => {
+    vi.mocked(getDataFiles).mockReturnValue([
+      {
+        name: 'blood.txt',
+        type: 'bloodwork',
+        path: '/data/blood.txt',
+        extension: '.txt',
+      },
+    ]);
+    vi.mocked(parseTextFile).mockReturnValue('Glucose: 95');
+    vi.mocked(extractBiomarkers).mockReturnValue({ glucose: 95 });
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+
+    const { HealthDataStore } = await import('../health-data');
+    await HealthDataStore.loadAllData();
+
+    const messages = logSpy.mock.calls.flat().map(String).join('\n');
+    expect(messages).not.toContain('95');
+    logSpy.mockRestore();
+  });
+
+  it('does not write Withings body-composition measurements to diagnostic logs', async () => {
+    const { convertWithingsToActivity, parseWithingsExport } = await import('@/lib/parsers/withings');
+    vi.mocked(getDataFiles).mockReturnValue([
+      {
+        name: 'withings',
+        type: 'activity_folder',
+        path: '/data/withings',
+        extension: '',
+        isFolder: true,
+        trackerType: 'withings',
+      },
+    ]);
+    vi.mocked(parseWithingsExport).mockReturnValue({
+      bodyMeasurements: [{ date: '2026-10-28', weight: 70.4, fatRatio: 24.6 }],
+      sleepRecords: [],
+      activityRecords: [],
+      intraDayActivities: [],
+      dateRange: { start: '2026-10-28', end: '2026-10-28' },
+    });
+    vi.mocked(convertWithingsToActivity).mockReturnValue([]);
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+
+    delete (globalThis as { healthDataStore?: unknown }).healthDataStore;
+
+    const { HealthDataStore } = await import('../health-data');
+    await HealthDataStore.loadAllData();
+
+    expect(parseWithingsExport).toHaveBeenCalledWith('/data/withings');
+    const loggedBodyComposition = logSpy.mock.calls.flat().some((argument) => {
+      if (!argument || typeof argument !== 'object') return false;
+      const candidate = argument as { totalMass?: unknown; bodyFatPercent?: unknown };
+      return typeof candidate.totalMass === 'number' || typeof candidate.bodyFatPercent === 'number';
+    });
+    expect(loggedBodyComposition).toBe(false);
+    logSpy.mockRestore();
   });
 
   it('should generate canonical health events after data load', async () => {

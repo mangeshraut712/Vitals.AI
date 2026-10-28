@@ -1,6 +1,6 @@
 import { BIOMARKER_REFERENCES, getBiomarkerStatus, type BiomarkerStatus } from '@/lib/types/health';
 import { calculateHealthScore } from '@/lib/calculations/health-score';
-import { isEmptySnapshot, type HealthSnapshot } from '@/lib/agent/health-snapshot';
+import type { HealthSnapshot } from '@/lib/agent/health-snapshot';
 import { assertNever, type HealthToolName } from '@/lib/agent/tool-names';
 import { z } from 'zod';
 
@@ -217,11 +217,32 @@ export function getRecoverySnapshot(
   };
 }
 
+function hasScorecardInputs(snapshot: HealthSnapshot): boolean {
+  const hasExtractedBiomarker = snapshot.biomarkers.all?.some(
+    (marker) => typeof marker.value === 'number' && Number.isFinite(marker.value)
+  ) ?? false;
+  const hasRecognizedBiomarker = Object.entries(snapshot.biomarkers).some(
+    ([key, value]) =>
+      key !== 'all' &&
+      key !== 'patientAge' &&
+      Object.prototype.hasOwnProperty.call(BIOMARKER_REFERENCES, key) &&
+      typeof value === 'number' &&
+      Number.isFinite(value)
+  );
+
+  return (
+    hasExtractedBiomarker ||
+    hasRecognizedBiomarker ||
+    snapshot.phenoAge !== null ||
+    snapshot.activity.length > 0
+  );
+}
+
 export function getHealthScorecard(
   snapshot: HealthSnapshot,
   input: z.infer<typeof HealthScorecardInputSchema> = {}
 ): ToolExecutionResult {
-  if (isEmptySnapshot(snapshot)) {
+  if (!hasScorecardInputs(snapshot)) {
     return {
       tool: 'getHealthScorecard',
       empty: true,
