@@ -140,7 +140,7 @@ export function DataSourcesClient({ dataSources }: DataSourcesClientProps): Reac
           To add new health data, place files in the <code className="bg-muted px-1.5 py-0.5 rounded text-xs">/data</code> folder in the project directory.
         </p>
         <div className="text-sm text-muted-foreground space-y-1">
-          <p><strong>Supported formats:</strong> .txt, .csv, .xlsx</p>
+          <p><strong>Supported formats:</strong> .txt, .csv, .pdf</p>
           <p><strong>File naming:</strong> Include keywords like &quot;blood&quot;, &quot;dexa&quot;, or &quot;whoop&quot; for auto-detection.</p>
         </div>
       </div>
@@ -153,7 +153,7 @@ export function DataSourcesClient({ dataSources }: DataSourcesClientProps): Reac
           </svg>
           <h3 className="text-lg font-medium text-foreground mb-2">No data files found</h3>
           <p className="text-muted-foreground">
-            Add .txt, .csv, or .xlsx files to the <code className="bg-muted px-1.5 py-0.5 rounded text-xs">/data</code> folder to get started.
+            Add .txt, .csv, or .pdf files to the <code className="bg-muted px-1.5 py-0.5 rounded text-xs">/data</code> folder to get started.
           </p>
         </div>
       ) : (

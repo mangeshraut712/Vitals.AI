@@ -59,7 +59,7 @@ Vitals.AI gives you:
 
 | Feature | Description | Priority |
 |---------|-------------|----------|
-| File parsing | Extract data from PDFs, CSVs, XLSX | Must have |
+| File parsing | Extract data from PDFs, CSVs, and text files | Must have |
 | Biomarker extraction | Pull lab values from unstructured text | Must have |
 | Levine PhenoAge | Calculate biological age | Must have |
 | Dashboard | Visual display of all health metrics | Must have |
