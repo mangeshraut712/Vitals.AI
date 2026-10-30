@@ -170,8 +170,6 @@ export const FileUploadSchema = z.object({
         'application/pdf',
         'text/csv',
         'text/plain',
-        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'application/vnd.ms-excel',
         'application/xml',
         'text/xml',
     ]),

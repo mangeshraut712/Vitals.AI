@@ -37,7 +37,7 @@ const TRACKER_FOLDERS: { name: string; type: TrackerType }[] = [
   { name: 'Google Fit', type: 'google_fit' },
 ];
 
-const SUPPORTED_EXTENSIONS = ['.txt', '.csv', '.xlsx', '.pdf', '.xml', '.json', '.zip'];
+const SUPPORTED_EXTENSIONS = ['.txt', '.csv', '.pdf', '.xml', '.json', '.zip'];
 
 /**
  * Check if a folder contains Apple Health export

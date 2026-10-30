@@ -22,3 +22,13 @@ test('homepage and health agent smoke', async ({ page }) => {
   await expect(page.getByTestId('agent-tool-result').first()).toBeVisible({ timeout: 15_000 });
   await expect(page.getByTestId('agent-empty-state')).toHaveCount(0);
 });
+
+test('data sources only advertises ingestible file formats', async ({ page }) => {
+  const response = await page.goto('./data-sources/', { waitUntil: 'domcontentloaded' });
+  expect(response, 'data-sources page missing response').not.toBeNull();
+  expect(response?.ok(), 'data-sources page non-2xx').toBeTruthy();
+
+  const supportedFormats = page.locator('p').filter({ hasText: 'Supported formats:' });
+  await expect(supportedFormats).toContainText('.txt, .csv, .pdf');
+  await expect(supportedFormats).not.toContainText('.xlsx');
+});
