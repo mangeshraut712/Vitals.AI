@@ -12,6 +12,14 @@ Capture every meaningful correction so the same mistake is less likely to repeat
 - Validation proof:
 
 ## Entries
+- Date: 2026-10-30
+- Context: Dependabot UUID update failure and current runtime dependency audit
+- What failed: Dependabot could not update `uuid`, and a fresh CI-equivalent audit also found a high-severity `undici@7.30.0` issue.
+- Root cause: `exceljs@4.4.0` declares `uuid@^8.3.0`, while the UUID advisory is fixed only in `>=11.1.1`; independently, `@ai-sdk/provider-utils@5.0.27` permits `undici@^7.28.0` but the lockfile had retained `7.30.0` instead of the patched `7.30.1`.
+- Correction: Do not override UUID across ExcelJS's declared major range. Update only the compatible locked Undici patch to `7.30.1`.
+- Prevention rule: Before accepting an automated dependency fix, verify the advisory range, exact lockfile graph, and parent semver constraint; prefer a compatible lockfile patch and document an upstream-only blocker rather than forcing a major override.
+- Validation proof: Isolated candidate install succeeded; the final lockfile passes `npm ci --dry-run --ignore-scripts`, `npm audit --audit-level=high` with zero high/critical findings, lint, typecheck, 79 unit tests, 20 eval tests, production build, Pages build, and static Playwright smoke. The two moderate ExcelJS/UUID findings remain intentionally reported.
+
 - Date: 2026-10-28
 - Context: Privacy-safe diagnostics and unavailable-scorecard handling
 - What failed: Local diagnostic logs exposed extracted health measurements, malformed numeric query values were partially parsed, and body-composition-only input produced a composite health score.
