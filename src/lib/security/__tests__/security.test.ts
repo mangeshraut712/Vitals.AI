@@ -7,6 +7,7 @@ import {
   redactSensitiveText,
   resetRateLimits,
   sanitizeUrl,
+  validateNumber,
 } from '@/lib/security';
 import { isPrivilegedRequest } from '@/lib/security/request-guard';
 import { POST as postChat } from '@/app/api/chat/route';
@@ -38,6 +39,15 @@ describe('rate limiting', () => {
     }
     expect(getRateLimitKeyCount()).toBeLessThanOrEqual(5000);
     resetRateLimits();
+  });
+});
+
+describe('numeric validation', () => {
+  it('rejects malformed and non-finite numeric strings instead of partially parsing them', () => {
+    expect(validateNumber('42', 1, 200)).toBe(42);
+    expect(validateNumber('42requests', 1, 200)).toBeNull();
+    expect(validateNumber('12.5ms', 1, 200)).toBeNull();
+    expect(validateNumber('Infinity', 1, 200)).toBeNull();
   });
 });
 
