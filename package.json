@@ -95,6 +95,7 @@
     "vitest": "^4.1.12"
   },
   "overrides": {
+    "minimatch": "9.0.9",
     "uuid": "^9.0.1"
   }
 }
