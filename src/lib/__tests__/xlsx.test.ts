@@ -9,7 +9,7 @@ import { parseXlsx } from '../parsers/xlsx';
 const require = createRequire(import.meta.url);
 
 describe('parseXlsx', () => {
-  it('keeps wildcard selection compatible with the ExcelJS archive dependencies', async () => {
+  it('keeps legacy archive wildcard selection compatible and excludes other files', async () => {
     const directory = await mkdtemp(path.join(os.tmpdir(), 'vitals-glob-test-'));
 
     try {
@@ -25,7 +25,7 @@ describe('parseXlsx', () => {
     }
   });
 
-  it('reads real XLSX archives with multiple sheets and supported cell values', async () => {
+  it('reads multiple XLSX sheets and cell values, including cached formula results', async () => {
     const directory = await mkdtemp(path.join(os.tmpdir(), 'vitals-xlsx-test-'));
 
     try {
