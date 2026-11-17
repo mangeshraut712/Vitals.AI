@@ -291,16 +291,6 @@ ${text}`,
         `[Vitals.AI] AI extracted ${fieldCount} body composition fields (${modelId})`
       );
 
-      if (extracted.bodyFatPercent !== undefined) {
-        console.log(`[Vitals.AI] Body Fat: ${extracted.bodyFatPercent}%`);
-      }
-      if (extracted.leanMass !== undefined) {
-        console.log(`[Vitals.AI] Lean Mass: ${extracted.leanMass} lbs`);
-      }
-      if (extracted.vatMass !== undefined) {
-        console.log(`[Vitals.AI] VAT: ${extracted.vatMass} lbs`);
-      }
-
       return extracted;
     } catch (error) {
       lastError = error;

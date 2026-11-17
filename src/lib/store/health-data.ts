@@ -362,7 +362,7 @@ class HealthDataStoreClass {
             }
 
             this.data.bodyComp = mergeBodyCompData(this.data.bodyComp, withingsBodyComp);
-            console.log('[Vitals.AI] Withings body comp extracted:', withingsBodyComp);
+            console.log('[Vitals.AI] Withings body composition extraction completed');
           }
         } else if (file.trackerType === 'samsung') {
           // Parse Samsung Health data
@@ -403,7 +403,7 @@ class HealthDataStoreClass {
       console.log('[Vitals.AI] Running regex biomarker extraction on', biomarkerText.length, 'chars');
       const localBiomarkers = extractBiomarkers(biomarkerText);
       const extractedKeys = Object.keys(localBiomarkers).filter(k => k !== 'all' && localBiomarkers[k] !== undefined);
-      console.log('[Vitals.AI] Regex extracted biomarkers:', extractedKeys.length, JSON.stringify(localBiomarkers));
+      console.log('[Vitals.AI] Regex extracted biomarker fields:', extractedKeys.length);
       this.data.biomarkers = mergeExtractedBiomarkers(this.data.biomarkers, localBiomarkers);
     }
 

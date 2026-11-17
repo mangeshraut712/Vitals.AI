@@ -227,11 +227,14 @@ export function validateNumber(
 ): number | null {
     let value: number;
 
-    if (typeof input === 'number' && !isNaN(input)) {
+    if (typeof input === 'number' && Number.isFinite(input)) {
         value = input;
-    } else if (typeof input === 'string' || typeof input === 'number') {
-        const parsed = parseFloat(String(input));
-        if (isNaN(parsed)) return null;
+    } else if (typeof input === 'string') {
+        const normalized = input.trim();
+        if (!normalized) return null;
+
+        const parsed = Number(normalized);
+        if (!Number.isFinite(parsed)) return null;
         value = parsed;
     } else {
         return null;
