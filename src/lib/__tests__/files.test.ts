@@ -79,7 +79,7 @@ describe('getDataFiles', () => {
     expect(files[0].type).toBe('bloodwork');
   });
 
-  it('should support txt, csv, xlsx, and pdf extensions', () => {
+  it('does not list XLSX files because no XLSX ingestion path exists', () => {
     vi.mocked(fs.readdirSync).mockReturnValue([
       fileEntry('blood.txt'),
       fileEntry('activity.csv'),
@@ -89,7 +89,7 @@ describe('getDataFiles', () => {
 
     const files = getDataFiles();
 
-    expect(files).toHaveLength(4);
-    expect(files.map((f) => f.extension)).toEqual(['.txt', '.csv', '.xlsx', '.pdf']);
+    expect(files).toHaveLength(3);
+    expect(files.map((f) => f.extension)).toEqual(['.txt', '.csv', '.pdf']);
   });
 });

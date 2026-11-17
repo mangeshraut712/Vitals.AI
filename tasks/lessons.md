@@ -28,6 +28,13 @@ Capture every meaningful correction so the same mistake is less likely to repeat
 - Prevention rule: Never log health measurement values; validate an entire external value before use; gate derived health summaries on the exact inputs their calculation consumes.
 - Validation proof: Targeted regression suite (15 tests), full Vitest suite (79 tests), lint, typecheck, production build, and static Pages Playwright smoke all passed.
 
+- Context: Dependabot alert GHSA-w5hq-g745-h8pq through ExcelJS
+- What failed: Dependabot could not update UUID because ExcelJS 4.4.0 constrains it to `^8.3.0`.
+- Root cause: The sole ExcelJS parser had no import or call site, while scanner, UI, and upload validation still advertised XLSX as an active format.
+- Correction: Remove the unused parser and dependency; align discovery, UI copy, docs, and upload MIME validation to the formats that the health-data loader actually ingests.
+- Prevention rule: Do not advertise or validate a data format until an end-to-end ingestion path and regression test exist.
+- Validation proof: Synthetic scanner and MIME-boundary tests; static data-sources UI smoke test; dependency graph no longer contains ExcelJS or UUID.
+
 - Date: 2026-02-19
 - Context: OpenClaw local install and OpenHealth webhook integration
 - What failed: `openclaw health` failed after install because gateway/config was not initialized

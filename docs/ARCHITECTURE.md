@@ -15,7 +15,6 @@ Vitals.AI is a localhost-only health dashboard with an AI chat agent. All data s
 │  │             │    │  │ Parsers │───▶│ HealthDataStore│   │   │
 │  │ - PDFs      │    │  └─────────┘    └───────┬────────┘   │   │
 │  │ - CSVs      │    │                         │            │   │
-│  │ - XLSX      │    │           ┌─────────────┴──────┐     │   │
 │  └─────────────┘    │           │                    │     │   │
 │                     │           ▼                    ▼     │   │
 │  ┌─────────────┐    │  ┌─────────────┐    ┌────────────┐   │   │
@@ -58,7 +57,7 @@ User runs `npm run dev`
          ▼
 ┌─────────────────────────┐
 │ Scan /data folder       │
-│ Detect: PDF, CSV, XLSX  │
+│ Detect: PDF, CSV, TXT   │
 └───────────┬─────────────┘
             │
             ▼
@@ -145,7 +144,6 @@ User types message
 |------|-------|--------|
 | `pdf.ts` | PDF file path | Extracted text (string) |
 | `csv.ts` | CSV file path | Array of row objects |
-| `xlsx.ts` | XLSX file path | Array of row objects per sheet |
 
 ### Extractors (`lib/extractors/`)
 

@@ -1,6 +1,15 @@
 # OpenHealth Task Board
 
-## Active Task
+## Active Task — ExcelJS UUID advisory assessment (2026-10-30)
+- [x] Define the safety constraints and isolate the worktree from PR #46.
+- [x] Verify the exact lockfile graph, GitHub advisory, and failing Dependabot context.
+- [x] Trace every ExcelJS import and exercised workbook API with synthetic-only tests.
+- [x] Compare supported remediation options against current upstream documentation and licenses.
+- [x] Remove the unused XLSX parser/dependency, stop advertising inactive spreadsheet input, and cover the boundary with synthetic tests.
+- [x] Run targeted and full relevant verification gates and complete independent review.
+
+## Previous Task
+
 - [x] Define goal, constraints, and success criteria
 - [x] Break implementation into checkable steps
 - [x] Execute step 1
