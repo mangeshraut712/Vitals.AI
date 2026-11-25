@@ -1,4 +1,4 @@
-import { averageMeasured } from '@/lib/activity/measured-values';
+import { averageMeasured, averageRecorded } from '@/lib/activity/measured-values';
 import { HealthDataStore, type ActivityData } from '@/lib/store/health-data';
 import type { WhoopData } from '@/lib/parsers/whoop';
 import { LifestyleClient } from './LifestyleClient';
@@ -35,9 +35,9 @@ function calculateAverages(activity: ActivityData[]): {
     avgHrv: roundMeasured(averageMeasured(activity.map((day) => day.hrv))),
     avgRhr: roundMeasured(averageMeasured(activity.map((day) => day.rhr))),
     avgSleep: roundMeasured(averageMeasured(activity.map((day) => day.sleepHours)), 1),
-    avgSleepScore: roundMeasured(averageMeasured(activity.map((day) => day.sleepScore))),
-    avgStrain: roundMeasured(averageMeasured(activity.map((day) => day.strain)), 1),
-    avgRecovery: roundMeasured(averageMeasured(activity.map((day) => day.recovery))),
+    avgSleepScore: roundMeasured(averageRecorded(activity.map((day) => day.sleepScore))),
+    avgStrain: roundMeasured(averageRecorded(activity.map((day) => day.strain)), 1),
+    avgRecovery: roundMeasured(averageRecorded(activity.map((day) => day.recovery))),
   };
 }
 

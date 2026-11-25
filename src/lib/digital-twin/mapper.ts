@@ -4,7 +4,7 @@
  * Maps health data from HealthDataStore to BodyState for the digital twin.
  */
 
-import { averageMeasured } from '@/lib/activity/measured-values';
+import { averageMeasured, averageRecorded } from '@/lib/activity/measured-values';
 import { ExtractedBiomarkers } from '@/lib/extractors/biomarkers';
 import { BodyComposition } from '@/lib/extractors/body-comp';
 import { ActivityData } from '@/lib/store/health-data';
@@ -58,7 +58,7 @@ export function mapHealthToBodyState(healthData: HealthDataInput): BodyState {
 function calculateAverageSleepScore(activity: ActivityData[]): number {
   if (activity.length === 0) return 70; // Default moderate
 
-  const score = averageMeasured(activity.map((day) => day.sleepScore));
+  const score = averageRecorded(activity.map((day) => day.sleepScore));
   if (score !== null) return score;
 
   const avgHours = averageMeasured(activity.map((day) => day.sleepHours));

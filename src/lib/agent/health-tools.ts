@@ -1,4 +1,4 @@
-import { averageMeasured } from '@/lib/activity/measured-values';
+import { averageMeasured, averageRecorded } from '@/lib/activity/measured-values';
 import { BIOMARKER_REFERENCES, getBiomarkerStatus, type BiomarkerStatus } from '@/lib/types/health';
 import { calculateHealthScore } from '@/lib/calculations/health-score';
 import type { HealthSnapshot } from '@/lib/agent/health-snapshot';
@@ -155,14 +155,11 @@ export function getRecoverySnapshot(
     };
   }
 
-  const avg = (pick: (row: (typeof window)[number]) => number | undefined): number | null =>
-    averageMeasured(window.map(pick));
-
-  const hrv = avg((row) => row.hrv);
-  const rhr = avg((row) => row.rhr);
-  const sleep = avg((row) => row.sleepHours);
-  const recovery = avg((row) => row.recovery);
-  const steps = avg((row) => row.steps);
+  const hrv = averageMeasured(window.map((row) => row.hrv));
+  const rhr = averageMeasured(window.map((row) => row.rhr));
+  const sleep = averageMeasured(window.map((row) => row.sleepHours));
+  const recovery = averageRecorded(window.map((row) => row.recovery));
+  const steps = averageRecorded(window.map((row) => row.steps));
 
   if (hrv === null && rhr === null && sleep === null && recovery === null && steps === null) {
     return {

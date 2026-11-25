@@ -1,5 +1,5 @@
 import path from 'path';
-import { averageMeasured } from '@/lib/activity/measured-values';
+import { averageMeasured, averageRecorded } from '@/lib/activity/measured-values';
 import { getDataFiles, TrackerType } from '@/lib/files';
 import { parseTextFile } from '@/lib/parsers/text';
 import { parsePdf } from '@/lib/parsers/pdf';
@@ -739,14 +739,15 @@ class HealthDataStoreClass {
     // Activity events for the most recent 14 days
     const recentActivity = this.data.activity.slice(-14);
     recentActivity.forEach((entry, index) => {
-      const hasSignals = entry.hrv > 0 || entry.rhr > 0 || entry.sleepHours > 0;
+      const measuredRecovery =
+        typeof entry.recovery === 'number' && Number.isFinite(entry.recovery) ? entry.recovery : null;
+      const hasSignals =
+        entry.hrv > 0 || entry.rhr > 0 || entry.sleepHours > 0 || measuredRecovery !== null;
       if (!hasSignals) return;
 
       const measuredHrv = entry.hrv > 0 ? entry.hrv : null;
       const measuredRhr = entry.rhr > 0 ? entry.rhr : null;
       const measuredSleep = entry.sleepHours > 0 ? entry.sleepHours : null;
-      const measuredRecovery =
-        entry.recovery !== undefined && entry.recovery > 0 ? entry.recovery : null;
 
       let severity: HealthEventSeverity = 'info';
       if (
@@ -916,9 +917,9 @@ class HealthDataStoreClass {
       const avgHrv = averageMeasured(recentActivity.map((day) => day.hrv));
       const avgRhr = averageMeasured(recentActivity.map((day) => day.rhr));
       const avgSleep = averageMeasured(recentActivity.map((day) => day.sleepHours));
-      const avgRecovery = averageMeasured(recentActivity.map((day) => day.recovery));
-      const avgStrain = averageMeasured(recentActivity.map((day) => day.strain));
-      const avgSteps = averageMeasured(recentActivity.map((day) => day.steps));
+      const avgRecovery = averageRecorded(recentActivity.map((day) => day.recovery));
+      const avgStrain = averageRecorded(recentActivity.map((day) => day.strain));
+      const avgSteps = averageRecorded(recentActivity.map((day) => day.steps));
 
       if (avgHrv !== null) activityLines.push(`HRV: ${avgHrv.toFixed(1)} ms`);
       if (avgRhr !== null) activityLines.push(`Resting Heart Rate: ${avgRhr.toFixed(1)} bpm`);

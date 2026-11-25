@@ -282,4 +282,32 @@ describe('HealthDataStore', () => {
     expect(activityEvent?.severity).toBe('critical');
     expect(activityEvent?.summary).toContain('HRV 20 ms');
   });
+
+  it('flags a recorded recovery of zero as critical and ignores a blank recovery', async () => {
+    vi.mocked(getDataFiles).mockReturnValue([
+      {
+        name: 'activity.csv',
+        type: 'activity',
+        path: '/data/activity.csv',
+        extension: '.csv',
+      },
+    ]);
+    vi.mocked(parseCsv).mockReturnValue([
+      { date: '2026-01-04', hrv_ms: 60, rhr_bpm: 55, sleep_hours: 8, recovery: 0 },
+      { date: '2026-01-05', hrv_ms: 60, rhr_bpm: 55, sleep_hours: 8 },
+    ]);
+    delete (globalThis as { healthDataStore?: unknown }).healthDataStore;
+
+    const { HealthDataStore } = await import('../health-data');
+    await HealthDataStore.loadAllData();
+    const events = (await HealthDataStore.getHealthEvents({ limit: 20 })).filter(
+      (event) => event.domain === 'activity'
+    );
+
+    const severityByDate = Object.fromEntries(
+      events.map((event) => [event.id.split(':')[1], event.severity])
+    );
+    expect(severityByDate['2026-01-04']).toBe('critical');
+    expect(severityByDate['2026-01-05']).toBe('info');
+  });
 });
