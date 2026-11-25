@@ -321,6 +321,44 @@ function toDynamicBiomarker(input: unknown): DynamicBiomarker | null {
   };
 }
 
+const DIFFERENTIAL_KEYS: Record<string, { percent: string; absolute: string }> = {
+  lymphocytePercent: { percent: 'lymphocytePercent', absolute: 'lymphocytes' },
+  lymphocytes: { percent: 'lymphocytePercent', absolute: 'lymphocytes' },
+  neutrophilPercent: { percent: 'neutrophilPercent', absolute: 'neutrophils' },
+  neutrophils: { percent: 'neutrophilPercent', absolute: 'neutrophils' },
+  monocytePercent: { percent: 'monocytePercent', absolute: 'monocytes' },
+  monocytes: { percent: 'monocytePercent', absolute: 'monocytes' },
+};
+
+function resolveMappedKey(mappedKey: string, name: string, unit: string): string {
+  const pair = DIFFERENTIAL_KEYS[mappedKey];
+  if (!pair) return mappedKey;
+  if (unit.includes('%') || name.includes('%')) return pair.percent;
+  if (unit.trim().length > 0) return pair.absolute;
+  return mappedKey;
+}
+
+export function mapAiBiomarkers(
+  markers: DynamicBiomarker[],
+  patientAge?: number
+): ExtractedBiomarkers {
+  const extracted: ExtractedBiomarkers = {
+    all: markers,
+    patientAge,
+  };
+
+  for (const marker of markers) {
+    const normalizedName = marker.name.toLowerCase().trim();
+    const key = NAME_TO_KEY[normalizedName];
+    if (!key) continue;
+
+    const target = resolveMappedKey(key, normalizedName, marker.unit);
+    (extracted as Record<string, unknown>)[target] = marker.value;
+  }
+
+  return extracted;
+}
+
 function parseAIExtractionResult(content: string): AIExtractionResult | null {
   const jsonPayload = extractJsonObjectFromText(content);
   if (!jsonPayload) return null;
@@ -406,33 +444,7 @@ ${text}`,
       const biomarkers = result.biomarkers || [];
       console.log(`[Vitals.AI] AI extracted ${biomarkers.length} biomarkers (${modelId})`);
 
-      const extracted: ExtractedBiomarkers = {
-        all: biomarkers,
-        patientAge: result.patientAge,
-      };
-
-      // Map known biomarkers to specific keys for calculations and display
-      for (const marker of biomarkers) {
-        const normalizedName = marker.name.toLowerCase().trim();
-        const key = NAME_TO_KEY[normalizedName];
-
-        if (!key) {
-          continue;
-        }
-
-        // Handle percentage vs absolute count disambiguation
-        if (key === 'lymphocytePercent' || key === 'neutrophilPercent' || key === 'monocytePercent') {
-          if (marker.unit.includes('%')) {
-            (extracted as Record<string, unknown>)[key] = marker.value;
-          }
-        } else if (key === 'lymphocytes' || key === 'neutrophils' || key === 'monocytes') {
-          if (!marker.unit.includes('%')) {
-            (extracted as Record<string, unknown>)[key] = marker.value;
-          }
-        } else {
-          (extracted as Record<string, unknown>)[key] = marker.value;
-        }
-      }
+      const extracted = mapAiBiomarkers(biomarkers, result.patientAge);
 
       const knownKeys = Object.keys(extracted).filter((k) => k !== 'all' && k !== 'patientAge');
       console.log(`[Vitals.AI] Mapped ${knownKeys.length} to known biomarker keys`);
