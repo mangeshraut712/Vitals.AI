@@ -340,37 +340,63 @@ function resolveMappedKey(mappedKey: string, name: string, unit: string): string
   return mappedKey;
 }
 
-/** Absolute differential keys are cells/µL. ×10³/µL counts are scaled up. */
-function toCellsPerMicroliter(value: number, unit: string): number {
-  const compact = unit.toLowerCase().replace(/\s+/g, '');
+const CANONICAL_CELL_UNIT = 'cells/uL';
+
+function compactUnit(unit: string): string {
+  return unit
+    .toLowerCase()
+    .replace(/\s+/g, '')
+    .replace(/[µμ]/g, 'u');
+}
+
+/** Absolute differential keys are cells/µL. ×10³/µL and K/μL counts are scaled up. */
+export function toCellsPerMicroliter(value: number, unit: string): number {
+  const compact = compactUnit(unit);
   const inThousands =
     /(?:x|×)?10\^3/.test(compact) ||
     compact.includes('10³') ||
     compact.includes('10e3') ||
     compact.includes('10*3') ||
-    /(?:^|[^a-z])k\/[uµ]l/.test(compact);
+    /(?:^|[^a-z])k\/ul/.test(compact);
   return inThousands ? value * 1000 : value;
+}
+
+export function canonicalAbsoluteCellCount(
+  value: number,
+  unit: string
+): { value: number; unit: string } {
+  const scaled = toCellsPerMicroliter(value, unit);
+  if (scaled === value) return { value, unit };
+  return { value: scaled, unit: CANONICAL_CELL_UNIT };
 }
 
 export function mapAiBiomarkers(
   markers: DynamicBiomarker[],
   patientAge?: number
 ): ExtractedBiomarkers {
+  const normalizedMarkers = markers.map((marker) => {
+    const normalizedName = marker.name.toLowerCase().trim();
+    const key = NAME_TO_KEY[normalizedName];
+    if (!key) return marker;
+    const target = resolveMappedKey(key, normalizedName, marker.unit);
+    if (!ABSOLUTE_CELL_KEYS.has(target)) return marker;
+    const canonical = canonicalAbsoluteCellCount(marker.value, marker.unit);
+    if (canonical.value === marker.value && canonical.unit === marker.unit) return marker;
+    return { ...marker, value: canonical.value, unit: canonical.unit };
+  });
+
   const extracted: ExtractedBiomarkers = {
-    all: markers,
+    all: normalizedMarkers,
     patientAge,
   };
 
-  for (const marker of markers) {
+  for (const marker of normalizedMarkers) {
     const normalizedName = marker.name.toLowerCase().trim();
     const key = NAME_TO_KEY[normalizedName];
     if (!key) continue;
 
     const target = resolveMappedKey(key, normalizedName, marker.unit);
-    const stored = ABSOLUTE_CELL_KEYS.has(target)
-      ? toCellsPerMicroliter(marker.value, marker.unit)
-      : marker.value;
-    (extracted as Record<string, unknown>)[target] = stored;
+    (extracted as Record<string, unknown>)[target] = marker.value;
   }
 
   return extracted;

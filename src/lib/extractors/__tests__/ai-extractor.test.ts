@@ -13,6 +13,10 @@ describe('mapAiBiomarkers', () => {
     expect(extracted.lymphocytes).toBe(1800);
     expect(extracted.lymphocytePercent).toBeUndefined();
     expect(extracted.monocytes).toBe(420);
+    expect(extracted.all?.find((marker) => marker.name === 'Monocytes')).toMatchObject({
+      value: 420,
+      unit: 'cells/uL',
+    });
     expect(extracted.monocytePercent).toBeUndefined();
     expect(extracted.glucose).toBe(90);
   });
@@ -42,5 +46,12 @@ describe('mapAiBiomarkers', () => {
     expect(calculatePhenoAge({ ...panel, lymphocytes: extracted.lymphocytes }, 35)).toEqual(
       calculatePhenoAge({ ...panel, lymphocytes: 1800 }, 35)
     );
+  });
+
+  it('scales K/μL when the micro sign is Greek mu', () => {
+    const extracted = mapAiBiomarkers([{ name: 'Lymphocytes', value: 1.8, unit: 'K/μL' }]);
+
+    expect(extracted.lymphocytes).toBe(1800);
+    expect(extracted.all?.[0]).toMatchObject({ value: 1800, unit: 'cells/uL' });
   });
 });
