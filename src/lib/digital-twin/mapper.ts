@@ -4,6 +4,7 @@
  * Maps health data from HealthDataStore to BodyState for the digital twin.
  */
 
+import { averageMeasured } from '@/lib/activity/measured-values';
 import { ExtractedBiomarkers } from '@/lib/extractors/biomarkers';
 import { BodyComposition } from '@/lib/extractors/body-comp';
 import { ActivityData } from '@/lib/store/health-data';
@@ -57,19 +58,14 @@ export function mapHealthToBodyState(healthData: HealthDataInput): BodyState {
 function calculateAverageSleepScore(activity: ActivityData[]): number {
   if (activity.length === 0) return 70; // Default moderate
 
-  const scores = activity
-    .map((a) => a.sleepScore)
-    .filter((s): s is number => s !== undefined);
+  const score = averageMeasured(activity.map((day) => day.sleepScore));
+  if (score !== null) return score;
 
-  if (scores.length === 0) {
-    // Estimate from sleep hours if no score
-    const avgHours =
-      activity.reduce((sum, a) => sum + a.sleepHours, 0) / activity.length;
-    // Map 5-9 hours to 30-100 score
-    return Math.max(30, Math.min(100, ((avgHours - 5) / 4) * 70 + 30));
-  }
+  const avgHours = averageMeasured(activity.map((day) => day.sleepHours));
+  if (avgHours === null) return 70;
 
-  return scores.reduce((sum, s) => sum + s, 0) / scores.length;
+  // Map 5-9 hours to 30-100 score
+  return Math.max(30, Math.min(100, ((avgHours - 5) / 4) * 70 + 30));
 }
 
 /**
@@ -78,7 +74,7 @@ function calculateAverageSleepScore(activity: ActivityData[]): number {
 function calculateAverageHrv(activity: ActivityData[]): number {
   if (activity.length === 0) return 50; // Default moderate
 
-  return activity.reduce((sum, a) => sum + a.hrv, 0) / activity.length;
+  return averageMeasured(activity.map((day) => day.hrv)) ?? 50;
 }
 
 /**

@@ -1,3 +1,4 @@
+import { averageMeasured } from '@/lib/activity/measured-values';
 import { getBiomarkerStatus, BIOMARKER_REFERENCES, type BiomarkerStatus } from '@/lib/types/health';
 import type { ExtractedBiomarkers } from '@/lib/extractors/biomarkers';
 import type { PhenoAgeResult } from '@/lib/calculations/phenoage';
@@ -118,24 +119,28 @@ function calculateAgeScore(phenoAge: PhenoAgeResult | null): number {
 function calculateActivityScore(activity: ActivityData[]): number {
   if (activity.length === 0) return 50; // Default if no data
 
-  // Calculate averages
-  const avgHrv = activity.reduce((sum, d) => sum + d.hrv, 0) / activity.length;
-  const avgRhr = activity.reduce((sum, d) => sum + d.rhr, 0) / activity.length;
-  const avgSleep = activity.reduce((sum, d) => sum + d.sleepHours, 0) / activity.length;
+  const parts: number[] = [];
+  const avgHrv = averageMeasured(activity.map((day) => day.hrv));
+  const avgRhr = averageMeasured(activity.map((day) => day.rhr));
+  const avgSleep = averageMeasured(activity.map((day) => day.sleepHours));
 
-  // Score each metric (rough guidelines)
   // HRV: 60+ optimal, 40-60 normal, <40 low
-  const hrvScore = avgHrv >= 60 ? 100 : avgHrv >= 40 ? 70 : 40;
+  if (avgHrv !== null) {
+    parts.push(avgHrv >= 60 ? 100 : avgHrv >= 40 ? 70 : 40);
+  }
 
   // RHR: <60 optimal, 60-80 normal, >80 elevated
-  const rhrScore = avgRhr < 60 ? 100 : avgRhr < 80 ? 70 : 40;
+  if (avgRhr !== null) {
+    parts.push(avgRhr < 60 ? 100 : avgRhr < 80 ? 70 : 40);
+  }
 
   // Sleep: 7-9 optimal, 6-7 or 9-10 normal, else poor
-  const sleepScore = (avgSleep >= 7 && avgSleep <= 9) ? 100 :
-                     (avgSleep >= 6 && avgSleep <= 10) ? 70 : 40;
+  if (avgSleep !== null) {
+    parts.push(avgSleep >= 7 && avgSleep <= 9 ? 100 : avgSleep >= 6 && avgSleep <= 10 ? 70 : 40);
+  }
 
-  // Average the three metrics
-  return (hrvScore + rhrScore + sleepScore) / 3;
+  if (parts.length === 0) return 50;
+  return parts.reduce((sum, part) => sum + part, 0) / parts.length;
 }
 
 function getScoreStatus(score: number): { status: HealthScoreResult['status']; label: string } {

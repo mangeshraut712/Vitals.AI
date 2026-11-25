@@ -39,6 +39,7 @@ vi.mock('@/lib/calculations/phenoage', () => ({
 }));
 
 import { getDataFiles } from '@/lib/files';
+import { parseCsv } from '@/lib/parsers/csv';
 import { parseTextFile } from '@/lib/parsers/text';
 import { parsePdf } from '@/lib/parsers/pdf';
 import { extractBiomarkers } from '@/lib/extractors/biomarkers';
@@ -236,5 +237,49 @@ describe('HealthDataStore', () => {
     expect(parseTextFile).toHaveBeenCalledWith('/data/dexa.txt');
     // PDFs use AI extraction
     expect(extractBiomarkersWithAI).toHaveBeenCalledWith('Glucose: 100');
+  });
+
+  it('does not flag missing HRV stored as zero when sleep was measured', async () => {
+    vi.mocked(getDataFiles).mockReturnValue([
+      {
+        name: 'activity.csv',
+        type: 'activity',
+        path: '/data/activity.csv',
+        extension: '.csv',
+      },
+    ]);
+    vi.mocked(parseCsv).mockReturnValue([{ date: '2026-01-02', sleep_hours: 8 }]);
+    delete (globalThis as { healthDataStore?: unknown }).healthDataStore;
+
+    const { HealthDataStore } = await import('../health-data');
+    await HealthDataStore.loadAllData();
+    const events = await HealthDataStore.getHealthEvents({ limit: 20 });
+    const activityEvent = events.find((event) => event.domain === 'activity');
+
+    expect(activityEvent?.severity).toBe('info');
+    expect(activityEvent?.summary).toBe('Sleep 8.0h');
+  });
+
+  it('still flags a measured low HRV as critical', async () => {
+    vi.mocked(getDataFiles).mockReturnValue([
+      {
+        name: 'activity.csv',
+        type: 'activity',
+        path: '/data/activity.csv',
+        extension: '.csv',
+      },
+    ]);
+    vi.mocked(parseCsv).mockReturnValue([
+      { date: '2026-01-03', hrv_ms: 20, rhr_bpm: 72, sleep_hours: 8 },
+    ]);
+    delete (globalThis as { healthDataStore?: unknown }).healthDataStore;
+
+    const { HealthDataStore } = await import('../health-data');
+    await HealthDataStore.loadAllData();
+    const events = await HealthDataStore.getHealthEvents({ limit: 20 });
+    const activityEvent = events.find((event) => event.domain === 'activity');
+
+    expect(activityEvent?.severity).toBe('critical');
+    expect(activityEvent?.summary).toContain('HRV 20 ms');
   });
 });

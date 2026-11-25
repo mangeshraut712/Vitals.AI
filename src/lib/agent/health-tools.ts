@@ -1,3 +1,4 @@
+import { averageMeasured } from '@/lib/activity/measured-values';
 import { BIOMARKER_REFERENCES, getBiomarkerStatus, type BiomarkerStatus } from '@/lib/types/health';
 import { calculateHealthScore } from '@/lib/calculations/health-score';
 import type { HealthSnapshot } from '@/lib/agent/health-snapshot';
@@ -154,17 +155,24 @@ export function getRecoverySnapshot(
     };
   }
 
-  const avg = (pick: (row: (typeof window)[number]) => number | undefined): number | null => {
-    const values = window.map(pick).filter((value): value is number => typeof value === 'number');
-    if (values.length === 0) return null;
-    return values.reduce((sum, value) => sum + value, 0) / values.length;
-  };
+  const avg = (pick: (row: (typeof window)[number]) => number | undefined): number | null =>
+    averageMeasured(window.map(pick));
 
   const hrv = avg((row) => row.hrv);
   const rhr = avg((row) => row.rhr);
   const sleep = avg((row) => row.sleepHours);
   const recovery = avg((row) => row.recovery);
   const steps = avg((row) => row.steps);
+
+  if (hrv === null && rhr === null && sleep === null && recovery === null && steps === null) {
+    return {
+      tool: 'getRecoverySnapshot',
+      empty: true,
+      summary: 'Wearable rows are loaded, but HRV, heart rate, sleep, recovery, and steps are missing.',
+      metrics: [],
+      data: { days, samples: window.length },
+    };
+  }
 
   const metrics: MetricRow[] = [];
   if (hrv !== null) {
