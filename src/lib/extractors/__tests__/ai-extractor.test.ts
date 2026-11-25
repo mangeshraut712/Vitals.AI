@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { calculatePhenoAge } from '@/lib/calculations/phenoage';
 import { mapAiBiomarkers } from '../ai-extractor';
 
 describe('mapAiBiomarkers', () => {
@@ -11,7 +12,7 @@ describe('mapAiBiomarkers', () => {
 
     expect(extracted.lymphocytes).toBe(1800);
     expect(extracted.lymphocytePercent).toBeUndefined();
-    expect(extracted.monocytes).toBe(0.42);
+    expect(extracted.monocytes).toBe(420);
     expect(extracted.monocytePercent).toBeUndefined();
     expect(extracted.glucose).toBe(90);
   });
@@ -26,6 +27,20 @@ describe('mapAiBiomarkers', () => {
     expect(extracted.lymphocytePercent).toBe(32);
     expect(extracted.neutrophilPercent).toBe(55);
     expect(extracted.neutrophils).toBeUndefined();
-    expect(extracted.lymphocytes).toBe(1.8);
+    expect(extracted.lymphocytes).toBe(1800);
+
+    const panel = {
+      albumin: 4.5,
+      creatinine: 0.9,
+      glucose: 85,
+      crp: 0.5,
+      mcv: 88,
+      rdw: 12.5,
+      alkalinePhosphatase: 50,
+      wbc: 5.5,
+    };
+    expect(calculatePhenoAge({ ...panel, lymphocytes: extracted.lymphocytes }, 35)).toEqual(
+      calculatePhenoAge({ ...panel, lymphocytes: 1800 }, 35)
+    );
   });
 });

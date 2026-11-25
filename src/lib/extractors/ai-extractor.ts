@@ -330,12 +330,26 @@ const DIFFERENTIAL_KEYS: Record<string, { percent: string; absolute: string }> =
   monocytes: { percent: 'monocytePercent', absolute: 'monocytes' },
 };
 
+const ABSOLUTE_CELL_KEYS = new Set(['lymphocytes', 'neutrophils', 'monocytes']);
+
 function resolveMappedKey(mappedKey: string, name: string, unit: string): string {
   const pair = DIFFERENTIAL_KEYS[mappedKey];
   if (!pair) return mappedKey;
   if (unit.includes('%') || name.includes('%')) return pair.percent;
   if (unit.trim().length > 0) return pair.absolute;
   return mappedKey;
+}
+
+/** Absolute differential keys are cells/µL. ×10³/µL counts are scaled up. */
+function toCellsPerMicroliter(value: number, unit: string): number {
+  const compact = unit.toLowerCase().replace(/\s+/g, '');
+  const inThousands =
+    /(?:x|×)?10\^3/.test(compact) ||
+    compact.includes('10³') ||
+    compact.includes('10e3') ||
+    compact.includes('10*3') ||
+    /(?:^|[^a-z])k\/[uµ]l/.test(compact);
+  return inThousands ? value * 1000 : value;
 }
 
 export function mapAiBiomarkers(
@@ -353,7 +367,10 @@ export function mapAiBiomarkers(
     if (!key) continue;
 
     const target = resolveMappedKey(key, normalizedName, marker.unit);
-    (extracted as Record<string, unknown>)[target] = marker.value;
+    const stored = ABSOLUTE_CELL_KEYS.has(target)
+      ? toCellsPerMicroliter(marker.value, marker.unit)
+      : marker.value;
+    (extracted as Record<string, unknown>)[target] = stored;
   }
 
   return extracted;
