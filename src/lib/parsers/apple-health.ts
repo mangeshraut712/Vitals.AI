@@ -277,7 +277,7 @@ export function convertAppleHealthToActivity(appleData: AppleHealthData): Activi
       hrv: Math.round(avgHrv),
       rhr: Math.round(avgRhr),
       sleepHours: Math.round(sleepHours * 10) / 10,
-      steps: Math.round(daily.steps),
+      steps: daily.steps > 0 ? Math.round(daily.steps) : undefined,
       // Apple Health doesn't have direct equivalents for these
       sleepScore: undefined,
       sleepConsistency: undefined,

@@ -423,12 +423,11 @@ class HealthDataStoreClass {
       hrv: Number(row.hrv_ms ?? 0),
       rhr: Number(row.rhr_bpm ?? 0),
       sleepHours: Number(row.sleep_hours ?? 0),
-      sleepScore: row.sleep_score !== undefined ? Number(row.sleep_score) : undefined,
-      sleepConsistency:
-        row.sleep_consistency !== undefined ? Number(row.sleep_consistency) : undefined,
-      strain: row.strain !== undefined ? Number(row.strain) : undefined,
-      recovery: row.recovery !== undefined ? Number(row.recovery) : undefined,
-      steps: row.steps !== undefined ? Number(row.steps) : undefined,
+      sleepScore: recordedNumber(row.sleep_score),
+      sleepConsistency: recordedNumber(row.sleep_consistency),
+      strain: recordedNumber(row.strain),
+      recovery: recordedNumber(row.recovery),
+      steps: recordedNumber(row.steps),
     }));
 
     // Calculate PhenoAge if we have age and biomarkers
@@ -768,6 +767,7 @@ class HealthDataStoreClass {
         measuredHrv !== null ? `HRV ${measuredHrv} ms` : null,
         measuredRhr !== null ? `RHR ${measuredRhr} bpm` : null,
         measuredSleep !== null ? `Sleep ${measuredSleep.toFixed(1)}h` : null,
+        measuredRecovery !== null ? `Recovery ${measuredRecovery}%` : null,
       ]
         .filter((part): part is string => part !== null)
         .join(', ');
@@ -1056,6 +1056,12 @@ function statusToText(status: 'optimal' | 'normal' | 'borderline' | 'out_of_rang
     case 'out_of_range':
       return 'out of range';
   }
+}
+
+function recordedNumber(value: unknown): number | undefined {
+  if (value === undefined || value === null || value === '') return undefined;
+  const parsed = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(parsed) ? parsed : undefined;
 }
 
 function toIsoDateOrFallback(value: string, fallback: string): string {

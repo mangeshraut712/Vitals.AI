@@ -13,7 +13,7 @@ import { parseCsv, CsvRow } from './csv';
 // Oura API v2 daily readiness format
 interface OuraDailyReadiness {
   day: string;
-  score: number;
+  score?: number;
   temperature_deviation: number;
   temperature_trend_deviation: number;
   contributors: {
@@ -31,7 +31,7 @@ interface OuraDailyReadiness {
 // Oura API v2 daily sleep format
 interface OuraDailySleep {
   day: string;
-  score: number;
+  score?: number;
   timestamp: string;
   contributors: {
     deep_sleep: number;
@@ -54,7 +54,7 @@ interface OuraSleep {
   light_sleep_duration: number;
   rem_sleep_duration: number;
   awake_time: number;
-  efficiency: number;
+  efficiency?: number;
   average_heart_rate: number;
   lowest_heart_rate: number;
   average_hrv: number;
@@ -64,7 +64,7 @@ interface OuraSleep {
 interface OuraDailyActivity {
   day: string;
   score: number;
-  steps: number;
+  steps?: number;
   active_calories: number;
   total_calories: number;
   target_calories: number;
@@ -88,6 +88,12 @@ export interface OuraData {
 }
 
 // ===== Helper Functions =====
+
+function optionalCsvNumber(value: unknown): number | undefined {
+  if (value === undefined || value === null || value === '') return undefined;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
 
 function extractDate(dateStr: string): string {
   // Oura dates are in YYYY-MM-DD format
@@ -207,7 +213,7 @@ function parseOuraSleepCsv(rows: CsvRow[]): OuraSleep[] {
     light_sleep_duration: Number(row.light_sleep_duration ?? row.light ?? 0),
     rem_sleep_duration: Number(row.rem_sleep_duration ?? row.rem ?? 0),
     awake_time: Number(row.awake_time ?? row.awake ?? 0),
-    efficiency: Number(row.efficiency ?? 0),
+    efficiency: optionalCsvNumber(row.efficiency),
     average_heart_rate: Number(row.average_heart_rate ?? row.hr_average ?? 0),
     lowest_heart_rate: Number(row.lowest_heart_rate ?? row.hr_lowest ?? 0),
     average_hrv: Number(row.average_hrv ?? row.hrv_average ?? row.rmssd ?? 0),
@@ -217,7 +223,7 @@ function parseOuraSleepCsv(rows: CsvRow[]): OuraSleep[] {
 function parseOuraReadinessCsv(rows: CsvRow[]): OuraDailyReadiness[] {
   return rows.map((row) => ({
     day: String(row.date ?? row.day ?? ''),
-    score: Number(row.score ?? row.readiness_score ?? 0),
+    score: optionalCsvNumber(row.score ?? row.readiness_score),
     temperature_deviation: Number(row.temperature_deviation ?? 0),
     temperature_trend_deviation: Number(row.temperature_trend_deviation ?? 0),
     contributors: {
@@ -237,7 +243,7 @@ function parseOuraActivityCsv(rows: CsvRow[]): OuraDailyActivity[] {
   return rows.map((row) => ({
     day: String(row.date ?? row.day ?? ''),
     score: Number(row.score ?? row.activity_score ?? 0),
-    steps: Number(row.steps ?? 0),
+    steps: optionalCsvNumber(row.steps),
     active_calories: Number(row.active_calories ?? row.cal_active ?? 0),
     total_calories: Number(row.total_calories ?? row.cal_total ?? 0),
     target_calories: Number(row.target_calories ?? 0),
@@ -272,7 +278,9 @@ export function convertOuraToActivity(ouraData: OuraData): ActivityData[] {
     existing.hrv = Math.round(sleep.average_hrv || 0);
     existing.rhr = Math.round(sleep.lowest_heart_rate || sleep.average_heart_rate || 0);
     existing.sleepHours = Math.round((sleep.total_sleep_duration / 3600) * 10) / 10; // seconds to hours
-    existing.sleepScore = Math.round(sleep.efficiency || 0);
+    if (sleep.efficiency !== undefined) {
+      existing.sleepScore = Math.round(sleep.efficiency);
+    }
 
     dataByDate.set(date, existing);
   }
@@ -283,7 +291,7 @@ export function convertOuraToActivity(ouraData: OuraData): ActivityData[] {
     if (!date) continue;
 
     const existing = dataByDate.get(date);
-    if (existing) {
+    if (existing && readiness.score !== undefined) {
       existing.recovery = readiness.score;
     }
   }
@@ -294,7 +302,7 @@ export function convertOuraToActivity(ouraData: OuraData): ActivityData[] {
     if (!date) continue;
 
     const existing = dataByDate.get(date);
-    if (existing) {
+    if (existing && sleepScore.score !== undefined) {
       existing.sleepScore = sleepScore.score;
     }
   }
@@ -305,7 +313,7 @@ export function convertOuraToActivity(ouraData: OuraData): ActivityData[] {
     if (!date) continue;
 
     const existing = dataByDate.get(date);
-    if (existing) {
+    if (existing && activity.steps !== undefined) {
       existing.steps = activity.steps;
     }
   }
