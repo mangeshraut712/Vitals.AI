@@ -278,8 +278,9 @@ export function convertOuraToActivity(ouraData: OuraData): ActivityData[] {
     existing.hrv = Math.round(sleep.average_hrv || 0);
     existing.rhr = Math.round(sleep.lowest_heart_rate || sleep.average_heart_rate || 0);
     existing.sleepHours = Math.round((sleep.total_sleep_duration / 3600) * 10) / 10; // seconds to hours
-    if (sleep.efficiency !== undefined) {
-      existing.sleepScore = Math.round(sleep.efficiency);
+    const efficiency = optionalCsvNumber(sleep.efficiency);
+    if (efficiency !== undefined) {
+      existing.sleepScore = Math.round(efficiency);
     }
 
     dataByDate.set(date, existing);
@@ -291,8 +292,9 @@ export function convertOuraToActivity(ouraData: OuraData): ActivityData[] {
     if (!date) continue;
 
     const existing = dataByDate.get(date);
-    if (existing && readiness.score !== undefined) {
-      existing.recovery = readiness.score;
+    const readinessScore = optionalCsvNumber(readiness.score);
+    if (existing && readinessScore !== undefined) {
+      existing.recovery = readinessScore;
     }
   }
 
@@ -302,8 +304,9 @@ export function convertOuraToActivity(ouraData: OuraData): ActivityData[] {
     if (!date) continue;
 
     const existing = dataByDate.get(date);
-    if (existing && sleepScore.score !== undefined) {
-      existing.sleepScore = sleepScore.score;
+    const dailySleepScore = optionalCsvNumber(sleepScore.score);
+    if (existing && dailySleepScore !== undefined) {
+      existing.sleepScore = dailySleepScore;
     }
   }
 
@@ -313,8 +316,9 @@ export function convertOuraToActivity(ouraData: OuraData): ActivityData[] {
     if (!date) continue;
 
     const existing = dataByDate.get(date);
-    if (existing && activity.steps !== undefined) {
-      existing.steps = activity.steps;
+    const steps = optionalCsvNumber(activity.steps);
+    if (existing && steps !== undefined) {
+      existing.steps = steps;
     }
   }
 

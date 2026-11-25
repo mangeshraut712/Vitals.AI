@@ -91,4 +91,110 @@ describe('placeholder wearable zeros', () => {
     expect(missingDay?.steps).toBeUndefined();
     expect(missingDay?.sleepScore).toBeUndefined();
   });
+
+  it('treats null Oura JSON fields as missing and keeps an efficiency-based sleep score', () => {
+    const contributors = {
+      deep_sleep: 0,
+      efficiency: 0,
+      latency: 0,
+      rem_sleep: 0,
+      restfulness: 0,
+      timing: 0,
+      total_sleep: 0,
+    };
+    const [day] = convertOuraToActivity({
+      readiness: [
+        {
+          day: '2026-01-02',
+          score: null as unknown as number,
+          temperature_deviation: 0,
+          temperature_trend_deviation: 0,
+          contributors: {
+            activity_balance: 0,
+            body_temperature: 0,
+            hrv_balance: 0,
+            previous_day_activity: 0,
+            previous_night: 0,
+            recovery_index: 0,
+            resting_heart_rate: 0,
+            sleep_balance: 0,
+          },
+        },
+      ],
+      sleepScores: [
+        {
+          day: '2026-01-02',
+          score: null as unknown as number,
+          timestamp: '',
+          contributors,
+        },
+      ],
+      sleeps: [
+        {
+          day: '2026-01-02',
+          bedtime_start: '',
+          bedtime_end: '',
+          total_sleep_duration: 7 * 3600,
+          deep_sleep_duration: 0,
+          light_sleep_duration: 0,
+          rem_sleep_duration: 0,
+          awake_time: 0,
+          efficiency: null as unknown as number,
+          average_heart_rate: 0,
+          lowest_heart_rate: 0,
+          average_hrv: 48,
+        },
+      ],
+      activities: [
+        {
+          day: '2026-01-02',
+          score: 0,
+          steps: null as unknown as number,
+          active_calories: 0,
+          total_calories: 0,
+          target_calories: 0,
+          meet_daily_targets: 0,
+        },
+      ],
+      heartRates: [],
+      dateRange: { start: '2026-01-02', end: '2026-01-02' },
+    });
+
+    expect(day?.sleepScore).toBeUndefined();
+    expect(day?.recovery).toBeUndefined();
+    expect(day?.steps).toBeUndefined();
+
+    const [kept] = convertOuraToActivity({
+      readiness: [],
+      sleepScores: [
+        {
+          day: '2026-01-03',
+          score: null as unknown as number,
+          timestamp: '',
+          contributors,
+        },
+      ],
+      sleeps: [
+        {
+          day: '2026-01-03',
+          bedtime_start: '',
+          bedtime_end: '',
+          total_sleep_duration: 7 * 3600,
+          deep_sleep_duration: 0,
+          light_sleep_duration: 0,
+          rem_sleep_duration: 0,
+          awake_time: 0,
+          efficiency: 85,
+          average_heart_rate: 0,
+          lowest_heart_rate: 0,
+          average_hrv: 48,
+        },
+      ],
+      activities: [],
+      heartRates: [],
+      dateRange: { start: '2026-01-03', end: '2026-01-03' },
+    });
+
+    expect(kept?.sleepScore).toBe(85);
+  });
 });
