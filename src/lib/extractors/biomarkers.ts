@@ -118,10 +118,13 @@ const BIOMARKER_PATTERNS: BiomarkerPattern[] = [
   {
     key: 'rdw',
     patterns: [
-      // Thyrocare CBC format: fL\n VALUE\nREF_RANGE\nRed Cell Distribution Width
-      /fL\s*\n\s*([\d.]+)\s*\n[\d.]+\s*-\s*[\d.]+\s*\nRed Cell Distribution Width/i,
-      /red cell distribution width[^\n:]*[:\s]+(\d+\.?\d*)/i, // Thyrocare normalized
-      /rdw[:\s]+(\d+\.?\d*)/i,
+      // Levine PhenoAge uses RDW-CV (%), about 11–16. Thyrocare also prints
+      // RDW-SD in fL (about 40–50). Only the percent line is the PhenoAge input.
+      /%\s*\n\s*([\d.]+)\s*\n[\d.]+\s*-\s*[\d.]+\s*\nRed Cell Distribution Width/i,
+      /red cell distribution width[^\n:]*[:\s]+(\d+\.?\d*)\s*%/i,
+      /rdw(?:-cv)?[:\s]+(\d+\.?\d*)\s*%/i,
+      /red cell distribution width[^\n:]*[:\s]+(\d+\.?\d*)/i,
+      /rdw(?:-cv)?[:\s]+(\d+\.?\d*)/i,
     ],
   },
   {
@@ -364,7 +367,7 @@ export function extractBiomarkers(text: string): ExtractedBiomarkers {
       const match = searchText.match(pattern);
       if (match && match[1]) {
         const value = parseFloat(match[1]);
-        if (!isNaN(value)) {
+        if (!isNaN(value) && acceptsBiomarkerValue(key, value)) {
           biomarkers[key] = value;
           break;
         }
@@ -373,6 +376,15 @@ export function extractBiomarkers(text: string): ExtractedBiomarkers {
   }
 
   return biomarkers;
+}
+
+/**
+ * RDW-CV is a percent. RDW-SD is reported in fL and sits near 40–50, so a
+ * value outside the percent band is the wrong quantity for PhenoAge.
+ */
+function acceptsBiomarkerValue(key: NumericBiomarkerKey, value: number): boolean {
+  if (key !== 'rdw') return true;
+  return value >= 8 && value <= 30;
 }
 
 export function hasAllPhenoAgeInputs(biomarkers: ExtractedBiomarkers): boolean {

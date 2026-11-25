@@ -49,9 +49,35 @@ Mangesh Raut(26Y/M)
     expect(biomarkers.creatinine).toBe(0.92);
     expect(biomarkers.alkalinePhosphatase).toBe(114);
     expect(biomarkers.mcv).toBe(92.3);
-    expect(biomarkers.rdw).toBe(44.9);
+    expect(biomarkers.rdw).toBeUndefined();
     expect(biomarkers.wbc).toBe(6.2);
     expect(biomarkers.lymphocytePercent).toBe(35.2);
     expect(biomarkers.patientAge).toBe(26);
+  });
+
+  it('reads RDW-CV percent and ignores a neighboring RDW-SD femtoliter value', () => {
+    const text = `
+fL
+44.9
+40.0-50.0
+Red Cell Distribution Width
+
+%
+13.2
+11.5-14.5
+Red Cell Distribution Width
+
+RDW-CV: 13.4%
+RDW: 44.9
+`;
+
+    const biomarkers = extractBiomarkers(text);
+
+    expect(biomarkers.rdw).toBe(13.2);
+  });
+
+  it('accepts a plain RDW percent and rejects an unlabeled RDW-SD value', () => {
+    expect(extractBiomarkers('RDW: 12.8').rdw).toBe(12.8);
+    expect(extractBiomarkers('RDW: 44.9').rdw).toBeUndefined();
   });
 });
