@@ -24,13 +24,26 @@ This document contains verified health knowledge embedded into the agent's syste
 
 ### Calculation Steps
 
-**Step 1: Calculate xb (linear combination)**
+The coefficients below are applied only after converting the stored US lab units into the units from Levine et al. (2018). `src/lib/calculations/phenoage.ts` does that conversion. Applying the coefficients directly to g/dL, mg/dL creatinine, mg/dL glucose, or mg/L CRP is not the published fit.
+
+**Step 1: Convert stored units**
+
+```
+albumin_g_l        = albumin_g_dl × 10
+creatinine_umol_l  = creatinine_mg_dl × 88.4
+glucose_mmol_l     = glucose_mg_dl / 18.0182
+crp_mg_dl          = crp_mg_l / 10
+```
+
+If `crp_mg_dl` is 0 or negative, use `0.01` before the logarithm.
+
+**Step 2: Calculate xb (linear combination)**
 ```
 xb = -19.9067
-     - 0.0336 × albumin
-     + 0.0095 × creatinine
-     + 0.1953 × glucose
-     + 0.0954 × ln(crp)
+     - 0.0336 × albumin_g_l
+     + 0.0095 × creatinine_umol_l
+     + 0.1953 × glucose_mmol_l
+     + 0.0954 × ln(crp_mg_dl)
      - 0.0120 × lymphocyte_pct
      + 0.0268 × mcv
      + 0.3306 × rdw
@@ -39,33 +52,36 @@ xb = -19.9067
      + 0.0804 × age
 ```
 
-Note: `ln(crp)` is the natural logarithm of CRP.
+`rdw` is RDW-CV in percent (about 11–16), not RDW-SD in fL. Lymphocyte percent, MCV (fL), alkaline phosphatase (U/L), WBC (10³/µL), and age (years) are used as stored.
 
-**Step 2: Calculate mortality risk (m)**
+**Step 3: Calculate 10-year mortality risk (m)**
 ```
-m = 1 - exp(-exp(xb) × (exp(120 × 0.0077) - 1) / 0.0077)
+m = 1 - exp(-exp(xb) × (exp(120 × 0.0076927) - 1) / 0.0076927)
 ```
 
-**Step 3: Calculate PhenoAge**
+Return null when `m` is not strictly between 0 and 1.
+
+**Step 4: Calculate PhenoAge**
 ```
 PhenoAge = 141.50225 + ln(-0.00553 × ln(1 - m)) / 0.090165
 ```
 
 ### Implementation Notes
 
-- If CRP ≤ 0, use CRP = 0.01 (avoid log of zero)
-- All biomarkers must be present; return null if any missing
-- Round PhenoAge to 1 decimal place for display
-- Delta = PhenoAge - Chronological Age (negative = biologically younger)
+- All nine biomarkers and chronological age must be finite; return null if any are missing
+- Round PhenoAge to 1 decimal place, clamped to 0–150
+- Delta = rounded PhenoAge − chronological age (negative = biologically younger)
 
 ### Example Calculation
 
+Same inputs as `src/lib/calculations/__tests__/phenoage.test.ts`:
+
 ```
 Inputs:
-  albumin = 4.5 g/dL
-  creatinine = 0.9 mg/dL
-  glucose = 85 mg/dL
-  crp = 0.5 mg/L
+  albumin = 4.5 g/dL        → 45 g/L
+  creatinine = 0.9 mg/dL    → 79.56 µmol/L
+  glucose = 85 mg/dL        → 4.7174 mmol/L
+  crp = 0.5 mg/L            → 0.05 mg/dL
   lymphocyte_pct = 30%
   mcv = 88 fL
   rdw = 12.5%
@@ -74,8 +90,8 @@ Inputs:
   age = 35 years
 
 Expected output:
-  PhenoAge ≈ 31.2 years
-  Delta = -3.8 years (biologically younger)
+  PhenoAge = 24.0 years
+  Delta = -11.0 years
 ```
 
 ---
