@@ -370,7 +370,7 @@ export function extractBiomarkers(text: string): ExtractedBiomarkers {
       // rejected value would hide a valid one later in the same report.
       const matches = searchText.matchAll(new RegExp(pattern.source, pattern.flags.includes('g') ? pattern.flags : pattern.flags + 'g'));
       for (const match of matches) {
-        if (!match || !match[1]) continue;
+        if (!match[1]) continue;
         const value = parseFloat(match[1]);
         if (!isNaN(value) && acceptsBiomarkerValue(key, value)) {
           biomarkers[key] = value;
