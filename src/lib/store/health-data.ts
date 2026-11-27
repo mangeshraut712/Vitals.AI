@@ -12,7 +12,7 @@ import { parseWithingsExport, convertWithingsToActivity } from '@/lib/parsers/wi
 import { parseSamsungExport, convertSamsungToActivity } from '@/lib/parsers/samsung-health';
 import { parseGoogleFitExport, convertGoogleFitToActivity } from '@/lib/parsers/google-fit';
 import { extractBiomarkers, ExtractedBiomarkers } from '@/lib/extractors/biomarkers';
-import { extractBiomarkersWithAI } from '@/lib/extractors/ai-extractor';
+import { canonicalAbsoluteCellCount, extractBiomarkersWithAI } from '@/lib/extractors/ai-extractor';
 import { extractBodyComposition, BodyComposition } from '@/lib/extractors/body-comp';
 import { extractBodyCompWithAI } from '@/lib/extractors/ai-body-comp-extractor';
 import { calculatePhenoAge, PhenoAgeResult } from '@/lib/calculations/phenoage';
@@ -454,9 +454,16 @@ class HealthDataStoreClass {
     cached: CachedBiomarker[],
     patientAge?: number
   ): ExtractedBiomarkers {
+    const absoluteIds = new Set(['lymphocytes', 'neutrophils', 'monocytes']);
+    const normalized = cached.map((biomarker) => {
+      if (!absoluteIds.has(biomarker.id)) return biomarker;
+      const canonical = canonicalAbsoluteCellCount(biomarker.value, biomarker.unit);
+      return { ...biomarker, value: canonical.value, unit: canonical.unit };
+    });
+
     const result: ExtractedBiomarkers = {
       patientAge,
-      all: cached.map((b) => ({
+      all: normalized.map((b) => ({
         name: b.name,
         value: b.value,
         unit: b.unit,
@@ -467,7 +474,7 @@ class HealthDataStoreClass {
     };
 
     // Map to known keys for calculations
-    for (const biomarker of cached) {
+    for (const biomarker of normalized) {
       (result as Record<string, unknown>)[biomarker.id] = biomarker.value;
     }
 

@@ -321,6 +321,87 @@ function toDynamicBiomarker(input: unknown): DynamicBiomarker | null {
   };
 }
 
+const DIFFERENTIAL_KEYS: Record<string, { percent: string; absolute: string }> = {
+  lymphocytePercent: { percent: 'lymphocytePercent', absolute: 'lymphocytes' },
+  lymphocytes: { percent: 'lymphocytePercent', absolute: 'lymphocytes' },
+  neutrophilPercent: { percent: 'neutrophilPercent', absolute: 'neutrophils' },
+  neutrophils: { percent: 'neutrophilPercent', absolute: 'neutrophils' },
+  monocytePercent: { percent: 'monocytePercent', absolute: 'monocytes' },
+  monocytes: { percent: 'monocytePercent', absolute: 'monocytes' },
+};
+
+const ABSOLUTE_CELL_KEYS = new Set(['lymphocytes', 'neutrophils', 'monocytes']);
+
+function resolveMappedKey(mappedKey: string, name: string, unit: string): string {
+  const pair = DIFFERENTIAL_KEYS[mappedKey];
+  if (!pair) return mappedKey;
+  if (unit.includes('%') || name.includes('%')) return pair.percent;
+  if (unit.trim().length > 0) return pair.absolute;
+  return mappedKey;
+}
+
+const CANONICAL_CELL_UNIT = 'cells/uL';
+
+function compactUnit(unit: string): string {
+  return unit
+    .toLowerCase()
+    .replace(/\s+/g, '')
+    .replace(/[µμ]/g, 'u');
+}
+
+/** Absolute differential keys are cells/µL. ×10³/µL and K/μL counts are scaled up. */
+export function toCellsPerMicroliter(value: number, unit: string): number {
+  const compact = compactUnit(unit);
+  const inThousands =
+    /(?:x|×)?10\^3/.test(compact) ||
+    compact.includes('10³') ||
+    compact.includes('10e3') ||
+    compact.includes('10*3') ||
+    /(?:^|[^a-z])k\/ul/.test(compact);
+  return inThousands ? value * 1000 : value;
+}
+
+export function canonicalAbsoluteCellCount(
+  value: number,
+  unit: string
+): { value: number; unit: string } {
+  const scaled = toCellsPerMicroliter(value, unit);
+  if (scaled === value) return { value, unit };
+  return { value: scaled, unit: CANONICAL_CELL_UNIT };
+}
+
+export function mapAiBiomarkers(
+  markers: DynamicBiomarker[],
+  patientAge?: number
+): ExtractedBiomarkers {
+  const normalizedMarkers = markers.map((marker) => {
+    const normalizedName = marker.name.toLowerCase().trim();
+    const key = NAME_TO_KEY[normalizedName];
+    if (!key) return marker;
+    const target = resolveMappedKey(key, normalizedName, marker.unit);
+    if (!ABSOLUTE_CELL_KEYS.has(target)) return marker;
+    const canonical = canonicalAbsoluteCellCount(marker.value, marker.unit);
+    if (canonical.value === marker.value && canonical.unit === marker.unit) return marker;
+    return { ...marker, value: canonical.value, unit: canonical.unit };
+  });
+
+  const extracted: ExtractedBiomarkers = {
+    all: normalizedMarkers,
+    patientAge,
+  };
+
+  for (const marker of normalizedMarkers) {
+    const normalizedName = marker.name.toLowerCase().trim();
+    const key = NAME_TO_KEY[normalizedName];
+    if (!key) continue;
+
+    const target = resolveMappedKey(key, normalizedName, marker.unit);
+    (extracted as Record<string, unknown>)[target] = marker.value;
+  }
+
+  return extracted;
+}
+
 function parseAIExtractionResult(content: string): AIExtractionResult | null {
   const jsonPayload = extractJsonObjectFromText(content);
   if (!jsonPayload) return null;
@@ -406,33 +487,7 @@ ${text}`,
       const biomarkers = result.biomarkers || [];
       console.log(`[Vitals.AI] AI extracted ${biomarkers.length} biomarkers (${modelId})`);
 
-      const extracted: ExtractedBiomarkers = {
-        all: biomarkers,
-        patientAge: result.patientAge,
-      };
-
-      // Map known biomarkers to specific keys for calculations and display
-      for (const marker of biomarkers) {
-        const normalizedName = marker.name.toLowerCase().trim();
-        const key = NAME_TO_KEY[normalizedName];
-
-        if (!key) {
-          continue;
-        }
-
-        // Handle percentage vs absolute count disambiguation
-        if (key === 'lymphocytePercent' || key === 'neutrophilPercent' || key === 'monocytePercent') {
-          if (marker.unit.includes('%')) {
-            (extracted as Record<string, unknown>)[key] = marker.value;
-          }
-        } else if (key === 'lymphocytes' || key === 'neutrophils' || key === 'monocytes') {
-          if (!marker.unit.includes('%')) {
-            (extracted as Record<string, unknown>)[key] = marker.value;
-          }
-        } else {
-          (extracted as Record<string, unknown>)[key] = marker.value;
-        }
-      }
+      const extracted = mapAiBiomarkers(biomarkers, result.patientAge);
 
       const knownKeys = Object.keys(extracted).filter((k) => k !== 'all' && k !== 'patientAge');
       console.log(`[Vitals.AI] Mapped ${knownKeys.length} to known biomarker keys`);
