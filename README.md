@@ -61,7 +61,7 @@ Open http://localhost:3000 and `/tools/agent`. Put files under `/data` (Bloodwor
 
 ## Evals and smoke
 
-CI (`quality`/`validate` + `smoke`) does not call paid APIs. Evals mock the model and use fixtures.
+CI (`validate` + `smoke`) does not call paid APIs. Evals mock the model and use fixtures.
 
 ```bash
 npm run test            # Vitest, including evals
