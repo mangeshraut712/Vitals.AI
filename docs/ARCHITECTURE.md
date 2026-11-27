@@ -2,7 +2,7 @@
 
 ## System Overview
 
-Vitals.AI is a localhost-only health dashboard with an AI chat agent. All data stays on the user's machine.
+Vitals.AI is a health dashboard with an AI chat agent. Health files stay on the machine that runs the Next.js server. The public GitHub Pages site is a static export and does not serve `/api/*`.
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -70,8 +70,8 @@ User runs `npm run dev`
             ▼
 ┌─────────────────────────┐
 │ Extract biomarkers      │
-│ Pattern matching on     │
-│ parsed text             │
+│ Regex, plus optional AI │
+│ when an API key is set  │
 └───────────┬─────────────┘
             │
             ▼
@@ -116,7 +116,7 @@ User types message
             ▼
 ┌─────────────────────────┐
 │ OpenRouter chat stack   │
-│ query()                 │
+│ queryHealthAgentStream()│
 │                         │
 │ Agent behavior:         │
 │ - Uses health context   │
@@ -152,8 +152,9 @@ User types message
 | File | Input | Output |
 |------|-------|--------|
 | `biomarkers.ts` | Raw text | `{ glucose?: number, ldl?: number, ... }` |
+| `ai-extractor.ts` | Raw text | Same shape, when `OPENROUTER_API_KEY` is set |
 
-Extraction uses regex patterns to find biomarker names + values in lab report text.
+`biomarkers.ts` uses regex, including Thyrocare layouts. `ai-extractor.ts` is the PDF path when an OpenRouter key is configured.
 
 ### Calculations (`lib/calculations/`)
 
@@ -199,14 +200,14 @@ Configuration:
 
 | Component | Purpose |
 |-----------|---------|
-| `Dashboard.tsx` | Main dashboard layout with all cards |
-| `AgeHeader.tsx` | Chronological age, PhenoAge, delta display |
-| `BloodWorkCard.tsx` | Biomarkers with color-coded status |
-| `DexaCard.tsx` | Body composition from DEXA |
-| `ActivityCard.tsx` | HRV, RHR, sleep from activity tracker |
-| `ImprovementsCard.tsx` | Areas to improve with recommendations |
-| `Chat.tsx` | Chat interface with message history |
+| `dashboard/UnifiedHealthCard.tsx` | Home overview: PhenoAge, lifestyle score, goals |
+| `dashboard/WithingsHealthScore.tsx` | Score ring for activity, sleep, and body composition |
+| `dashboard/TopMarkersCard.tsx` | Highlighted biomarkers |
+| `dashboard/WeeklyLifestyleCard.tsx` | 7-day HRV, sleep, strain, and recovery |
+| `ai-chat/AIChatWidget.tsx` | Chat interface |
 | `SyncButton.tsx` | Manual data resync trigger |
+
+`Dashboard.tsx`, `AgeHeader.tsx`, `BloodWorkCard.tsx`, `DexaCard.tsx`, `ActivityCard.tsx`, `ImprovementsCard.tsx`, and `Chat.tsx` are not in the tree.
 
 ## Type Definitions (`lib/types/`)
 
@@ -273,14 +274,13 @@ interface Improvement {
 
 1. **API key in .env only** — Never committed, never logged
 2. **No external data transmission** — Only user-configured OpenRouter AI API calls
-3. **No persistent storage** — Data re-parsed each session
+3. **Local cache and SQLite** — Biomarker and body-comp extracts can be cached on disk. The `/future` module can read a local Prisma SQLite database. Source files stay in `/data`.
 4. **User owns their data** — Files stay in /data, never uploaded
-5. **Localhost only** — Not designed for deployment
+5. **Two hosts** — GitHub Pages publishes the static export. Chat, sync, and file parsing run on the local Next.js server.
 
 ## Future Extensions (Out of Scope for V1)
 
 - OAuth integrations (Whoop API, Apple HealthKit)
-- Data persistence (SQLite or JSON cache)
 - Multi-user support
 - Trend tracking over time
 - Export reports as PDF
