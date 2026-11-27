@@ -39,6 +39,7 @@ vi.mock('@/lib/calculations/phenoage', () => ({
 }));
 
 import { getDataFiles } from '@/lib/files';
+import { parseCsv } from '@/lib/parsers/csv';
 import { parseTextFile } from '@/lib/parsers/text';
 import { parsePdf } from '@/lib/parsers/pdf';
 import { extractBiomarkers } from '@/lib/extractors/biomarkers';
@@ -236,5 +237,124 @@ describe('HealthDataStore', () => {
     expect(parseTextFile).toHaveBeenCalledWith('/data/dexa.txt');
     // PDFs use AI extraction
     expect(extractBiomarkersWithAI).toHaveBeenCalledWith('Glucose: 100');
+  });
+
+  it('does not flag missing HRV stored as zero when sleep was measured', async () => {
+    vi.mocked(getDataFiles).mockReturnValue([
+      {
+        name: 'activity.csv',
+        type: 'activity',
+        path: '/data/activity.csv',
+        extension: '.csv',
+      },
+    ]);
+    vi.mocked(parseCsv).mockReturnValue([{ date: '2026-01-02', sleep_hours: 8 }]);
+    delete (globalThis as { healthDataStore?: unknown }).healthDataStore;
+
+    const { HealthDataStore } = await import('../health-data');
+    await HealthDataStore.loadAllData();
+    const events = await HealthDataStore.getHealthEvents({ limit: 20 });
+    const activityEvent = events.find((event) => event.domain === 'activity');
+
+    expect(activityEvent?.severity).toBe('info');
+    expect(activityEvent?.summary).toBe('Sleep 8.0h');
+  });
+
+  it('still flags a measured low HRV as critical', async () => {
+    vi.mocked(getDataFiles).mockReturnValue([
+      {
+        name: 'activity.csv',
+        type: 'activity',
+        path: '/data/activity.csv',
+        extension: '.csv',
+      },
+    ]);
+    vi.mocked(parseCsv).mockReturnValue([
+      { date: '2026-01-03', hrv_ms: 20, rhr_bpm: 72, sleep_hours: 8 },
+    ]);
+    delete (globalThis as { healthDataStore?: unknown }).healthDataStore;
+
+    const { HealthDataStore } = await import('../health-data');
+    await HealthDataStore.loadAllData();
+    const events = await HealthDataStore.getHealthEvents({ limit: 20 });
+    const activityEvent = events.find((event) => event.domain === 'activity');
+
+    expect(activityEvent?.severity).toBe('critical');
+    expect(activityEvent?.summary).toContain('HRV 20 ms');
+  });
+
+  it('flags a recorded recovery of zero as critical and ignores a blank recovery', async () => {
+    vi.mocked(getDataFiles).mockReturnValue([
+      {
+        name: 'activity.csv',
+        type: 'activity',
+        path: '/data/activity.csv',
+        extension: '.csv',
+      },
+    ]);
+    vi.mocked(parseCsv).mockReturnValue([
+      { date: '2026-01-04', hrv_ms: 60, rhr_bpm: 55, sleep_hours: 8, recovery: 0 },
+      { date: '2026-01-05', hrv_ms: 60, rhr_bpm: 55, sleep_hours: 8 },
+    ]);
+    delete (globalThis as { healthDataStore?: unknown }).healthDataStore;
+
+    const { HealthDataStore } = await import('../health-data');
+    await HealthDataStore.loadAllData();
+    const events = (await HealthDataStore.getHealthEvents({ limit: 20 })).filter(
+      (event) => event.domain === 'activity'
+    );
+
+    const severityByDate = Object.fromEntries(
+      events.map((event) => [event.id.split(':')[1], event.severity])
+    );
+    expect(severityByDate['2026-01-04']).toBe('critical');
+    expect(events.find((event) => event.id.includes('2026-01-04'))?.summary).toContain('Recovery 0%');
+    expect(severityByDate['2026-01-05']).toBe('info');
+  });
+
+  it('does not treat a blank recovery cell as a recorded zero', async () => {
+    vi.mocked(getDataFiles).mockReturnValue([
+      {
+        name: 'activity.csv',
+        type: 'activity',
+        path: '/data/activity.csv',
+        extension: '.csv',
+      },
+    ]);
+    vi.mocked(parseCsv).mockReturnValue([
+      { date: '2026-01-06', hrv_ms: 60, rhr_bpm: 55, sleep_hours: 8, recovery: '' },
+    ]);
+    delete (globalThis as { healthDataStore?: unknown }).healthDataStore;
+
+    const { HealthDataStore } = await import('../health-data');
+    await HealthDataStore.loadAllData();
+    const activityEvent = (await HealthDataStore.getHealthEvents({ limit: 20 })).find(
+      (event) => event.domain === 'activity'
+    );
+
+    expect(activityEvent?.severity).toBe('info');
+    expect(activityEvent?.summary).not.toContain('Recovery');
+  });
+
+  it('names recovery when that is the only measured signal', async () => {
+    vi.mocked(getDataFiles).mockReturnValue([
+      {
+        name: 'activity.csv',
+        type: 'activity',
+        path: '/data/activity.csv',
+        extension: '.csv',
+      },
+    ]);
+    vi.mocked(parseCsv).mockReturnValue([{ date: '2026-01-07', recovery: 0 }]);
+    delete (globalThis as { healthDataStore?: unknown }).healthDataStore;
+
+    const { HealthDataStore } = await import('../health-data');
+    await HealthDataStore.loadAllData();
+    const activityEvent = (await HealthDataStore.getHealthEvents({ limit: 20 })).find(
+      (event) => event.domain === 'activity'
+    );
+
+    expect(activityEvent?.severity).toBe('critical');
+    expect(activityEvent?.summary).toBe('Recovery 0%');
   });
 });

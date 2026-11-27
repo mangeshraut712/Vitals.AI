@@ -1,4 +1,5 @@
 import path from 'path';
+import { averageMeasured, averageRecorded } from '@/lib/activity/measured-values';
 import { getDataFiles, TrackerType } from '@/lib/files';
 import { parseTextFile } from '@/lib/parsers/text';
 import { parsePdf } from '@/lib/parsers/pdf';
@@ -422,12 +423,11 @@ class HealthDataStoreClass {
       hrv: Number(row.hrv_ms ?? 0),
       rhr: Number(row.rhr_bpm ?? 0),
       sleepHours: Number(row.sleep_hours ?? 0),
-      sleepScore: row.sleep_score !== undefined ? Number(row.sleep_score) : undefined,
-      sleepConsistency:
-        row.sleep_consistency !== undefined ? Number(row.sleep_consistency) : undefined,
-      strain: row.strain !== undefined ? Number(row.strain) : undefined,
-      recovery: row.recovery !== undefined ? Number(row.recovery) : undefined,
-      steps: row.steps !== undefined ? Number(row.steps) : undefined,
+      sleepScore: recordedNumber(row.sleep_score),
+      sleepConsistency: recordedNumber(row.sleep_consistency),
+      strain: recordedNumber(row.strain),
+      recovery: recordedNumber(row.recovery),
+      steps: recordedNumber(row.steps),
     }));
 
     // Calculate PhenoAge if we have age and biomarkers
@@ -738,23 +738,39 @@ class HealthDataStoreClass {
     // Activity events for the most recent 14 days
     const recentActivity = this.data.activity.slice(-14);
     recentActivity.forEach((entry, index) => {
-      const hasSignals = entry.hrv > 0 || entry.rhr > 0 || entry.sleepHours > 0;
+      const measuredRecovery =
+        typeof entry.recovery === 'number' && Number.isFinite(entry.recovery) ? entry.recovery : null;
+      const hasSignals =
+        entry.hrv > 0 || entry.rhr > 0 || entry.sleepHours > 0 || measuredRecovery !== null;
       if (!hasSignals) return;
+
+      const measuredHrv = entry.hrv > 0 ? entry.hrv : null;
+      const measuredRhr = entry.rhr > 0 ? entry.rhr : null;
+      const measuredSleep = entry.sleepHours > 0 ? entry.sleepHours : null;
 
       let severity: HealthEventSeverity = 'info';
       if (
-        entry.hrv < 25 ||
-        entry.sleepHours < 5 ||
-        (entry.recovery !== undefined && entry.recovery < 40)
+        (measuredHrv !== null && measuredHrv < 25) ||
+        (measuredSleep !== null && measuredSleep < 5) ||
+        (measuredRecovery !== null && measuredRecovery < 40)
       ) {
         severity = 'critical';
       } else if (
-        entry.hrv < 35 ||
-        entry.sleepHours < 6 ||
-        (entry.recovery !== undefined && entry.recovery < 60)
+        (measuredHrv !== null && measuredHrv < 35) ||
+        (measuredSleep !== null && measuredSleep < 6) ||
+        (measuredRecovery !== null && measuredRecovery < 60)
       ) {
         severity = 'warning';
       }
+
+      const summary = [
+        measuredHrv !== null ? `HRV ${measuredHrv} ms` : null,
+        measuredRhr !== null ? `RHR ${measuredRhr} bpm` : null,
+        measuredSleep !== null ? `Sleep ${measuredSleep.toFixed(1)}h` : null,
+        measuredRecovery !== null ? `Recovery ${measuredRecovery}%` : null,
+      ]
+        .filter((part): part is string => part !== null)
+        .join(', ');
 
       events.push({
         id: `activity:${entry.date}:${index}:${activityTime}`,
@@ -762,7 +778,7 @@ class HealthDataStoreClass {
         severity,
         source: activitySource,
         metric: 'Daily Recovery Snapshot',
-        summary: `HRV ${entry.hrv} ms, RHR ${entry.rhr} bpm, Sleep ${entry.sleepHours.toFixed(1)}h`,
+        summary,
         value: entry.recovery ?? entry.sleepScore ?? null,
         unit: '%',
         occurredAt: toIsoDateOrFallback(entry.date, activityTime),
@@ -897,39 +913,24 @@ class HealthDataStoreClass {
     if (this.data.activity.length > 0) {
       const recentDays = 7;
       const recentActivity = this.data.activity.slice(-recentDays);
-      lines.push(`\n--- Activity (${recentDays}-day average) ---`);
+      const activityLines: string[] = [];
+      const avgHrv = averageMeasured(recentActivity.map((day) => day.hrv));
+      const avgRhr = averageMeasured(recentActivity.map((day) => day.rhr));
+      const avgSleep = averageMeasured(recentActivity.map((day) => day.sleepHours));
+      const avgRecovery = averageRecorded(recentActivity.map((day) => day.recovery));
+      const avgStrain = averageRecorded(recentActivity.map((day) => day.strain));
+      const avgSteps = averageRecorded(recentActivity.map((day) => day.steps));
 
-      const avgHrv = recentActivity.reduce((sum, d) => sum + d.hrv, 0) / recentActivity.length;
-      const avgRhr = recentActivity.reduce((sum, d) => sum + d.rhr, 0) / recentActivity.length;
-      const avgSleep =
-        recentActivity.reduce((sum, d) => sum + d.sleepHours, 0) / recentActivity.length;
+      if (avgHrv !== null) activityLines.push(`HRV: ${avgHrv.toFixed(1)} ms`);
+      if (avgRhr !== null) activityLines.push(`Resting Heart Rate: ${avgRhr.toFixed(1)} bpm`);
+      if (avgSleep !== null) activityLines.push(`Sleep: ${avgSleep.toFixed(1)} hours`);
+      if (avgRecovery !== null) activityLines.push(`Recovery: ${avgRecovery.toFixed(0)}%`);
+      if (avgStrain !== null) activityLines.push(`Strain: ${avgStrain.toFixed(1)}`);
+      if (avgSteps !== null) activityLines.push(`Steps: ${Math.round(avgSteps).toLocaleString()}`);
 
-      lines.push(`HRV: ${avgHrv.toFixed(1)} ms`);
-      lines.push(`Resting Heart Rate: ${avgRhr.toFixed(1)} bpm`);
-      lines.push(`Sleep: ${avgSleep.toFixed(1)} hours`);
-
-      // Recovery if available
-      const recoveryValues = recentActivity.filter((d) => d.recovery !== undefined);
-      if (recoveryValues.length > 0) {
-        const avgRecovery =
-          recoveryValues.reduce((sum, d) => sum + (d.recovery ?? 0), 0) / recoveryValues.length;
-        lines.push(`Recovery: ${avgRecovery.toFixed(0)}%`);
-      }
-
-      // Strain if available (mainly Whoop)
-      const strainValues = recentActivity.filter((d) => d.strain !== undefined);
-      if (strainValues.length > 0) {
-        const avgStrain =
-          strainValues.reduce((sum, d) => sum + (d.strain ?? 0), 0) / strainValues.length;
-        lines.push(`Strain: ${avgStrain.toFixed(1)}`);
-      }
-
-      // Steps if available
-      const stepsValues = recentActivity.filter((d) => d.steps !== undefined);
-      if (stepsValues.length > 0) {
-        const avgSteps =
-          stepsValues.reduce((sum, d) => sum + (d.steps ?? 0), 0) / stepsValues.length;
-        lines.push(`Steps: ${Math.round(avgSteps).toLocaleString()}`);
+      if (activityLines.length > 0) {
+        lines.push(`\n--- Activity (${recentDays}-day average) ---`);
+        lines.push(...activityLines);
       }
     }
 
@@ -1055,6 +1056,12 @@ function statusToText(status: 'optimal' | 'normal' | 'borderline' | 'out_of_rang
     case 'out_of_range':
       return 'out of range';
   }
+}
+
+function recordedNumber(value: unknown): number | undefined {
+  if (value === undefined || value === null || value === '') return undefined;
+  const parsed = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(parsed) ? parsed : undefined;
 }
 
 function toIsoDateOrFallback(value: string, fallback: string): string {

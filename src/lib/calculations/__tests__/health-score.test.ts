@@ -20,4 +20,17 @@ describe('calculateHealthScore', () => {
     expect(result.breakdown.biomarkerScore).toBe(30);
     expect(result.score).toBe(40);
   });
+
+  it('does not treat missing wearable zeros as measured HRV or resting heart rate', () => {
+    const result = calculateHealthScore(
+      {},
+      null,
+      [
+        { date: '2026-01-01', hrv: 0, rhr: 0, sleepHours: 8 },
+        { date: '2026-01-02', hrv: 65, rhr: 0, sleepHours: 0 },
+      ]
+    );
+
+    expect(result.breakdown.activityScore).toBe(100);
+  });
 });

@@ -1,3 +1,4 @@
+import { averageMeasured, averageRecorded } from '@/lib/activity/measured-values';
 import { HealthDataStore, type ActivityData } from '@/lib/store/health-data';
 import type { WhoopData } from '@/lib/parsers/whoop';
 import { LifestyleClient } from './LifestyleClient';
@@ -24,30 +25,19 @@ function calculateAverages(activity: ActivityData[]): {
     return { avgHrv: 0, avgRhr: 0, avgSleep: 0, avgSleepScore: 0, avgStrain: 0, avgRecovery: 0 };
   }
 
-  const sum = activity.reduce(
-    (acc, d) => ({
-      hrv: acc.hrv + d.hrv,
-      rhr: acc.rhr + d.rhr,
-      sleep: acc.sleep + d.sleepHours,
-      sleepScore: acc.sleepScore + (d.sleepScore ?? 0),
-      strain: acc.strain + (d.strain ?? 0),
-      recovery: acc.recovery + (d.recovery ?? 0),
-    }),
-    { hrv: 0, rhr: 0, sleep: 0, sleepScore: 0, strain: 0, recovery: 0 }
-  );
-
-  const count = activity.length;
-  const scoreCount = activity.filter((d) => d.sleepScore !== undefined).length || 1;
-  const strainCount = activity.filter((d) => d.strain !== undefined).length || 1;
-  const recoveryCount = activity.filter((d) => d.recovery !== undefined).length || 1;
+  const roundMeasured = (value: number | null, digits = 0): number => {
+    if (value === null) return 0;
+    const factor = 10 ** digits;
+    return Math.round(value * factor) / factor;
+  };
 
   return {
-    avgHrv: Math.round(sum.hrv / count),
-    avgRhr: Math.round(sum.rhr / count),
-    avgSleep: Math.round((sum.sleep / count) * 10) / 10,
-    avgSleepScore: Math.round(sum.sleepScore / scoreCount),
-    avgStrain: Math.round((sum.strain / strainCount) * 10) / 10,
-    avgRecovery: Math.round(sum.recovery / recoveryCount),
+    avgHrv: roundMeasured(averageMeasured(activity.map((day) => day.hrv))),
+    avgRhr: roundMeasured(averageMeasured(activity.map((day) => day.rhr))),
+    avgSleep: roundMeasured(averageMeasured(activity.map((day) => day.sleepHours)), 1),
+    avgSleepScore: roundMeasured(averageRecorded(activity.map((day) => day.sleepScore))),
+    avgStrain: roundMeasured(averageRecorded(activity.map((day) => day.strain)), 1),
+    avgRecovery: roundMeasured(averageRecorded(activity.map((day) => day.recovery))),
   };
 }
 
