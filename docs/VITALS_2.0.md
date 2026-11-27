@@ -15,28 +15,19 @@ This documentation covers the new "Vitals 2.0" features, located at `/future`. T
    ```bash
    npm install
    ```
+   `postinstall` runs `prisma generate`.
 
-2. **Initialize Database**:
-   The SQLite database is pre-configured in `prisma/schema.prisma`.
+2. **Start the app**:
    ```bash
-   npx prisma db push
-   npx prisma generate
+   cp .env.example .env.local
+   npm run dev
    ```
+   `npm run dev` runs the project preflight check and then `next dev --webpack`. `npx next dev` skips that check.
 
-3. **Seed Demo Data**:
-   Populate the database with a "Biohacker" persona (Health Score 74, Oura Ring connected).
-   ```bash
-   # Use tsx for instant execution
-   npx tsx scripts/seed-future.ts
-   ```
+3. **Open the dashboard**:
+   [http://localhost:3000/future](http://localhost:3000/future), or **Tools > Vitals 2.0**.
 
-4. **Start Development Server**:
-   ```bash
-   npx next dev
-   ```
-
-5. **Access the Dashboard**:
-   Open [http://localhost:3000/future](http://localhost:3000/future) or navigate to **Tools > Vitals 2.0**.
+`/api/future/stats` serves the built-in demo stats in `src/lib/future/demo-stats.ts` until a Prisma user with email `demo@vitals.ai` exists. There is no `scripts/seed-future.ts`. Optional local SQLite setup, if you want that user row, is `npx prisma db push` against `prisma/schema.prisma`. The page does not require it.
 
 ## Next Steps
 - Implement `POST` endpoints for real device webhooks (Terra API).
