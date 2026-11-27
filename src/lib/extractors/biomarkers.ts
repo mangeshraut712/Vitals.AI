@@ -364,14 +364,20 @@ export function extractBiomarkers(text: string): ExtractedBiomarkers {
 
   for (const { key, patterns } of BIOMARKER_PATTERNS) {
     for (const pattern of patterns) {
-      const match = searchText.match(pattern);
-      if (match && match[1]) {
+      // Try every match of the pattern, not only the first. A value can be
+      // rejected by acceptsBiomarkerValue (an RDW-SD femtoliter value where a
+      // percent is required). If the search stopped at the first match, that
+      // rejected value would hide a valid one later in the same report.
+      const matches = searchText.matchAll(new RegExp(pattern.source, pattern.flags.includes('g') ? pattern.flags : pattern.flags + 'g'));
+      for (const match of matches) {
+        if (!match || !match[1]) continue;
         const value = parseFloat(match[1]);
         if (!isNaN(value) && acceptsBiomarkerValue(key, value)) {
           biomarkers[key] = value;
           break;
         }
       }
+      if (biomarkers[key] !== undefined) break;
     }
   }
 
